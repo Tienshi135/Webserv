@@ -1,38 +1,4 @@
-#include <fstream>
-#include <iostream>
-#include <cctype>
-#include <vector>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <cstring>
-#include <unistd.h>
-#include <errno.h>
-#include <sys/select.h>
-
 #include "header.hpp"
-
-unsigned int stringToIP(const std::string &ip_str)//might change implementation to use result from getaddrinfo
-{
-    struct addrinfo hints, *result;
-    std::memset(&hints, 0, sizeof(hints));
-	hints.ai_flags = AI_NUMERICHOST;
-    hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_STREAM;
-    
-    int status = getaddrinfo(ip_str.c_str(), NULL, &hints, &result);
-    if (status != 0)
-	{
-		std::cerr << "getaddrinfo error: " << gai_strerror(status) << std::endl;
-        return INADDR_ANY;
-    }
-    
-    struct sockaddr_in* addr_in = (struct sockaddr_in*)result->ai_addr;
-    unsigned int ip_addr = addr_in->sin_addr.s_addr;
-    freeaddrinfo(result);
-    
-    return (ip_addr);
-}
 
 void printMap(const std::map<std::string, Configuration> &buffer)
 {
@@ -64,7 +30,6 @@ void printMap(const std::map<std::string, Configuration> &buffer)
 int main(int argc, char **argv)
 {
 	std::vector<int>						sfd;
-	struct sockaddr_in						addr;
 	std::map<std::string, Configuration>	buffer;
 
 	if (argc != 2)
@@ -81,51 +46,12 @@ int main(int argc, char **argv)
 	std::map<std::string, Configuration>::iterator it = buffer.begin();
 	while (it != buffer.end())
 	{
-		std::memset(&addr, 0, sizeof(addr));
-		addr.sin_family = AF_INET;
-		addr.sin_port = htons(buffer[it->first].getListen());
-		addr.sin_addr.s_addr = stringToIP(buffer[it->first].getHost());
-		std::cout << "Binding to IP: " << buffer[it->first].getHost() << " on port " << buffer[it->first].getListen() << std::endl;
-		
-		int socket_fd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
-		if (socket_fd == -1)
+		int	socket_fd = socket_init(it);
+		if (socket_fd != -1)
 		{
-			perror("Socket creation failed");
-			std::cout << "Skipping server: " << it->first << std::endl;
-			it++;
-			continue;
+			sfd.push_back(socket_fd);
+			std::cout << "Server " << it->first << " listening successfully!" << std::endl;
 		}
-		
-		int opt = 1;
-		if (setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1)
-		{
-			perror("Setsockopt SO_REUSEADDR failed");
-			close(socket_fd);
-			std::cout << "Skipping server: " << it->first << std::endl;
-			it++;
-			continue;
-		}
-		
-		if (bind(socket_fd, (struct sockaddr *)&addr, sizeof(addr)) == -1)
-		{
-			perror("Bind error");
-			close(socket_fd);
-			std::cout << "Skipping server: " << it->first << " (IP not available)" << std::endl;
-			it++;
-			continue;
-		}
-		
-		if (listen(socket_fd, 10) == -1)
-		{
-			perror("Listen error");
-			close(socket_fd);
-			std::cout << "Skipping server: " << it->first << std::endl;
-			it++;
-			continue;
-		}
-		
-		sfd.push_back(socket_fd);
-		std::cout << "Server " << it->first << " listening successfully!" << std::endl;
 		it++;
 	}
 	if (sfd.empty())
@@ -134,13 +60,14 @@ int main(int argc, char **argv)
 		return (-1);
 	}
 
-	//third part - main loop with select
-	fd_set readfds;
+	//third part - main loop with select ( need to change write to use select as well)
+	fd_set readfds, writefds;
 	struct timeval timeout;
 	while (true)
 	{
 		int	max_fd = 0;
 		FD_ZERO(&readfds);
+		FD_ZERO(&writefds);// not used for now
 		for (size_t i = 0; i < sfd.size(); i++)
 		{
 			FD_SET(sfd[i], &readfds);

@@ -1,7 +1,6 @@
 #include "header.hpp"
-#include <fstream>
 
-unsigned int parseSize(const std::string &value)
+static unsigned int parseSize(const std::string &value)//idk might be useless
 {
 	if (value.empty())
 		return 0;
@@ -44,7 +43,7 @@ unsigned int parseSize(const std::string &value)
 	}
 }
 
-e_configtype	find_type(std::string line)
+static e_configtype	find_type(std::string line)
 {
 	static std::map<std::string, e_configtype> typeMap;
 	
@@ -146,24 +145,24 @@ bool parse(std::map<std::string, Configuration> &buffer, char *path)
 					case(SERVER_NAME):
 						temp.setName(value);
 						break;
-					case(HOST):
+					case(HOST)://might combine host into listen
 						temp.setHost(value);
 						break;
 					case(LISTEN):
 						temp.setListen(static_cast<unsigned int>(atol(value.c_str())));
 						break;
-					case(ROOT):
-						temp.setRoot(value);
-						break;
-					case(INDEX):
-						temp.setIndex(value);
-						break;
-					case(ERROR_PAGE):
-						temp.setErrorPage(value);
-						break;
-					case(MAX_BODY_SIZE):
-						temp.setMaxBodySize(parseSize(value));
-						break;
+					// case(ROOT):
+					// 	temp.setRoot(value);
+					// 	break;
+					// case(INDEX):
+					// 	temp.setIndex(value);
+					// 	break;
+					// case(ERROR_PAGE):
+					// 	temp.setErrorPage(value);
+					// 	break;
+					// case(MAX_BODY_SIZE):
+					// 	temp.setMaxBodySize(parseSize(value));
+					// 	break;
 					case(UNKNOWN):
 						std::cout << "Unknown directive: " << line << std::endl;
 						break;
