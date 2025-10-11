@@ -1,6 +1,6 @@
 #include "header.hpp"
 
-static struct sockaddr_in* init_sockaddr(Configuration conf)//initializes a socckaddr_in* with a Configuration class
+static struct sockaddr_in* init_sockaddr(Server conf)
 {
     struct addrinfo hints, *result;
     std::memset(&hints, 0, sizeof(hints));
@@ -21,7 +21,7 @@ static struct sockaddr_in* init_sockaddr(Configuration conf)//initializes a socc
     return (addr_in);
 }
 
-int socket_init(std::map<std::string, Configuration>::iterator current)
+int socket_init(std::map<std::string, Server>::iterator current)
 {
     struct sockaddr_in *addr = init_sockaddr(current->second);
     if (addr == NULL)
