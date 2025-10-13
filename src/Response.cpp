@@ -2,7 +2,7 @@
 #include "Request.hpp"
 #include "Configuration.hpp"
 
-Response::Response(const Server &config, const Request &request) : _version(request.getVersion()), _code(200), _code_str("OK"), _content_type("text/plain"), _content(""), _content_length(0), _connection_status("close")
+Response::Response(const Server &config, const Request &request)
 {
     std::string path;
 
@@ -93,7 +93,7 @@ std::string Response::getConnectionStatus() const
 	return (this->_connection_status);
 }
 
-
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 void Response::setVersion(const std::string &version)
 {
@@ -118,7 +118,7 @@ void Response::setContentType(const std::string &content_type)
 void Response::setContent(const std::string &content)
 {
 	this->_content = content;
-	this->_content_length = content.length();
+	this->_content_length = content.length();//might want to change it
 }
 
 void Response::setContentLength(unsigned int content_length)

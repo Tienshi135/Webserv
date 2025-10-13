@@ -118,7 +118,6 @@ int main(int argc, char **argv)
 		FD_ZERO(&readfds);
 		FD_ZERO(&writefds);// not used for now
 		
-		// Use iterator to go through the map of socket_fd->Server
 		for (std::map<int, Server>::iterator sfd_it = sfd.begin(); sfd_it != sfd.end(); ++sfd_it)
 		{
 			FD_SET(sfd_it->first, &readfds);
@@ -172,7 +171,7 @@ int main(int argc, char **argv)
 					if (bytes_sent == -1)
 						perror("Send error");
 				}
-				catch (const std::exception& e)// to change
+				catch (const std::exception& e)// to change probably
 				{
 					std::cerr << "Error processing request: " << e.what() << std::endl;
 					
