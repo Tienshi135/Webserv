@@ -24,5 +24,10 @@
 #include "Request.hpp"
 #include "Response.hpp"
 
-bool    parse(std::map<std::string, Server> &buffer, char *path);
-int     socket_init(std::map<std::string, Server>::iterator current);
+
+/*parsing config*/
+std::vector<std::string>	tokenizeLine(std::string& line);
+bool	parse(std::map<std::string, Server> &buffer, char *path);
+bool	isServer(std::vector<std::string>::iterator& it, std::ifstream& file);
+
+int		socket_init(std::map<std::string, Server>::iterator current);

@@ -1,14 +1,16 @@
 #include "header.hpp"
 #include <fstream>
+#include <algorithm>
+
 
 unsigned int parseSize(const std::string &value)
 {
 	if (value.empty())
 		return 0;
-	
+
 	std::string numStr;
 	char suffix = '\0';
-	
+
 	for (size_t i = 0; i < value.length(); ++i)
 	{
 		if (std::isdigit(value[i]) || value[i] == '.')
@@ -19,7 +21,7 @@ unsigned int parseSize(const std::string &value)
 			break;
 		}
 	}
-	
+
 	if (numStr.empty())
 		return 0;
 
@@ -47,14 +49,14 @@ unsigned int parseSize(const std::string &value)
 e_configtype	find_type(std::string line)
 {
 	static std::map<std::string, e_configtype> typeMap;
-	
+
 	if (typeMap.empty())
 	{
 		typeMap["server_name"] = SERVER_NAME;
 		typeMap["host"] = HOST;
 		typeMap["error_page"] = ERROR_PAGE;
 		typeMap["body_size"] = BODY_SIZE;
-		
+
 		typeMap["methods"] = METHODS;
 		typeMap["allow_methods"] = METHODS;
 		typeMap["return"] = RETURN;
@@ -65,7 +67,7 @@ e_configtype	find_type(std::string line)
 		typeMap["client_max_body_size"] = MAX_BODY_SIZE;
 		typeMap["max_body_size"] = MAX_BODY_SIZE;
 		typeMap["store"] = STORE;
-		
+
 		typeMap["location"] = LOCATION;
 	}
 
@@ -82,7 +84,7 @@ e_configtype	find_type(std::string line)
 	std::map<std::string, e_configtype>::iterator it = typeMap.find(directive);
 	if (it != typeMap.end())
 		return (it->second);
-	
+
 	return (UNKNOWN);
 }
 
@@ -92,7 +94,7 @@ int	parseLocation(std::ifstream &file, Server &buff, const std::string &currentL
 	std::string locationPath;
 	Location tempLocation;
 	bool found_brace = false;
-	
+
 	size_t pos = currentLine.find("location");
 	if (pos != std::string::npos)
 	{
@@ -106,7 +108,7 @@ int	parseLocation(std::ifstream &file, Server &buff, const std::string &currentL
 				locationPath = currentLine.substr(path_start);
 		}
 	}
-	
+
 	if (currentLine.find('{') != std::string::npos)
 		found_brace = true;
 	else
@@ -126,13 +128,13 @@ int	parseLocation(std::ifstream &file, Server &buff, const std::string &currentL
 			}
 		}
 	}
-	
+
 	if (!found_brace)
 	{
 		std::cout << "Error: No opening brace found for location block" << std::endl;
 		return (-1);
 	}
-	
+
 	while (std::getline(file, line))
 	{
 		pos = line.find_first_not_of(" \t");
@@ -140,7 +142,7 @@ int	parseLocation(std::ifstream &file, Server &buff, const std::string &currentL
 			continue;
 		if (line.find('}') != std::string::npos)
 			break;
-			
+
 		std::string value;
 		if (pos != std::string::npos)
 		{
@@ -152,7 +154,7 @@ int	parseLocation(std::ifstream &file, Server &buff, const std::string &currentL
 					value = line.substr(value_start);
 			}
 		}
-		
+
 		switch (find_type(line))
 		{
 			case(METHODS):
@@ -184,11 +186,11 @@ int	parseLocation(std::ifstream &file, Server &buff, const std::string &currentL
 				break;
 		}
 	}
-	
+
 	std::map<std::string, Location> currentMap = buff.getLocationMap();
 	currentMap[locationPath] = tempLocation;
 	buff.setLocationMap(currentMap);
-	
+
 	std::cout << "Parsed location: " << locationPath << std::endl;
 	return (0);
 
@@ -197,7 +199,7 @@ int	parseLocation(std::ifstream &file, Server &buff, const std::string &currentL
 bool parse(std::map<std::string, Server> &buffer, char *path)
 {
 	Server			temp;
-	std::ifstream   file;
+	std::ifstream	file;
 	std::string		line;
 
 	file.open(path);
@@ -207,40 +209,53 @@ bool parse(std::map<std::string, Server> &buffer, char *path)
 		buffer.clear();
 		return (false);
 	}
-	
+
+	std::vector<std::string>			tkLine;
+	std::vector<std::string>::iterator	it;
+
 	while (std::getline(file, line))
 	{
-		size_t pos = line.find_first_not_of(" \t");
-		if (pos == std::string::npos || line[pos] == '#')
-			continue;
-		if (line.find("server") != std::string::npos)
+		// size_t pos = line.find_first_not_of(" \t");
+		// if (pos == std::string::npos || line[pos] == '#')
+		// 	continue;
+		// if (line.find("server") != std::string::npos)
+		// {
+		tkLine = tokenizeLine(line);
+		it = std::find(tkLine.begin(), tkLine.end(), "server");
+		if (it != tkLine.end())
 		{
-			bool found_brace = false;
-			if (line.find('{') != std::string::npos)
-				found_brace = true;
-			else
+			if (!isServer(it, file))
 			{
-				while (std::getline(file, line))
-				{
-					if (line.find('{') != std::string::npos)
-					{
-						found_brace = true;
-						break;
-					}
-					pos = line.find_first_not_of(" \t");
-					if (pos != std::string::npos && line[pos] != '#')
-					{
-						std::cout << "Expected '{' after server, found: " << line << std::endl;
-						break;
-					}
-				}
+				std::cerr << "Error: No opening brace found for server block" << std::endl;
+				break;
 			}
-			if (!found_brace)
-			{
-				std::cout << "Error: No opening brace found for server block" << std::endl;
-				continue;
-			}
+			// bool found_brace = false;
+			// if (line.find('{') != std::string::npos)
+			// 	found_brace = true;
+			// else
+			// {
+			// 	while (std::getline(file, line))
+			// 	{
+			// 		if (line.find('{') != std::string::npos)
+			// 		{
+			// 			found_brace = true;
+			// 			break;
+			// 		}
+			// 		pos = line.find_first_not_of(" \t");
+			// 		if (pos != std::string::npos && line[pos] != '#')
+			// 		{
+			// 			std::cout << "Expected '{' after server, found: " << line << std::endl;
+			// 			break;
+			// 		}
+			// 	}
+			// }
+			// if (!found_brace)
+			// {
+			// 	std::cout << "Error: No opening brace found for server block" << std::endl;
+			// 	continue;
+			// }
 			temp = Server();
+			getServerConfig();//CONTINUE FROM HERE
 			while (std::getline(file, line))
 			{
 				pos = line.find_first_not_of(" \t");
@@ -258,7 +273,7 @@ bool parse(std::map<std::string, Server> &buffer, char *path)
 						if (value_start != std::string::npos)
 							value = line.substr(value_start);
 					}
-				}	
+				}
 				switch (find_type(line))
 				{
 					case(SERVER_NAME):
@@ -284,7 +299,7 @@ bool parse(std::map<std::string, Server> &buffer, char *path)
 					case(BODY_SIZE):
 						temp.setBodySize(parseSize(value));
 						break;
-					
+
 					// Configuration case
 					case(METHODS):
 						temp.setMethods(value);
@@ -307,7 +322,7 @@ bool parse(std::map<std::string, Server> &buffer, char *path)
 					case(STORE):
 						temp.setStore(value);
 						break;
-					
+
 					// Location case
 					case(LOCATION):
 						if (parseLocation(file, temp, line) == -1)
@@ -326,7 +341,7 @@ bool parse(std::map<std::string, Server> &buffer, char *path)
 			buffer.insert(std::pair<std::string, Server>(temp.getName(), temp));
 		}
 	}
-	
+
 	file.close();
 	return (true);
 }
