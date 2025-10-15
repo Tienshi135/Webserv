@@ -22,8 +22,8 @@ void printMap(const std::map<std::string, Server> &buffer)
             std::cout << "  Server Name: " << it->second.getName() << std::endl;
         if (!it->second.getHost().empty())
             std::cout << "  Host/IP: " << it->second.getHost() << std::endl;
-        if (it->second.getListen() != 0)
-            std::cout << "  Port: " << it->second.getListen() << std::endl;
+        if (it->second.getPort() != 0)
+            std::cout << "  Port: " << it->second.getPort() << std::endl;
         if (!it->second.getErrorPage().empty())
             std::cout << "  Error Page: " << it->second.getErrorPage() << std::endl;
         if (it->second.getBodySize() != 0)
@@ -78,7 +78,7 @@ void printMap(const std::map<std::string, Server> &buffer)
 
 int main(int argc, char **argv)
 {
-	std::map<int, Server>					sfd; // socket_fd -> Server mapping
+	std::map<int, Server>					sfd;
 	std::map<std::string, Server>		buffer;//might be overkill and can change
 
 	if (argc != 2)
@@ -118,7 +118,6 @@ int main(int argc, char **argv)
 		FD_ZERO(&readfds);
 		FD_ZERO(&writefds);// not used for now
 		
-		// Use iterator to go through the map of socket_fd->Server
 		for (std::map<int, Server>::iterator sfd_it = sfd.begin(); sfd_it != sfd.end(); ++sfd_it)
 		{
 			FD_SET(sfd_it->first, &readfds);
@@ -159,33 +158,22 @@ int main(int argc, char **argv)
 			if (bytes_read > 0)
 			{
 				buffer[bytes_read] = '\0';
-				try
-				{
-					Request	req(buffer);
-					req.printRequest();
+				Request	req(buffer);
+				req.printRequest();
 					
-					const Server &server_config = sfd_it->second;
+				const Server &server_config = sfd_it->second;
 					
-					Response response(server_config, req);
-					std::string response_str = response.buildResponse();
-					ssize_t bytes_sent = send(client_fd, response_str.c_str(), response_str.length(), 0);
-					if (bytes_sent == -1)
-						perror("Send error");
-				}
-				catch (const std::exception& e)// to change
-				{
-					std::cerr << "Error processing request: " << e.what() << std::endl;
+				Response response(server_config, req);
+				std::string response_str = response.buildResponse();
+				ssize_t bytes_sent = send(client_fd, response_str.c_str(), response_str.length(), 0);
+				if (bytes_sent == -1)
+					perror("Send error");
 					
-					std::string error_response = "HTTP/1.0 500 Internal Server Error\r\n";
-					error_response += "Content-Type: text/html\r\n";
-					error_response += "Content-Length: 52\r\n";
-					error_response += "Connection: close\r\n\r\n";
-					error_response += "<html><body><h1>500 Internal Server Error</h1></body></html>";
-					
-					ssize_t bytes_sent = send(client_fd, error_response.c_str(), error_response.length(), 0);
-					if (bytes_sent == -1)
-						perror("Send error");
-				}
+				// std::string error_response = "HTTP/1.0 500 Internal Server Error\r\n";
+				// error_response += "Content-Type: text/html\r\n";
+				// error_response += "Content-Length: 52\r\n";
+				// error_response += "Connection: close\r\n\r\n";
+				// error_response += "<html><body><h1>500 Internal Server Error</h1></body></html>";
 			}
 			if (bytes_read == -1)
 				perror("Read error");			

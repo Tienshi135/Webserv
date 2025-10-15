@@ -52,7 +52,6 @@ e_configtype	find_type(std::string line)
 	{
 		typeMap["server_name"] = SERVER_NAME;
 		typeMap["host"] = HOST;
-		typeMap["listen"] = LISTEN;
 		typeMap["error_page"] = ERROR_PAGE;
 		typeMap["body_size"] = BODY_SIZE;
 		
@@ -94,11 +93,10 @@ int	parseLocation(std::ifstream &file, Server &buff, const std::string &currentL
 	Location tempLocation;
 	bool found_brace = false;
 	
-	// Extract location path from the current line
 	size_t pos = currentLine.find("location");
 	if (pos != std::string::npos)
 	{
-		size_t path_start = currentLine.find_first_not_of(" \t", pos + 8); // Skip "location"
+		size_t path_start = currentLine.find_first_not_of(" \t", pos + 8);
 		if (path_start != std::string::npos)
 		{
 			size_t path_end = currentLine.find_first_of(" \t{", path_start);
@@ -109,12 +107,10 @@ int	parseLocation(std::ifstream &file, Server &buff, const std::string &currentL
 		}
 	}
 	
-	// Check for opening brace on current line
 	if (currentLine.find('{') != std::string::npos)
 		found_brace = true;
 	else
 	{
-		// Look for opening brace on next lines
 		while (std::getline(file, line))
 		{
 			if (line.find('{') != std::string::npos)
@@ -137,7 +133,6 @@ int	parseLocation(std::ifstream &file, Server &buff, const std::string &currentL
 		return (-1);
 	}
 	
-	// Parse location block content
 	while (std::getline(file, line))
 	{
 		pos = line.find_first_not_of(" \t");
@@ -158,7 +153,6 @@ int	parseLocation(std::ifstream &file, Server &buff, const std::string &currentL
 			}
 		}
 		
-		// Parse location-specific directives
 		switch (find_type(line))
 		{
 			case(METHODS):
@@ -191,14 +185,16 @@ int	parseLocation(std::ifstream &file, Server &buff, const std::string &currentL
 		}
 	}
 	
-	// Add location to server's location map
 	std::map<std::string, Location> currentMap = buff.getLocationMap();
 	currentMap[locationPath] = tempLocation;
 	buff.setLocationMap(currentMap);
 	
 	std::cout << "Parsed location: " << locationPath << std::endl;
 	return (0);
-}bool parse(std::map<std::string, Server> &buffer, char *path)
+
+}
+
+bool parse(std::map<std::string, Server> &buffer, char *path)
 {
 	Server			temp;
 	std::ifstream   file;
@@ -263,17 +259,24 @@ int	parseLocation(std::ifstream &file, Server &buff, const std::string &currentL
 							value = line.substr(value_start);
 					}
 				}	
-				switch (find_type(line))// need to change to accept all values in config
+				switch (find_type(line))
 				{
-					// Server-specific case
 					case(SERVER_NAME):
 						temp.setName(value);
 						break;
 					case(HOST):
-						temp.setHost(value);
-						break;
-					case(LISTEN):
-						temp.setListen(static_cast<unsigned int>(atol(value.c_str())));
+						{
+							size_t colonPos = value.find("::");
+							if (colonPos != std::string::npos)
+							{
+								std::string host_part = value.substr(0, colonPos);
+								std::string port_part = value.substr(colonPos + 2);
+								temp.setHost(host_part);
+								temp.setPort(static_cast<unsigned int>(atol(port_part.c_str())));
+							}
+							else
+								temp.setHost(value);// might want to change
+						}
 						break;
 					case(ERROR_PAGE):
 						temp.setErrorPage(value);

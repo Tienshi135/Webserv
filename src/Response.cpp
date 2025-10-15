@@ -2,7 +2,7 @@
 #include "Request.hpp"
 #include "Configuration.hpp"
 
-Response::Response(const Server &config, const Request &request) : _version(request.getVersion()), _code(200), _code_str("OK"), _content_type("text/plain"), _content(""), _content_length(0), _connection_status("close")
+Response::Response(const Server &config, const Request &request) : _version("1.0")//need update
 {
     std::string path;
 
@@ -15,9 +15,14 @@ Response::Response(const Server &config, const Request &request) : _version(requ
 	std::ifstream file(path.c_str());
 	if (!file.is_open())
 	{
-		throw std::runtime_error("Could not open file");//might need to change that tbf
+		this->_code = 404;
+		this->_code_str = "Can't fine page";
+		this->_content_type = "text/html";
+		this->_content = "<html><body><h1>404 Couldn't find page</h1></body></html>";
+		this->_content_length = this->_content.length();
+		this->_connection_status = "close";
+		return;
 	}
-
 	std::string html_content;
 	std::string line;
 	while (std::getline(file, line))
@@ -25,12 +30,13 @@ Response::Response(const Server &config, const Request &request) : _version(requ
 		html_content += line + "\n";
 	}
 	file.close();
-		
+	
 	this->_code = 200;
 	this->_code_str = "OK";
 	this->_content_type = "text/html";//to change
 	this->_content = html_content;
 	this->_content_length = html_content.length();
+	this->_connection_status = "close";
 }
 
 Response::Response(const Response &copy) : _version(copy._version), _code(copy._code), _code_str(copy._code_str), _content_type(copy._content_type), _content(copy._content), _content_length(copy._content_length), _connection_status(copy._connection_status)
@@ -93,7 +99,7 @@ std::string Response::getConnectionStatus() const
 	return (this->_connection_status);
 }
 
-
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 void Response::setVersion(const std::string &version)
 {
@@ -118,7 +124,7 @@ void Response::setContentType(const std::string &content_type)
 void Response::setContent(const std::string &content)
 {
 	this->_content = content;
-	this->_content_length = content.length();
+	this->_content_length = content.length();//might want to change it
 }
 
 void Response::setContentLength(unsigned int content_length)

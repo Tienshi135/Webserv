@@ -8,7 +8,6 @@ typedef enum ConfigType
 {
 	SERVER_NAME,
 	HOST,
-	LISTEN,
 	ERROR_PAGE,
 	BODY_SIZE,
 	
@@ -37,26 +36,26 @@ class Configuration
 		std::string		_store;
 
 	public:
-	Configuration();
-	Configuration(const Configuration &copy);
-	Configuration &operator=(const Configuration &copy);
-	~Configuration();
+		Configuration();
+		Configuration(const Configuration &copy);
+		Configuration &operator=(const Configuration &copy);
+		~Configuration();
 
-	std::string		getMethods() const;
-	std::string		getReturn() const;
-	std::string		getRoot() const;
-	bool			getAutoindex() const;
-	std::string		getIndex() const;
-	unsigned int	getMaxBodySize() const;
-	std::string		getStore() const;
+		std::string		getMethods() const;
+		std::string		getReturn() const;
+		std::string		getRoot() const;
+		bool			getAutoindex() const;
+		std::string		getIndex() const;
+		unsigned int	getMaxBodySize() const;
+		std::string		getStore() const;
 
-	void			setMethods(const std::string &methods);
-	void			setReturn(const std::string &return_val);
-	void			setRoot(const std::string &root);
-	void			setAutoindex(bool autoindex);
-	void			setIndex(const std::string &index);
-	void			setMaxBodySize(unsigned int max_body_size);
-	void			setStore(const std::string &store);
+		void			setMethods(const std::string &methods);
+		void			setReturn(const std::string &return_val);
+		void			setRoot(const std::string &root);
+		void			setAutoindex(bool autoindex);
+		void			setIndex(const std::string &index);
+		void			setMaxBodySize(unsigned int max_body_size);
+		void			setStore(const std::string &store);
 };
 
 class Location : public Configuration
@@ -73,7 +72,7 @@ class Server : public Configuration
 	private:
 		std::string						_name;
 		std::string						_host;
-		unsigned int					_listen;
+		unsigned int					_port;
 		std::string						_error_page;
 		unsigned int					_body_size;
 		std::map<std::string, Location>	_location_map;
@@ -84,16 +83,16 @@ class Server : public Configuration
 		Server &operator=(const Server &copy);
 		~Server();
 
-		std::string		getName() const;
-		std::string		getHost() const;
-		unsigned int	getListen() const;
-		std::string		getErrorPage() const;
-		unsigned int	getBodySize() const;
+		std::string						getName() const;
+		std::string						getHost() const;
+		unsigned int					getPort() const;
+		std::string						getErrorPage() const;
+		unsigned int					getBodySize() const;
 		std::map<std::string, Location>	getLocationMap() const;
 
 		void			setName(const std::string &name);
 		void			setHost(const std::string &host);
-		void			setListen(unsigned int listen);
+		void			setPort(unsigned int listen);
 		void			setErrorPage(const std::string &error_page);
 		void			setBodySize(unsigned int body_size);
 		void			setLocationMap(const std::map<std::string, Location> &location_map);

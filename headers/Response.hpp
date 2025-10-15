@@ -6,7 +6,6 @@
 #include <sstream>
 #include <stdexcept>
 
-// Forward declarations
 class Request;
 class Server;
 
@@ -20,6 +19,7 @@ class Response
 		std::string     _content;
 		unsigned int    _content_length;
 		std::string		_connection_status;
+	
 	public:
 		Response(const Server &config, const Request &request);
 		Response(const Response &copy);

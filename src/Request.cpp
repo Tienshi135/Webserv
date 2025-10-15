@@ -80,7 +80,7 @@ Request::~Request()
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-std::string Request::getVersion() const		// Changed return type to string
+std::string Request::getVersion() const
 {
 	return (this->_version);
 }
@@ -96,7 +96,7 @@ std::string Request::getPath() const
 }
 
 // Setters
-void Request::setVersion(const std::string &version)	// Changed parameter type
+void Request::setVersion(const std::string &version)
 {
 	this->_version = version;
 }
