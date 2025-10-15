@@ -15,27 +15,26 @@ Response::Response(const Server &config, const Request &request) : _version("1.0
 	std::ifstream file(path.c_str());
 	if (!file.is_open())
 	{
+		path = "." + config.getRoot() + "/" + config.getErrorPage();//will need to change once it's a map
+		std::ifstream file(path.c_str());
+		if (!file.is_open())
+			throw("big error");
 		this->_code = 404;
 		this->_code_str = "Can't fine page";
 		this->_content_type = "text/html";
-		this->_content = "<html><body><h1>404 Couldn't find page</h1></body></html>";
+		this->_content = std::string((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 		this->_content_length = this->_content.length();
 		this->_connection_status = "close";
 		return;
 	}
-	std::string html_content;
-	std::string line;
-	while (std::getline(file, line))
-	{
-		html_content += line + "\n";
-	}
+	
+	this->_content = std::string((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 	file.close();
 	
 	this->_code = 200;
 	this->_code_str = "OK";
-	this->_content_type = "text/html";//to change
-	this->_content = html_content;
-	this->_content_length = html_content.length();
+	this->_content_type = "text/html";
+	this->_content_length = this->_content.length();
 	this->_connection_status = "close";
 }
 

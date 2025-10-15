@@ -125,6 +125,10 @@ int main(int argc, char **argv)
 				max_fd = sfd_it->first;
 		}
 		
+		/* test for exit*/
+		FD_SET(STDIN_FILENO, &readfds);
+		/* test for exit*/
+
 		timeout.tv_sec = 30;
 		timeout.tv_usec = 0;
 		int activity = select(max_fd + 1, &readfds, NULL, NULL, &timeout);
@@ -139,8 +143,32 @@ int main(int argc, char **argv)
 		}
 		else if (activity == 0)
 		{
-			return (1);
+			continue;
 		}
+
+		/* test for exit*/
+		if (FD_ISSET(STDIN_FILENO, &readfds))
+		{
+			char buffer_cin[1024];
+			ssize_t bytes_read = read(STDIN_FILENO, buffer_cin, sizeof(buffer_cin) - 1);
+			if (bytes_read > 0)
+			{
+				buffer_cin[bytes_read] = '\0';
+				
+				if (bytes_read > 0 && buffer_cin[bytes_read - 1] == '\n')
+					buffer_cin[bytes_read - 1] = '\0';
+				
+				if (std::strcmp(buffer_cin, "exit") == 0)
+				{
+					std::cout << "\033[0;32m" << "Exiting server..." << "\033[0m" << std::endl;
+					for (std::map<int, Server>::iterator sfd_it = sfd.begin(); sfd_it != sfd.end(); ++sfd_it)
+						close(sfd_it->first);
+					return (0);
+				}
+			}
+		}
+		/* test for exit*/
+
 		for (std::map<int, Server>::iterator sfd_it = sfd.begin(); sfd_it != sfd.end(); ++sfd_it)
 		{
 			if (FD_ISSET(sfd_it->first, &readfds))

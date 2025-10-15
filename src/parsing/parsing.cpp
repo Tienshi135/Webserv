@@ -278,8 +278,23 @@ bool parse(std::map<std::string, Server> &buffer, char *path)
 								temp.setHost(value);// might want to change
 						}
 						break;
-					case(ERROR_PAGE):
-						temp.setErrorPage(value);
+					case(ERROR_PAGE)://to chabge once i have the map
+						{
+							size_t space_pos = value.find_first_of(" \t");
+							if (space_pos != std::string::npos)
+							{
+								size_t path_start = value.find_first_not_of(" \t", space_pos);
+								if (path_start != std::string::npos)
+								{
+									std::string error_path = value.substr(path_start);
+									temp.setErrorPage(error_path);
+								}
+							}
+							else
+							{
+								temp.setErrorPage(value);
+							}
+						}
 						break;
 					case(BODY_SIZE):
 						temp.setBodySize(parseSize(value));

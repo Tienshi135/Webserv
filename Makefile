@@ -58,9 +58,4 @@ fclean: clean
 # Rebuild everything
 re: fclean all
 
-# Debug: show variables
-debug:
-	@echo "SRCS: $(SRCS)"
-	@echo "OBJS: $(OBJS)"
-
 .PHONY: all clean fclean re debug
