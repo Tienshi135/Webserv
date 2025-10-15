@@ -125,7 +125,7 @@ int main(int argc, char **argv)
 				max_fd = sfd_it->first;
 		}
 		
-		timeout.tv_sec = 5;
+		timeout.tv_sec = 30;
 		timeout.tv_usec = 0;
 		int activity = select(max_fd + 1, &readfds, NULL, NULL, &timeout);
 		if (activity < 0)
@@ -139,8 +139,7 @@ int main(int argc, char **argv)
 		}
 		else if (activity == 0)
 		{
-			// std::cout << '.' << std::endl;
-			continue;
+			return (1);
 		}
 		for (std::map<int, Server>::iterator sfd_it = sfd.begin(); sfd_it != sfd.end(); ++sfd_it)
 		{
