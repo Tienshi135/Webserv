@@ -8,7 +8,6 @@ typedef enum ConfigType
 {
 	SERVER_NAME,
 	HOST,
-	LISTEN,
 	ERROR_PAGE,
 	BODY_SIZE,
 	
@@ -73,7 +72,7 @@ class Server : public Configuration
 	private:
 		std::string						_name;
 		std::string						_host;
-		unsigned int					_listen;
+		unsigned int					_port;
 		std::string						_error_page;
 		unsigned int					_body_size;
 		std::map<std::string, Location>	_location_map;
@@ -86,14 +85,14 @@ class Server : public Configuration
 
 		std::string						getName() const;
 		std::string						getHost() const;
-		unsigned int					getListen() const;
+		unsigned int					getPort() const;
 		std::string						getErrorPage() const;
 		unsigned int					getBodySize() const;
 		std::map<std::string, Location>	getLocationMap() const;
 
 		void			setName(const std::string &name);
 		void			setHost(const std::string &host);
-		void			setListen(unsigned int listen);
+		void			setPort(unsigned int listen);
 		void			setErrorPage(const std::string &error_page);
 		void			setBodySize(unsigned int body_size);
 		void			setLocationMap(const std::map<std::string, Location> &location_map);

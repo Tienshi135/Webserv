@@ -103,11 +103,11 @@ void Configuration::setStore(const std::string &store)
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-Server::Server() : Configuration(), _name(""), _host(""), _listen(0), _error_page(""), _body_size(0), _location_map()
+Server::Server() : Configuration(), _name(""), _host(""), _port(0), _error_page(""), _body_size(0), _location_map()
 {
 }
 
-Server::Server(const Server &copy) : Configuration(copy), _name(copy._name), _host(copy._host), _listen(copy._listen), _error_page(copy._error_page), _body_size(copy._body_size), _location_map(copy._location_map)
+Server::Server(const Server &copy) : Configuration(copy), _name(copy._name), _host(copy._host), _port(copy._port), _error_page(copy._error_page), _body_size(copy._body_size), _location_map(copy._location_map)
 {
 }
 
@@ -118,7 +118,7 @@ Server &Server::operator=(const Server &copy)
 		Configuration::operator=(copy);
 		this->_name = copy._name;
 		this->_host = copy._host;
-		this->_listen = copy._listen;
+		this->_port = copy._port;
 		this->_error_page = copy._error_page;
 		this->_body_size = copy._body_size;
 		this->_location_map = copy._location_map;
@@ -142,9 +142,9 @@ std::string Server::getHost() const
 	return (this->_host);
 }
 
-unsigned int Server::getListen() const
+unsigned int Server::getPort() const
 {
-	return (this->_listen);
+	return (this->_port);
 }
 
 std::string Server::getErrorPage() const
@@ -174,9 +174,9 @@ void Server::setHost(const std::string &host)
 	this->_host = host;
 }
 
-void Server::setListen(unsigned int listen)
+void Server::setPort(unsigned int listen)
 {
-	this->_listen = listen;
+	this->_port = listen;
 }
 
 void Server::setErrorPage(const std::string &error_page)

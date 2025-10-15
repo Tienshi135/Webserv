@@ -16,7 +16,7 @@ static struct sockaddr_in* init_sockaddr(Server conf)
     }
     struct sockaddr_in* addr_in = new struct sockaddr_in;
     std::memcpy(addr_in, result->ai_addr, sizeof(struct sockaddr_in));
-    addr_in->sin_port = htons(conf.getListen());
+    addr_in->sin_port = htons(conf.getPort());
     freeaddrinfo(result);
     return (addr_in);
 }
@@ -30,7 +30,7 @@ int socket_init(std::map<std::string, Server>::iterator current)
         return (-1);
     }
 
-    std::cout << "Binding to IP: " << current->second.getHost() << " on port " << current->second.getListen() << std::endl;
+    std::cout << "Binding to IP: " << current->second.getHost() << " on port " << current->second.getPort() << std::endl;
 
     int socket_fd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
     if (socket_fd == -1)//change to use error handling func
@@ -62,7 +62,7 @@ int socket_init(std::map<std::string, Server>::iterator current)
     
     if (listen(socket_fd, 10) == -1)//change to use error handling func
     {
-        perror("Listen error");
+        perror("Port error");
         close(socket_fd);
         std::cout << "Skipping server: " << current->first << std::endl;
         delete (addr);
