@@ -5,18 +5,18 @@ void printMap(const std::map<std::string, Server> &buffer)
     std::cout << "=== Configuration Map Contents ===" << std::endl;
     std::cout << "Total servers: " << buffer.size() << std::endl;
     std::cout << std::endl;
-    
+
     if (buffer.empty())
     {
         std::cout << "Map is empty!" << std::endl;
         return;
     }
-    
-    for (std::map<std::string, Server>::const_iterator it = buffer.begin(); 
+
+    for (std::map<std::string, Server>::const_iterator it = buffer.begin();
          it != buffer.end(); ++it)
     {
         std::cout << "=== Server: " << it->first << " ===" << std::endl;
-        
+
         // Server-specific fields
         if (!it->second.getName().empty())
             std::cout << "  Server Name: " << it->second.getName() << std::endl;
@@ -28,7 +28,7 @@ void printMap(const std::map<std::string, Server> &buffer)
             std::cout << "  Error Page: " << it->second.getErrorPage() << std::endl;
         if (it->second.getBodySize() != 0)
             std::cout << "  Body Size Limit: " << it->second.getBodySize() << std::endl;
-        
+
         // Configuration fields (inherited) - only show non-empty
         if (!it->second.getMethods().empty())
             std::cout << "  Methods: " << it->second.getMethods() << std::endl;
@@ -44,7 +44,7 @@ void printMap(const std::map<std::string, Server> &buffer)
             std::cout << "  Max Body Size: " << it->second.getMaxBodySize() << std::endl;
         if (!it->second.getStore().empty())
             std::cout << "  Store: " << it->second.getStore() << std::endl;
-        
+
         // Location map
         std::map<std::string, Location> locationMap = it->second.getLocationMap();
         if (!locationMap.empty())
@@ -70,7 +70,7 @@ void printMap(const std::map<std::string, Server> &buffer)
                     std::cout << "      Store: " << loc_it->second.getStore() << std::endl;
             }
         }
-        
+
         std::cout << "================================" << std::endl;
         std::cout << std::endl;
     }
@@ -88,7 +88,11 @@ int main(int argc, char **argv)
 	}
 
 	//first part - parsing
-	parse(buffer, argv[1]);
+	if (!parse(buffer, argv[1]))
+	{
+		std::cerr << "Invalid config file" << std::endl;
+		exit(1);
+	}
 	printMap(buffer);
 
 	//second part - socket creation and binding
@@ -117,14 +121,14 @@ int main(int argc, char **argv)
 		int	max_fd = 0;
 		FD_ZERO(&readfds);
 		FD_ZERO(&writefds);// not used for now
-		
+
 		for (std::map<int, Server>::iterator sfd_it = sfd.begin(); sfd_it != sfd.end(); ++sfd_it)
 		{
 			FD_SET(sfd_it->first, &readfds);
 			if (sfd_it->first > max_fd)
 				max_fd = sfd_it->first;
 		}
-		
+
 		timeout.tv_sec = 30;
 		timeout.tv_usec = 0;
 		int activity = select(max_fd + 1, &readfds, NULL, NULL, &timeout);
@@ -151,7 +155,7 @@ int main(int argc, char **argv)
 					perror("Accept error");
 					continue;
 				}
-			
+
 			char buffer[1024];
 			ssize_t bytes_read = read(client_fd, buffer, sizeof(buffer) - 1);//add check for received bigger than buffer size
 			if (bytes_read > 0)
@@ -159,15 +163,15 @@ int main(int argc, char **argv)
 				buffer[bytes_read] = '\0';
 				Request	req(buffer);
 				req.printRequest();
-					
+
 				const Server &server_config = sfd_it->second;
-					
+
 				Response response(server_config, req);
 				std::string response_str = response.buildResponse();
 				ssize_t bytes_sent = send(client_fd, response_str.c_str(), response_str.length(), 0);
 				if (bytes_sent == -1)
 					perror("Send error");
-					
+
 				// std::string error_response = "HTTP/1.0 500 Internal Server Error\r\n";
 				// error_response += "Content-Type: text/html\r\n";
 				// error_response += "Content-Length: 52\r\n";
@@ -175,7 +179,7 @@ int main(int argc, char **argv)
 				// error_response += "<html><body><h1>500 Internal Server Error</h1></body></html>";
 			}
 			if (bytes_read == -1)
-				perror("Read error");			
+				perror("Read error");
 			close(client_fd);
 			}
 		}
