@@ -39,7 +39,7 @@ $(obj_dir)/%.o: $(src_dir)/*/%.cpp | $(obj_dir)
 
 $(obj_dir)/%.o: %.cpp | $(obj_dir)
 	@echo "$(GREEN)Compiling $<...$(NC)"
-	@$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+	@$(CC) $(CFLAGS) -g $(INCLUDES) -c $< -o $@
 
 # Create object directory
 $(obj_dir):

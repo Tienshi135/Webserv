@@ -19,6 +19,7 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <sys/select.h>
+#include <fcntl.h>
 
 #include "Configuration.hpp"
 #include "Request.hpp"

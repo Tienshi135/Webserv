@@ -79,7 +79,7 @@ void printMap(const std::map<std::string, Server> &buffer)
 int main(int argc, char **argv)
 {
 	std::map<int, Server>					sfd;
-	std::map<std::string, Server>		buffer;//might be overkill and can change
+	std::map<std::string, Server>			buffer;
 
 	if (argc != 2)
 	{
@@ -109,103 +109,81 @@ int main(int argc, char **argv)
 		return (-1);
 	}
 
-	//third part - main loop with select ( need to change write to use select as well)
-	fd_set readfds, writefds;
-	struct timeval timeout;
+	//third part - main loop with select
 	while (true)
 	{
-		int	max_fd = 0;
-		FD_ZERO(&readfds);
-		FD_ZERO(&writefds);// not used for now
-		
-		for (std::map<int, Server>::iterator sfd_it = sfd.begin(); sfd_it != sfd.end(); ++sfd_it)
-		{
-			FD_SET(sfd_it->first, &readfds);
+		fd_set	read_fd, write_fd;
+		int		max_fd;
+		FD_ZERO(&read_fd);
+		FD_ZERO(&write_fd);
+
+		max_fd = 0;
+        std::map<int, Server>::iterator sfd_it = sfd.begin();
+        while (sfd_it != sfd.end())
+        {
+            FD_SET(sfd_it->first, &read_fd);
 			if (sfd_it->first > max_fd)
 				max_fd = sfd_it->first;
-		}
-		
-		/* test for exit*/
-		FD_SET(STDIN_FILENO, &readfds);
-		/* test for exit*/
-
-		timeout.tv_sec = 30;
-		timeout.tv_usec = 0;
-		int activity = select(max_fd + 1, &readfds, NULL, NULL, &timeout);
-		if (activity < 0)
+            sfd_it++;
+        }
+		int	activity = select(max_fd + 1, &read_fd, &write_fd, NULL, NULL);
+		if (activity == -1)
 		{
-			perror("Select error");
+			if (errno == EBADF)
+				std::cerr << "Select error: Bad file descriptor detected" << std::endl;				
+			else
+				std::cerr << "Select error: " << strerror(errno) << " (errno: " << errno << ")" << std::endl;
+			perror("Select failed");
 			for (std::map<int, Server>::iterator sfd_it = sfd.begin(); sfd_it != sfd.end(); ++sfd_it)
-			{
-				close(sfd_it->first);
-			}
+				{
+					close(sfd_it->first);
+				}
 			return (-1);
 		}
-		else if (activity == 0)
-		{
-			continue;
-		}
 
-		/* test for exit*/
-		if (FD_ISSET(STDIN_FILENO, &readfds))
-		{
-			char buffer_cin[1024];
-			ssize_t bytes_read = read(STDIN_FILENO, buffer_cin, sizeof(buffer_cin) - 1);
-			if (bytes_read > 0)
+		//connection request
+		sfd_it = sfd.begin();
+		while (sfd_it != sfd.end())
+        {
+            if (FD_ISSET(sfd_it->first, &read_fd))
 			{
-				buffer_cin[bytes_read] = '\0';
-				
-				if (bytes_read > 0 && buffer_cin[bytes_read - 1] == '\n')
-					buffer_cin[bytes_read - 1] = '\0';
-				
-				if (std::strcmp(buffer_cin, "exit") == 0)
-				{
-					std::cout << "\033[0;32m" << "Exiting server..." << "\033[0m" << std::endl;
-					for (std::map<int, Server>::iterator sfd_it = sfd.begin(); sfd_it != sfd.end(); ++sfd_it)
-						close(sfd_it->first);
-					return (0);
-				}
-			}
-		}
-		/* test for exit*/
+				Server	conf = sfd_it->second;
+				char	input[conf.getMaxBodySize()];
 
-		for (std::map<int, Server>::iterator sfd_it = sfd.begin(); sfd_it != sfd.end(); ++sfd_it)
-		{
-			if (FD_ISSET(sfd_it->first, &readfds))
-			{
-				int client_fd = accept(sfd_it->first, NULL, NULL);
+				int	client_fd = accept(sfd_it->first, NULL, NULL);//other args might be usefull idk yet
 				if (client_fd == -1)
 				{
-					perror("Accept error");
+					std::cerr << "Accept error: " << strerror(errno) << " (errno: " << errno << ")" << std::endl;
 					continue;
 				}
-			
-			char buffer[1024];
-			ssize_t bytes_read = read(client_fd, buffer, sizeof(buffer) - 1);//add check for received bigger than buffer size
-			if (bytes_read > 0)
-			{
-				buffer[bytes_read] = '\0';
-				Request	req(buffer);
-				req.printRequest();
-					
-				const Server &server_config = sfd_it->second;
-					
-				Response response(server_config, req);
-				std::string response_str = response.buildResponse();
-				ssize_t bytes_sent = send(client_fd, response_str.c_str(), response_str.length(), 0);
-				if (bytes_sent == -1)
-					perror("Send error");
-					
-				// std::string error_response = "HTTP/1.0 500 Internal Server Error\r\n";
-				// error_response += "Content-Type: text/html\r\n";
-				// error_response += "Content-Length: 52\r\n";
-				// error_response += "Connection: close\r\n\r\n";
-				// error_response += "<html><body><h1>500 Internal Server Error</h1></body></html>";
+
+				size_t	bytes_recv = recv(client_fd, &input, conf.getMaxBodySize(), 0);//MSG_OOB
+				if (bytes_recv < 0)
+				{
+					std::cerr << "Recv error: " << strerror(errno) << " (errno: " << errno << ")" << std::endl;
+					continue;
+				}
+				else if (bytes_recv == 0)
+				{
+					std::cout << "Connection closed by client" << std::endl;
+					continue;
+				}
+				else
+				{
+					std::cout << input << std::endl;
+					Request		req(input);
+					Response	resp(conf, req);
+					std::string	response_str = resp.buildResponse();
+					int bytes_sent = send(client_fd, response_str.c_str(), response_str.length(), 0);//MSG_OOB
+					if (bytes_sent == -1)
+					{
+						std::cerr << "Send error: " << strerror(errno) << " (errno: " << errno << ")" << std::endl;
+						continue;
+					}
+				}
+				close(client_fd);
 			}
-			if (bytes_read == -1)
-				perror("Read error");			
-			close(client_fd);
-			}
-		}
-	}
+            sfd_it++;
+        }
+    }
 }
