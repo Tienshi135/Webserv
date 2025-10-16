@@ -220,8 +220,20 @@ bool parse(std::map<std::string, Server> &buffer, char *path)
 		// 	continue;
 		// if (line.find("server") != std::string::npos)
 		// {
+
 		tkLine = tokenizeLine(line);
+
+		if (line.find("server{"))
+		{
+			it = std::find(tkLine.begin(), tkLine.end(), "server{");
+			if (!getServerParameters(it, file))
+				return false;
+			continue;
+		}
+
 		it = std::find(tkLine.begin(), tkLine.end(), "server");
+		if (tkLine.empty() || (!tkLine.empty() && tkLine.front()[0] == '#'))
+			continue;
 		if (it != tkLine.end())
 		{
 			if (!isServer(it, file))
@@ -254,8 +266,10 @@ bool parse(std::map<std::string, Server> &buffer, char *path)
 			// 	std::cout << "Error: No opening brace found for server block" << std::endl;
 			// 	continue;
 			// }
+			if (!getConfigItemParams(it, file))
+				return false;
+			//BREAK THE PREVIOUS LOOP HERE?
 			temp = Server();
-			getServerConfig();//CONTINUE FROM HERE
 			while (std::getline(file, line))
 			{
 				pos = line.find_first_not_of(" \t");

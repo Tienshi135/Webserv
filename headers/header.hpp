@@ -29,5 +29,6 @@
 std::vector<std::string>	tokenizeLine(std::string& line);
 bool	parse(std::map<std::string, Server> &buffer, char *path);
 bool	isServer(std::vector<std::string>::iterator& it, std::ifstream& file);
+bool	getConfigItemParams(std::vector<std::string>::iterator& it, std::ifstream& file);
 
 int		socket_init(std::map<std::string, Server>::iterator current);
