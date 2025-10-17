@@ -1,37 +1,117 @@
 #include "header.hpp"
-#include <fstream>
-#include <algorithm>
-#include <map>
-#include <sys/stat.h>
 
-
-bool hasCommonElement(std::vector<std::string>& v1, std::vector<std::string>& v2)
+std::vector<int> parseIPOctets(const std::string& ip)
 {
-	std::vector<std::string>::iterator	it;
-	for (it = v1.begin(); it != v1.end(); it++)
+	std::vector<int> octets;
+	std::stringstream ss(ip);
+	std::string segment;
+
+	if (!ip.empty() && (ip[0] == '.' || ip[ip.length() - 1] == '.'))
+		return octets;
+
+	while (std::getline(ss, segment, '.'))
 	{
-		if (std::find(v2.begin(), v2.end(), *it) != v2.end())
-			return true;
+		if (segment.empty())
+		{
+			octets.clear();
+			return octets;
+		}
+		for (size_t i = 0; i < segment.size(); i++)
+		{
+			if (!std::isdigit(segment[i]))
+			{
+				octets.clear();
+				return octets;
+			}
+		}
+		if (segment.length() > 1 && segment[0] == '0')
+		{
+			octets.clear();
+			return octets;
+		}
+		int octet = std::atoi(segment.c_str());
+		octets.push_back(octet);
 	}
-	return false;
+	if (!ss.eof())
+	{
+		octets.clear();
+		return octets;
+	}
+	return octets;
 }
 
-bool pathExists(const std::string &path)
+unsigned int parseSize(const std::string &value)
 {
-	struct stat info;
-	return (stat(path.c_str(), &info) == 0);
+	if (value.empty())
+		return 0;
+
+	std::string numStr;
+	char suffix = '\0';
+
+	for (size_t i = 0; i < value.length(); ++i)
+	{
+		if (std::isdigit(value[i]) || value[i] == '.')
+			numStr += value[i];
+		else
+		{
+			suffix = std::toupper(value[i]);
+			break;
+		}
+	}
+
+	if (numStr.empty())
+		return 0;
+
+	unsigned int num = static_cast<unsigned int>(atol(numStr.c_str()));
+
+	switch (suffix)
+	{
+		case 'K':
+			return num * 1024;
+			break;
+		case 'M':
+			return num * 1024 * 1024;
+			break;
+		case 'G':
+			return num * 1024 * 1024 * 1024;
+			break;
+		case '\0':
+			return num;
+			break;
+		default:
+			return num;
+	}
 }
 
-bool isValidLocationPath(const std::string &path)
+e_configtype	findType(std::string directive)
 {
-	if (path.empty() || path[0] != '/')
-		return false;
-	for (size_t i = 0; i < path.size(); ++i) {
-		char c = path[i];
-		if (c == ' ' || c == '\t' || c == '\n')
-			return false;
+	static std::map<std::string, e_configtype> typeMap;
+
+	if (typeMap.empty())
+	{
+		typeMap["server_name"] = SERVER_NAME;
+		typeMap["host"] = HOST;
+		typeMap["error_page"] = ERROR_PAGE;
+		typeMap["body_size"] = BODY_SIZE;
+
+		typeMap["methods"] = METHODS;
+		typeMap["allow_methods"] = METHODS;
+		typeMap["return"] = RETURN;
+		typeMap["redirect"] = RETURN;
+		typeMap["root"] = ROOT;
+		typeMap["autoindex"] = AUTOINDEX;
+		typeMap["index"] = INDEX;
+		typeMap["client_max_body_size"] = MAX_BODY_SIZE;
+		typeMap["max_body_size"] = MAX_BODY_SIZE;
+		typeMap["store"] = STORE;
+
+		typeMap["location"] = LOCATION;
 	}
-	return true;
+
+	std::map<std::string, e_configtype>::iterator it = typeMap.find(directive);
+	if (it != typeMap.end())
+		return (it->second);
+	return (UNKNOWN);
 }
 
 std::vector<std::string>	tokenizeLine(std::string& line)
@@ -47,7 +127,7 @@ std::vector<std::string>	tokenizeLine(std::string& line)
 		{
 			ss.get();//we consume the detected quote
 			if (!getline(ss, token, quote))// Fill token until reaches the same quote type
-				std::runtime_error("Error: unclosed quotes in config file");//better erro msg? keep track of getline number of lines?
+				std::runtime_error("Error: unclosed quotes in config file");//TODO: better erro msg? keep track of getline number of lines?
 			tokenized.push_back(token);
 		}
 		else
@@ -56,217 +136,22 @@ std::vector<std::string>	tokenizeLine(std::string& line)
 			tokenized.push_back(token);
 		}
 	}
+	if (tokenized.front().empty())
+		return tokenized;
+	if (!tokenized.empty() && tokenized.back() != "{" && tokenized.back() != "}" && tokenized.front() != "#")
+	{
+		if (tokenized.back()[tokenized.back().length() - 1] == ';')
+		{
+			tokenized.back().erase(tokenized.back().length() - 1);// Remove semicolon from last token
+			if (tokenized.back().empty())
+				tokenized.pop_back();
+		}
+		else
+		{
+			throw std::runtime_error("Error: directive must end with semicolon");
+		}
+	}
 	return tokenized;
 }
-void	setLocationDirective(Server& server, e_configtype& directive, std::string& value, std::string& locationPath)
-{
-	std::map<std::string, Location> currentMap = server.getLocationMap();
-
-	Location& tempLocation = currentMap[locationPath];
-	switch (directive)
-	{
-		case(METHODS):
-			tempLocation.setMethods(value);
-			break;
-		case(RETURN):
-			tempLocation.setReturn(value);
-			break;
-		case(ROOT):
-			tempLocation.setRoot(value);
-			break;
-		case(AUTOINDEX):
-			tempLocation.setAutoindex(value == "on" || value == "true" || value == "1");
-			break;
-		case(INDEX):
-			tempLocation.setIndex(value);
-			break;
-		case(MAX_BODY_SIZE):
-			tempLocation.setMaxBodySize(parseSize(value));
-			break;
-		case(STORE):
-			tempLocation.setStore(value);
-			break;
-		case(UNKNOWN):
-			std::cout << "Unknown directive in location: " << std::endl;
-			break;
-		default:
-			std::cout << "Directive not allowed in location block: " << std::endl;
-			break;
-	}
-	server.setLocationMap(currentMap);
-}
-void	setDirective(Server& server, e_configtype& directive, std::string& value)//review this function logic later to look for optimisation
-{
-	switch (directive)
-	{
-		case(SERVER_NAME):
-			server.setName(value);
-			break;
-		case(HOST):
-			{
-				size_t colonPos = value.find("::");
-				if (colonPos != std::string::npos)
-				{
-					std::string host_part = value.substr(0, colonPos);
-					std::string port_part = value.substr(colonPos + 2);
-					server.setHost(host_part);
-					server.setPort(static_cast<unsigned int>(atol(port_part.c_str())));
-				}
-				else
-					server.setHost(value);// might want to change
-			}
-			break;
-		case(ERROR_PAGE):
-			server.setErrorPage(value);
-			break;
-		case(BODY_SIZE):
-			server.setBodySize(parseSize(value));
-			break;
-
-		// Configuration case
-		case(METHODS):
-			server.setMethods(value);
-			break;
-		case(RETURN):
-			server.setReturn(value);
-			break;
-		case(ROOT):
-			server.setRoot(value);
-			break;
-		case(AUTOINDEX):
-			server.setAutoindex(value == "on" || value == "true" || value == "1");
-			break;
-		case(INDEX):
-			server.setIndex(value);
-			break;
-		case(MAX_BODY_SIZE):
-			server.setMaxBodySize(parseSize(value));
-			break;
-		case(STORE):
-			server.setStore(value);
-			break;
-		case(UNKNOWN):
-			std::cout << "Unknown directive: " << std::endl;
-			break;
-		default:
-			break;
-	}
-}
-
-Server	configServer(std::ifstream& file)
-{
-	std::string	line;
-	Server		server;
-
-	while (std::getline(file, line))
-	{
-		std::vector<std::string> tkLine = tokenizeLine(line);
-
-		if (tkLine.empty() ||  tkLine.front().empty() || tkLine.front()[0] == '#')
-			continue;
-		if (tkLine.front() == "}")
-			break;
-		if (tkLine.front() == "server")
-			throw std::runtime_error("Error: server has no closing braces");
-		if (tkLine.size() > 2)
-		{
-			if (tkLine.front() == "location")
-			{
-				if (parseLocation(server, tkLine, file) < 0)
-					throw std::runtime_error("Error: Location parsing failed");
-				continue;
-			}
-			else if (tkLine.front() == "return" && tkLine.size() == 3)
-			{
-				// Handle return directive with status code and URL
-				// Store both tkLine[1] (status) and tkLine[2] (URL)
-				std::string returnValue = tkLine[1] + " " + tkLine[2];
-				server.setReturn(returnValue);
-				continue;
-			}
-			else if (tkLine.front() == "error_page" && tkLine.size() == 3)
-			{
-				// error_page 404 /404.html
-				server.setErrorPage(tkLine[2]);  // Store the path
-				continue;
-			}
-			else
-			{
-				std::cerr << tkLine[0] << ", " << tkLine[1]<< std::endl;
-				std::cerr << tkLine.size() << " at: "<< __FILE__ << ":" << __LINE__ << std::endl;
-				throw std::runtime_error("Error: too many arguments for directive");
-			}
-		}
 
 
-		std::string directive = tkLine.front();
-		std::string value = tkLine.back();
-		e_configtype directiveType = findType(directive);
-
-		if (directiveType == UNKNOWN)
-		{
-			std::cerr << directive << " at: "<< __FILE__ << __LINE__ << std::endl;
-			throw std::runtime_error("Error: unknown directive");
-		}
-
-		setDirective(server, directiveType, value);
-	}
-	if (line.find("}") == std::string::npos)
-		throw std::runtime_error("Error: server has no closing braces");
-	return server;
-}
-
-bool	isServer(std::vector<std::string>& tkLine, std::vector<std::string>::iterator& it, std::ifstream& file)
-{
-	std::string					line;
-
-	it++;
-	if (it != tkLine.end() && *it == "{")
-		return true;
-	if (it != tkLine.end())
-		return false;
-	int	linesChecked = 0;
-	while (std::getline(file, line) && linesChecked <= 1)
-	{
-		tkLine = tokenizeLine(line);
-		if (tkLine.empty() || (!tkLine.empty() && tkLine.front()[0] == '#'))
-		{
-			linesChecked++;
-			continue;
-		}
-		if (tkLine.front() == "{")
-			return true;
-		return false;
-	}
-	return false;
-}
-
-bool	isLocation(std::vector<std::string>::iterator& it, std::ifstream& file, std::string& locationPath)
-{
-	std::vector<std::string>	tkLine;
-	std::string					line;
-
-	it++;
-	if (!isValidLocationPath(*it))
-		return false;
-	locationPath = *it;
-	it++;
-	if (it != tkLine.end() && *it == "{")
-		return true;
-	if (it != tkLine.end())
-		return false;
-	int	linesChecked = 0;
-	while (std::getline(file, line) && linesChecked <= 1)
-	{
-		tkLine = tokenizeLine(line);
-		if (tkLine.empty() || (!tkLine.empty() && tkLine.front()[0] == '#'))
-		{
-			linesChecked++;
-			continue;
-		}
-		if (tkLine.front() == "{")
-			return true;
-		return false;
-	}
-	return false;
-}
