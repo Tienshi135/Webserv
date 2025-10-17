@@ -99,12 +99,10 @@ int	parseLocation(Server& server, std::vector<std::string>& locationLine, std::i
 	std::string locationPath;
 	// bool found_brace = false;
 
-
-	std::cout << "at least locationline?: " << locationLine.front() << std::endl;
 	std::vector<std::string>::iterator	it = locationLine.begin();
 	if (!isLocation(it, file, locationPath))
 	{
-		std::cerr << "Error: location has no path or open braces" << std::endl;
+		std::cerr << "Error: location has no path or open braces at: " << __FILE__ << ":" << __LINE__ << std::endl;
 		return -1;
 	}
 
@@ -113,27 +111,43 @@ int	parseLocation(Server& server, std::vector<std::string>& locationLine, std::i
 	badToken.push_back("server");
 	badToken.push_back("{");
 
-	while (std::getline(file, line, '}'))
+	while (std::getline(file, line))
 	{
-		std::cout << "next line at Location: " << line << std::endl;
 		std::vector<std::string> tkLine = tokenizeLine(line);
-		std::cout << "tokenized front: " << tkLine.front() << " Back: " << tkLine.back() << std::endl;
 
 		if (tkLine.empty() || (!tkLine.empty() && tkLine.front()[0] == '#'))
 			continue;
+		if (tkLine.front() == "}")
+			break;
 		if (hasCommonElement(tkLine, badToken))
 		{
-			std::cerr << "Error: location has no closing braces" << std::endl;
+			std::cerr << "Error: location has no closing braces at: " << __FILE__ << ":" << __LINE__  << std::endl;
 			return -1;
 		}
 		if (tkLine.size() > 2)
 		{
-			std::cerr << "Error: location has no path or open braces" << std::endl;
-			return -1;
+			if (tkLine.front() == "return" && tkLine.size() == 3)
+			{
+				// Handle return directive with status code and URL
+				// Store both tkLine[1] (status) and tkLine[2] (URL)
+				std::string returnValue = tkLine[1] + " " + tkLine[2];
+				server.setReturn(returnValue);
+				continue;
+			}
+			else if (tkLine.front() == "error_page" && tkLine.size() == 3)
+			{
+				// error_page 404 /404.html
+				server.setErrorPage(tkLine[2]);  // Store the path
+				continue;
+			}
+			else
+			{
+				std::cerr << "Error: too many elements: [" << tkLine.size() << "] for directive at: " << __FILE__ << ":" << __LINE__  << std::endl;
+				return -1;
+			}
 		}
 
 		std::string directive = tkLine.front();
-		std::cout << "next directive: " << tkLine.front() << std::endl;
 		std::string value = tkLine.back();
 		e_configtype directiveType = findType(directive);
 
@@ -145,7 +159,7 @@ int	parseLocation(Server& server, std::vector<std::string>& locationLine, std::i
 
 		setLocationDirective(server, directiveType, value, locationPath);
 	}
-	if (!line.find("}"))
+	if (line.find("}") == std::string::npos)
 		throw std::runtime_error("Error: location has no closing braces");
 	// size_t pos = currentLine.find("location");
 	// if (pos != std::string::npos)
@@ -250,21 +264,6 @@ int	parseLocation(Server& server, std::vector<std::string>& locationLine, std::i
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 bool parse(std::map<std::string, Server> &buffer, char *path)
 {
 	std::ifstream		file;
@@ -285,14 +284,14 @@ bool parse(std::map<std::string, Server> &buffer, char *path)
 	while (std::getline(file, line))
 	{
 		std::vector<std::string> tkLine = tokenizeLine(line);
-		if (tkLine.empty() || (!tkLine.empty() && tkLine.front()[0] == '#'))
+		if (tkLine.empty() ||  tkLine.front().empty() || tkLine.front()[0] == '#')
 			continue;
 
 		std::vector<std::string>::iterator	it;
 		it = std::find(tkLine.begin(), tkLine.end(), "server");
 		if (it != tkLine.end())//server found, manage errors and fill it
 		{
-			if (!isServer(it, file))
+			if (!isServer(tkLine, it, file))
 			{
 				std::cerr << "Error: No opening brace found for server block" << std::endl;
 				buffer.clear();
@@ -300,7 +299,7 @@ bool parse(std::map<std::string, Server> &buffer, char *path)
 			}
 			try
 			{
-				Server serverInstance = configServer(file);
+				serverInstance = configServer(file);
 			}
 			catch(const std::exception& e)
 			{

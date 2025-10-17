@@ -60,8 +60,9 @@ std::vector<std::string>	tokenizeLine(std::string& line)
 }
 void	setLocationDirective(Server& server, e_configtype& directive, std::string& value, std::string& locationPath)
 {
-	Location tempLocation;
+	std::map<std::string, Location> currentMap = server.getLocationMap();
 
+	Location& tempLocation = currentMap[locationPath];
 	switch (directive)
 	{
 		case(METHODS):
@@ -92,9 +93,6 @@ void	setLocationDirective(Server& server, e_configtype& directive, std::string& 
 			std::cout << "Directive not allowed in location block: " << std::endl;
 			break;
 	}
-
-	std::map<std::string, Location> currentMap = server.getLocationMap();
-	currentMap[locationPath] = tempLocation;
 	server.setLocationMap(currentMap);
 }
 void	setDirective(Server& server, e_configtype& directive, std::string& value)//review this function logic later to look for optimisation
@@ -160,22 +158,42 @@ Server	configServer(std::ifstream& file)
 	std::string	line;
 	Server		server;
 
-	while (std::getline(file, line, '}'))
+	while (std::getline(file, line))
 	{
 		std::vector<std::string> tkLine = tokenizeLine(line);
 
-		if (tkLine.empty() || (!tkLine.empty() && tkLine.front()[0] == '#'))
+		if (tkLine.empty() ||  tkLine.front().empty() || tkLine.front()[0] == '#')
 			continue;
+		if (tkLine.front() == "}")
+			break;
 		if (tkLine.front() == "server")
 			throw std::runtime_error("Error: server has no closing braces");
 		if (tkLine.size() > 2)
 		{
 			if (tkLine.front() == "location")
-				parseLocation(server, tkLine, file);
+			{
+				if (parseLocation(server, tkLine, file) < 0)
+					throw std::runtime_error("Error: Location parsing failed");
+				continue;
+			}
+			else if (tkLine.front() == "return" && tkLine.size() == 3)
+			{
+				// Handle return directive with status code and URL
+				// Store both tkLine[1] (status) and tkLine[2] (URL)
+				std::string returnValue = tkLine[1] + " " + tkLine[2];
+				server.setReturn(returnValue);
+				continue;
+			}
+			else if (tkLine.front() == "error_page" && tkLine.size() == 3)
+			{
+				// error_page 404 /404.html
+				server.setErrorPage(tkLine[2]);  // Store the path
+				continue;
+			}
 			else
 			{
 				std::cerr << tkLine[0] << ", " << tkLine[1]<< std::endl;
-				std::cerr << tkLine.size() << " at: "<< __FILE__ << __LINE__ << std::endl;
+				std::cerr << tkLine.size() << " at: "<< __FILE__ << ":" << __LINE__ << std::endl;
 				throw std::runtime_error("Error: too many arguments for directive");
 			}
 		}
@@ -193,14 +211,13 @@ Server	configServer(std::ifstream& file)
 
 		setDirective(server, directiveType, value);
 	}
-	if (!line.find("}"))
+	if (line.find("}") == std::string::npos)
 		throw std::runtime_error("Error: server has no closing braces");
 	return server;
 }
 
-bool	isServer(std::vector<std::string>::iterator& it, std::ifstream& file)
+bool	isServer(std::vector<std::string>& tkLine, std::vector<std::string>::iterator& it, std::ifstream& file)
 {
-	std::vector<std::string>	tkLine;
 	std::string					line;
 
 	it++;

@@ -34,7 +34,7 @@ std::vector<std::string>	tokenizeLine(std::string& line);
 void	setLocationDirective(Server& server, e_configtype& directive, std::string& value, std::string& locationPath);
 void	setDirective(Server& server, e_configtype& directive, std::string& value);
 Server	configServer(std::ifstream& file);
-bool	isServer(std::vector<std::string>::iterator& it, std::ifstream& file);
+bool	isServer(std::vector<std::string>& tkLine, std::vector<std::string>::iterator& it, std::ifstream& file);
 bool	isLocation(std::vector<std::string>::iterator& it, std::ifstream& file, std::string& locationPath);
 int	parseLocation(Server& server, std::vector<std::string>& locationLine, std::ifstream &file);
 e_configtype	findType(std::string directive);
