@@ -2,8 +2,6 @@
 #include <fstream>
 #include <algorithm>
 
-/*TODO: find a better convention for multiple tokens*/
-/*TODO: missing closing brace at the end of the file is not detected*/
 Server	parseServer(File& file)
 {
 	std::string	line;
@@ -41,7 +39,6 @@ Server	parseServer(File& file)
 	return server;
 }
 
-/*TODO: find a better convention for multiple tokens*/
 void	parseLocation(Server& server, std::vector<std::string>& locationLine, File& file)
 {
 	std::string line;
