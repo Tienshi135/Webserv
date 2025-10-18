@@ -114,7 +114,7 @@ e_configtype	findType(std::string directive)
 	return (UNKNOWN);
 }
 
-std::vector<std::string>	tokenizeLine(std::string& line)
+std::vector<std::string>	tokenizeLine(std::string& line, size_t nLine)
 {
 	std::string					token;
 	std::vector<std::string>	tokenized;
@@ -127,16 +127,18 @@ std::vector<std::string>	tokenizeLine(std::string& line)
 		{
 			ss.get();//we consume the detected quote
 			if (!getline(ss, token, quote))// Fill token until reaches the same quote type
-				std::runtime_error("Error: unclosed quotes in config file");//TODO: better erro msg? keep track of getline number of lines?
+				throw ERR_PARS_CFGLN("Unclosed quotes in config file", nLine);
 			tokenized.push_back(token);
 		}
 		else
 		{
 			ss >> token;
+			if (token[0] == '#')// comment mark, stop reading the line
+				return tokenized;
 			tokenized.push_back(token);
 		}
 	}
-	if (tokenized.front().empty())
+	if (tokenized.empty() || tokenized.front().empty())
 		return tokenized;
 	if (!tokenized.empty() && tokenized.back() != "{" && tokenized.back() != "}" && tokenized.front() != "#")
 	{
@@ -148,7 +150,7 @@ std::vector<std::string>	tokenizeLine(std::string& line)
 		}
 		else
 		{
-			throw std::runtime_error("Error: directive must end with semicolon");
+			throw ERR_PARS_CFGLN("Directive must end with semicolon", nLine);
 		}
 	}
 	return tokenized;

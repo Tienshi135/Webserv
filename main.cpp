@@ -88,10 +88,16 @@ int main(int argc, char **argv)
 	}
 
 	//first part - parsing
-	if (!parse(buffer, argv[1]))
+	try
 	{
-		std::cerr << "Invalid config file" << std::endl;
-		exit(1);
+		parse(buffer, argv[1]);
+	}
+	catch(const std::exception& e)
+	{
+
+		std::cerr << e.what() << '\n';
+		buffer.clear();
+		return (-1);
 	}
 	printMap(buffer);
 

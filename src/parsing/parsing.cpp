@@ -3,27 +3,28 @@
 #include <algorithm>
 
 /*TODO: find a better convention for multiple tokens*/
-Server	configServer(std::ifstream& file)
+/*TODO: missing closing brace at the end of the file is not detected*/
+Server	configServer(File& file)
 {
 	std::string	line;
 	Server		server;
 
-	while (std::getline(file, line))
+	while (std::getline(file.file, line))
 	{
-		std::vector<std::string> tknLine = tokenizeLine(line);
+		file.nLines++;
+		std::vector<std::string> tknLine = tokenizeLine(line, file.nLines);
 
-		if (tknLine.empty() ||  tknLine.front().empty() || tknLine.front()[0] == '#')
+		if (tknLine.empty() ||  tknLine.front().empty())
 			continue;
 		if (tknLine.front() == "}")
 			break;
 		if (tknLine.front() == "server")
-			throw std::runtime_error("Error: server has no closing braces");
+			throw ERR_PARS_CFGLN("server has no closing braces", file.nLines);
 		if (tknLine.size() > 2)//We manage only 2 tokens per directive for convenience, with the exepcion of return and error page
 		{
 			if (tknLine.front() == "location")
 			{
-				if (parseLocation(server, tknLine, file) < 0)
-					throw std::runtime_error("Error: Location parsing failed");
+				parseLocation(server, tknLine, file);
 				continue;
 			}
 			else if (tknLine.front() == "return" && tknLine.size() == 3)//special case for return, we manage 3 token, ex: return 301 /new-locaton
@@ -34,15 +35,11 @@ Server	configServer(std::ifstream& file)
 			}
 			else if (tknLine.front() == "error_page" && tknLine.size() == 3)//special case for error_page, we manage 3 token, ex: error_page 404 /error/404.html
 			{
-				server.setErrorPage(tknLine[2]);  // Store the path
+				server.setErrorPage(tknLine[2]);// Store the path
 				continue;
 			}
 			else
-			{
-				std::cerr << tknLine[0] << ", " << tknLine[1]<< std::endl;
-				std::cerr << tknLine.size() << " at: "<< __FILE__ << ":" << __LINE__ << std::endl;
-				throw std::runtime_error("Error: too many arguments for directive");
-			}
+				throw ERR_PARS_CFGLN("Too many arguments for directive", file.nLines);
 		}
 
 		std::string directive = tknLine.front();
@@ -52,47 +49,42 @@ Server	configServer(std::ifstream& file)
 		if (directiveType == UNKNOWN)
 		{
 			std::cerr << directive << " at: "<< __FILE__ << __LINE__ << std::endl;
-			throw std::runtime_error("Error: unknown directive");
+			throw ERR_PARS_CFGLN("Unknown directive", file.nLines);
 		}
 
 		setDirective(server, directiveType, value);
 	}
 	if (line.find("}") == std::string::npos)
-		throw std::runtime_error("Error: server has no closing braces");
+		throw ERR_PARS_CFGLN("server has no closing braces", file.nLines);
 	return server;
 }
 
 /*TODO: find a better convention for multiple tokens*/
-int	parseLocation(Server& server, std::vector<std::string>& locationLine, std::ifstream &file)
+void	parseLocation(Server& server, std::vector<std::string>& locationLine, File& file)
 {
 	std::string line;
 	std::string locationPath;
 
 	std::vector<std::string>::iterator	it = locationLine.begin();
 	if (!isLocation(locationLine ,it, file, locationPath))
-	{
-		std::cerr << "Error: location has no path or open braces at: " << __FILE__ << ":" << __LINE__ << std::endl;
-		return -1;
-	}
+		throw ERR_PARS_CFGLN("Location has no path or open braces", file.nLines);
 
 	std::vector<std::string> badToken;
 	badToken.push_back("location");
 	badToken.push_back("server");
 	badToken.push_back("{");
 
-	while (std::getline(file, line))
+	while (std::getline(file.file, line))
 	{
-		std::vector<std::string> tknLine = tokenizeLine(line);
+		file.nLines++;
+		std::vector<std::string> tknLine = tokenizeLine(line, file.nLines);
 
-		if (tknLine.empty() || (!tknLine.empty() && tknLine.front()[0] == '#'))
+		if (tknLine.empty())
 			continue;
 		if (tknLine.front() == "}")
 			break;
 		if (hasCommonElement(tknLine, badToken))
-		{
-			std::cerr << "Error: location has no closing braces at: " << __FILE__ << ":" << __LINE__  << std::endl;
-			return -1;
-		}
+			throw ERR_PARS_CFGLN("Location has no closing braces", file.nLines);
 		if (tknLine.size() > 2)
 		{
 			if (tknLine.front() == "return" && tknLine.size() == 3)
@@ -110,10 +102,7 @@ int	parseLocation(Server& server, std::vector<std::string>& locationLine, std::i
 				continue;
 			}
 			else
-			{
-				std::cerr << "Error: too many elements: [" << tknLine.size() << "] for directive at: " << __FILE__ << ":" << __LINE__  << std::endl;
-				return -1;
-			}
+				throw ERR_PARS_CFGLN("Too many elements for directive", file.nLines);
 		}
 
 		std::string directive = tknLine.front();
@@ -123,38 +112,34 @@ int	parseLocation(Server& server, std::vector<std::string>& locationLine, std::i
 		if (directiveType == UNKNOWN)
 		{
 			std::cerr << directive << " at: "<< __FILE__ << __LINE__ << std::endl;
-			throw std::runtime_error("Error: unknown directive");
+			throw ERR_PARS_CFGLN("Unknown directive", file.nLines);
 		}
 
 		setLocationDirective(server, directiveType, value, locationPath);
 	}
 	if (line.find("}") == std::string::npos)
-		throw std::runtime_error("Error: location has no closing braces");
+		throw ERR_PARS_CFGLN("Location has no closing braces", file.nLines);
 
 	std::cout << "Parsed location: " << locationPath << std::endl;
-	return (0);
-
 }
 
-bool parse(std::map<std::string, Server> &buffer, char *path)
+void parse(std::map<std::string, Server> &buffer, char *path)
 {
-	std::ifstream		file;
+	File				file;
 	std::string			line;
 	std::vector<Server>	serverList;
 	Server serverInstance;
 
-	file.open(path);
-	if (!file.is_open())
-	{
-		std::cout << "Error could'nt open file" << std::endl;
-		buffer.clear();
-		return (false);
-	}
+	file.nLines = 0;
+	file.file.open(path);
+	if (!file.file.is_open())
+		throw ERR_PARS("Could'nt open config file");
 
-	while (std::getline(file, line))//main loop. if a server with open brace is found, store the content in a Server and add it to map
+	while (std::getline(file.file, line))//main loop. if a server with open brace is found, store the content in a Server and add it to map
 	{
-		std::vector<std::string> tknLine = tokenizeLine(line);//Line string is properly divided in "tokens"
-		if (tknLine.empty() ||  tknLine.front().empty() || tknLine.front()[0] == '#')//skipt comments and blank lines
+		file.nLines++;
+		std::vector<std::string> tknLine = tokenizeLine(line, file.nLines);//Line string is properly divided in "tokens"
+		if (tknLine.empty() ||  tknLine.front().empty())//skipt blank lines
 			continue;
 
 		std::vector<std::string>::iterator	it;
@@ -162,25 +147,11 @@ bool parse(std::map<std::string, Server> &buffer, char *path)
 		if (it != tknLine.end())//server found, manage errors and fill it
 		{
 			if (!isServer(tknLine, it, file))
-			{
-				std::cerr << "Error: No opening brace found for server block" << std::endl;
-				buffer.clear();
-				return false;
-			}
-			try
-			{
-				serverInstance = configServer(file);//fills creates an instance of server and fills it with all the directives and locations
-			}
-			catch(const std::exception& e)
-			{
-				std::cerr << e.what() << std::endl;
-				buffer.clear();
-				return false;
-			}
+				throw ERR_PARS_CFGLN("No opening brace found for server block", file.nLines);
+			serverInstance = configServer(file);//fills creates an instance of server and fills it with all the directives and locations
 			buffer.insert(std::pair<std::string, Server>(serverInstance.getName(), serverInstance));//add server to the pool of servers, restart the loop
 		}
 	}
-	/* TODO: check for duplicated servers and/or ip ,using map logic */
-	file.close();
-	return (true);
+	/* TODO: check for duplicated servers and/or ip ,using map logic ? need documentation to check if it is needed */
+	file.file.close();
 }

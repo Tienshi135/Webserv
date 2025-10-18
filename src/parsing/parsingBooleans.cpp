@@ -29,7 +29,7 @@ bool isValidLocationPath(const std::string &path)
 	return true;
 }
 
-bool	isServer(std::vector<std::string>& tknLine, std::vector<std::string>::iterator& it, std::ifstream& file)
+bool	isServer(std::vector<std::string>& tknLine, std::vector<std::string>::iterator& it, File& file)
 {
 	std::string	line;
 
@@ -39,10 +39,11 @@ bool	isServer(std::vector<std::string>& tknLine, std::vector<std::string>::itera
 	if (it != tknLine.end())
 		return false;
 	int	linesChecked = 0;
-	while (std::getline(file, line) && linesChecked <= 1)
+	while (std::getline(file.file, line) && linesChecked <= 1)
 	{
-		tknLine = tokenizeLine(line);
-		if (tknLine.empty() || (!tknLine.empty() && tknLine.front()[0] == '#'))
+		file.nLines++;
+		tknLine = tokenizeLine(line, file.nLines);
+		if (tknLine.empty())
 		{
 			linesChecked++;
 			continue;
@@ -54,7 +55,7 @@ bool	isServer(std::vector<std::string>& tknLine, std::vector<std::string>::itera
 	return false;
 }
 
-bool	isLocation(std::vector<std::string>& tknLine, std::vector<std::string>::iterator& it, std::ifstream& file, std::string& locationPath)
+bool	isLocation(std::vector<std::string>& tknLine, std::vector<std::string>::iterator& it, File& file, std::string& locationPath)
 {
 
 	std::string	line;
@@ -69,10 +70,11 @@ bool	isLocation(std::vector<std::string>& tknLine, std::vector<std::string>::ite
 	if (it != tknLine.end())
 		return false;
 	int	linesChecked = 0;
-	while (std::getline(file, line) && linesChecked <= 1)
+	while (std::getline(file.file, line) && linesChecked <= 1)
 	{
-		tknLine = tokenizeLine(line);
-		if (tknLine.empty() || (!tknLine.empty() && tknLine.front()[0] == '#'))
+		file.nLines++;
+		tknLine = tokenizeLine(line, file.nLines);
+		if (tknLine.empty())
 		{
 			linesChecked++;
 			continue;

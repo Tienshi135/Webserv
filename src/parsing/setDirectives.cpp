@@ -14,7 +14,7 @@ void	setDirective(Server& server, e_configtype& directive, std::string& value)//
 				unsigned int	port;
 
 				if (!parseHostPort(value, host, port))
-					throw std::runtime_error("Error: bad IP:PORT format");
+					throw ERR_PARS("Bad IP:PORT format");
 				else
 				{
 					server.setHost(host);
