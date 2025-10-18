@@ -127,7 +127,7 @@ std::vector<std::string>	tokenizeLine(std::string& line, size_t nLine)
 		{
 			ss.get();//we consume the detected quote
 			if (!getline(ss, token, quote))// Fill token until reaches the same quote type
-				throw ERR_PARS_CFGLN("Unclosed quotes in config file", nLine);
+				throw ERR_PARS_CFGLN("Unclosed quotes in config file", nLine);//TODO: this does not work properly, review this logic
 			tokenized.push_back(token);
 		}
 		else

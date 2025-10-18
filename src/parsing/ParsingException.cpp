@@ -12,7 +12,7 @@ ParsingException::ParsingException(std::string file, int line, std::string error
 	std::ostringstream oss;
 	oss << RED << "Error at: " << RESET
 		<< file  << ":" << line << "\n"
-		<< RED << errormsg << ", in config line " RESET
+		<< RED << errormsg << ", around config line " RESET
 		<< "[" << cfgLine << "]";
 	this->_msg = oss.str();
 }

@@ -44,11 +44,11 @@ bool hasCommonElement(std::vector<std::string>& v1, std::vector<std::string>& v2
 bool pathExists(const std::string &path);
 bool isValidLocationPath(const std::string &path);
 std::vector<std::string>	tokenizeLine(std::string& line, size_t nbLine);
-void	setLocationDirective(Server& server, e_configtype& directive, std::string& value, std::string& locationPath);
-void	setDirective(Server& server, e_configtype& directive, std::string& value);
-Server	configServer(File& file);
-bool	isServer(std::vector<std::string>& tknLine, std::vector<std::string>::iterator& it, File& file);
-bool	isLocation(std::vector<std::string>& tknLine, std::vector<std::string>::iterator& it, File& file, std::string& locationPath);
+void	setLocationDirective(Server& server, e_configtype& directive, std::vector<std::string>& value, std::string& locationPath);
+void	setDirective(Server& server, e_configtype& directive, std::vector<std::string>& value);
+Server	parseServer(File& file);
+bool	foundServer(std::vector<std::string>& tknLine, File& file);
+bool	foundLocation(std::vector<std::string>& tknLine, File& file);
 void	parseLocation(Server& server, std::vector<std::string>& locationLine, File &file);
 e_configtype	findType(std::string directive);
 unsigned int parseSize(const std::string &value);

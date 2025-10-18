@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string>
 #include <map>
+#include <vector>
 
 typedef enum ConfigType
 {
@@ -10,7 +11,7 @@ typedef enum ConfigType
 	HOST,
 	ERROR_PAGE,
 	BODY_SIZE,
-	
+
 	METHODS,
 	RETURN,
 	ROOT,
@@ -18,9 +19,9 @@ typedef enum ConfigType
 	INDEX,
 	MAX_BODY_SIZE,
 	STORE,
-	
+
 	LOCATION,
-	
+
 	UNKNOWN
 }	e_configtype;
 
@@ -49,13 +50,13 @@ class Configuration
 		unsigned int	getMaxBodySize() const;
 		std::string		getStore() const;
 
-		void			setMethods(const std::string &methods);
-		void			setReturn(const std::string &return_val);
-		void			setRoot(const std::string &root);
+		void			setMethods(const std::vector<std::string>& methods);
+		void			setReturn(std::vector<std::string>& return_val);
+		void			setRoot(const std::vector<std::string>& root);
 		void			setAutoindex(bool autoindex);
-		void			setIndex(const std::string &index);
+		void			setIndex(const std::vector<std::string>& index);
 		void			setMaxBodySize(unsigned int max_body_size);
-		void			setStore(const std::string &store);
+		void			setStore(const std::vector<std::string>& store);
 };
 
 class Location : public Configuration
@@ -90,10 +91,10 @@ class Server : public Configuration
 		unsigned int					getBodySize() const;
 		std::map<std::string, Location>	getLocationMap() const;
 
-		void			setName(const std::string &name);
+		void			setName(const std::vector<std::string>& name);
 		void			setHost(const std::string &host);
 		void			setPort(unsigned int listen);
-		void			setErrorPage(const std::string &error_page);
+		void			setErrorPage(std::vector<std::string>& error_page);
 		void			setBodySize(unsigned int body_size);
 		void			setLocationMap(const std::map<std::string, Location> &location_map);
 };

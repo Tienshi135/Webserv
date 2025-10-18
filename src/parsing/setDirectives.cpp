@@ -1,7 +1,6 @@
 #include "header.hpp"
 
-/*TODO: review this function */
-void	setDirective(Server& server, e_configtype& directive, std::string& value)//review this function logic later to look for optimisation
+void	setDirective(Server& server, e_configtype& directive, std::vector<std::string>& value)
 {
 	switch (directive)
 	{
@@ -10,10 +9,12 @@ void	setDirective(Server& server, e_configtype& directive, std::string& value)//
 			break;
 		case(HOST):
 			{
+				if (value.size() > 1)
+					throw ERR_PARS("Directive [host] has more than one element");
 				std::string		host;
 				unsigned int	port;
 
-				if (!parseHostPort(value, host, port))
+				if (!parseHostPort(value.front(), host, port))
 					throw ERR_PARS("Bad IP:PORT format");
 				else
 				{
@@ -23,10 +24,12 @@ void	setDirective(Server& server, e_configtype& directive, std::string& value)//
 			}
 			break;
 		case(ERROR_PAGE):
-			server.setErrorPage(value);//TODO: error page should be a map with all the error codes and it's correspondent pages
+			server.setErrorPage(value);
 			break;
 		case(BODY_SIZE):
-			server.setBodySize(parseSize(value));
+			if (value.size() > 1)
+				throw ERR_PARS("Directive [body_size] has more than one element");
+			server.setBodySize(parseSize(value.front()));
 			break;
 
 		// Configuration case
@@ -40,27 +43,28 @@ void	setDirective(Server& server, e_configtype& directive, std::string& value)//
 			server.setRoot(value);
 			break;
 		case(AUTOINDEX):
-			server.setAutoindex(value == "on" || value == "true" || value == "1");
+			if (value.size() > 1)
+				throw ERR_PARS("Directive [autoindex] has more than one element");
+			server.setAutoindex(value.front() == "on" || value.front() == "true" || value.front() == "1");
 			break;
 		case(INDEX):
 			server.setIndex(value);
 			break;
 		case(MAX_BODY_SIZE):
-			server.setMaxBodySize(parseSize(value));
+			if (value.size() > 1)
+				throw ERR_PARS("Directive [client_max_body_size] has more than one element");
+			server.setMaxBodySize(parseSize(value.front()));
 			break;
 		case(STORE):
 			server.setStore(value);
-			break;
-		case(UNKNOWN):
-			std::cout << "Unknown directive: " << std::endl;//TODO: alredy checkd? should we check this here or before?
 			break;
 		default:
 			break;
 	}
 }
 
-/*TODO: review this function */
-void	setLocationDirective(Server& server, e_configtype& directive, std::string& value, std::string& locationPath)
+
+void	setLocationDirective(Server& server, e_configtype& directive, std::vector<std::string>& value, std::string& locationPath)
 {
 	std::map<std::string, Location> currentMap = server.getLocationMap();
 
@@ -77,26 +81,27 @@ void	setLocationDirective(Server& server, e_configtype& directive, std::string& 
 			tempLocation.setRoot(value);
 			break;
 		case(AUTOINDEX):
-			tempLocation.setAutoindex(value == "on" || value == "true" || value == "1");
+			if (value.size() > 1)
+				throw ERR_PARS("Directive [autoindex] has more than one element");
+			tempLocation.setAutoindex(value.front() == "on" || value.front() == "true" || value.front() == "1");
 			break;
 		case(INDEX):
 			tempLocation.setIndex(value);
 			break;
 		case(MAX_BODY_SIZE):
-			tempLocation.setMaxBodySize(parseSize(value));
+			if (value.size() > 1)
+				throw ERR_PARS("Directive [client_max_body_size] has more than one element");
+			tempLocation.setMaxBodySize(parseSize(value.front()));
 			break;
 		case(STORE):
 			tempLocation.setStore(value);
 			break;
-			/*TODO: add setter for error page to base configuration since location can also store it*/
-		// case(ERROR_PAGE):
-		// 	tempLocation.setErrorPage(value);
-		// 	break;
-		case(UNKNOWN):
-			std::cout << "Unknown directive in location: " << std::endl;
+		case(ERROR_PAGE):
+			throw ERR_PARS("Directive [error_page] has not been implemented in location!");/*TODO: add setter for error page to base configuration since location can also store it*/
+			// tempLocation.setErrorPage(value);
 			break;
 		default:
-			std::cout << "Directive not allowed in location block: " << std::endl;
+			throw ERR_PARS("Directive not allowed in location block");
 			break;
 	}
 	server.setLocationMap(currentMap);

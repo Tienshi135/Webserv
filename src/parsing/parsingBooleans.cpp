@@ -29,59 +29,60 @@ bool isValidLocationPath(const std::string &path)
 	return true;
 }
 
-bool	isServer(std::vector<std::string>& tknLine, std::vector<std::string>::iterator& it, File& file)
+bool	foundServer(std::vector<std::string>& tknLine, File& file)
 {
 	std::string	line;
 
-	it++;
-	if (it != tknLine.end() && *it == "{")
-		return true;
+	std::vector<std::string>::iterator	it;
+	it = std::find(tknLine.begin(), tknLine.end(), "server");
 	if (it != tknLine.end())
-		return false;
-	int	linesChecked = 0;
-	while (std::getline(file.file, line) && linesChecked <= 1)
 	{
-		file.nLines++;
-		tknLine = tokenizeLine(line, file.nLines);
-		if (tknLine.empty())
-		{
-			linesChecked++;
-			continue;
-		}
-		if (tknLine.front() == "{")
+		if (tknLine.front() == "server" && tknLine.back() == "{" && tknLine.size() == 2)
 			return true;
-		return false;
+
+		int	linesChecked = 0;
+		while (std::getline(file.file, line) && linesChecked <= 1)
+		{
+			file.nLines++;
+			tknLine = tokenizeLine(line, file.nLines);
+			if (tknLine.empty())
+			{
+				linesChecked++;
+				continue;
+			}
+			if (tknLine.front() == "{")
+				return true;
+			throw ERR_PARS_CFGLN("Wrong server block opening syntax", file.nLines);
+		}
 	}
 	return false;
 }
 
-bool	isLocation(std::vector<std::string>& tknLine, std::vector<std::string>::iterator& it, File& file, std::string& locationPath)
+bool	foundLocation(std::vector<std::string>& tknLine, File& file)
 {
 
 	std::string	line;
 
-	it++;
-	if (it == tknLine.end() || !isValidLocationPath(*it))
-		return false;
-	locationPath = *it;
-	it++;
-	if (it != tknLine.end() && *it == "{")
-		return true;
+	std::vector<std::string>::iterator	it;
+	it = std::find(tknLine.begin(), tknLine.end(), "location");
 	if (it != tknLine.end())
-		return false;
-	int	linesChecked = 0;
-	while (std::getline(file.file, line) && linesChecked <= 1)
 	{
-		file.nLines++;
-		tknLine = tokenizeLine(line, file.nLines);
-		if (tknLine.empty())
-		{
-			linesChecked++;
-			continue;
-		}
-		if (tknLine.front() == "{")
+		if (tknLine.front() == "location" && tknLine.back() == "{" && tknLine.size() == 3)
 			return true;
-		return false;
+		int	linesChecked = 0;
+		while (std::getline(file.file, line) && linesChecked <= 1)
+		{
+			file.nLines++;
+			tknLine = tokenizeLine(line, file.nLines);
+			if (tknLine.empty())
+			{
+				linesChecked++;
+				continue;
+			}
+			if (tknLine.front() == "{")
+				return true;
+			throw ERR_PARS_CFGLN("Wrong location block opening syntax", file.nLines);
+		}
 	}
 	return false;
 }
