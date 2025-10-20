@@ -27,7 +27,7 @@ typedef enum ConfigType
 
 class Configuration
 {
-	private:
+	protected:
 		std::string		_methods;
 		std::string		_return;
 		std::string		_root;
@@ -40,7 +40,7 @@ class Configuration
 		Configuration();
 		Configuration(const Configuration &copy);
 		Configuration &operator=(const Configuration &copy);
-		~Configuration();
+		virtual ~Configuration();
 
 		std::string		getMethods() const;
 		std::string		getReturn() const;
@@ -53,8 +53,10 @@ class Configuration
 		void			setMethods(const std::vector<std::string>& methods);
 		void			setReturn(std::vector<std::string>& return_val);
 		void			setRoot(const std::vector<std::string>& root);
+		void			setRoot(std::string const& root);
 		void			setAutoindex(bool autoindex);
 		void			setIndex(const std::vector<std::string>& index);
+		void			setIndex(std::string const& index);
 		void			setMaxBodySize(unsigned int max_body_size);
 		void			setStore(const std::vector<std::string>& store);
 };
@@ -65,7 +67,7 @@ class Location : public Configuration
 		Location();
 		Location(const Location &copy);
 		Location &operator=(const Location &copy);
-		~Location();
+		virtual ~Location();
 };
 
 class Server : public Configuration
@@ -82,7 +84,7 @@ class Server : public Configuration
 		Server();
 		Server(const Server &copy);
 		Server &operator=(const Server &copy);
-		~Server();
+		virtual ~Server();
 
 		std::string						getName() const;
 		std::string						getHost() const;
@@ -90,11 +92,15 @@ class Server : public Configuration
 		std::string						getErrorPage() const;
 		unsigned int					getBodySize() const;
 		std::map<std::string, Location>	getLocationMap() const;
+		std::map<std::string, Location>	getLocationMap();
 
 		void			setName(const std::vector<std::string>& name);
+		void			setName(std::string const& name);
 		void			setHost(const std::string &host);
 		void			setPort(unsigned int listen);
 		void			setErrorPage(std::vector<std::string>& error_page);
 		void			setBodySize(unsigned int body_size);
 		void			setLocationMap(const std::map<std::string, Location> &location_map);
+
+		bool			minValidCfg() const;
 };

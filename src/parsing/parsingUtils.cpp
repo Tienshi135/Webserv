@@ -1,5 +1,12 @@
 #include "header.hpp"
 
+std::string intToString(int num)
+{
+	std::stringstream ss;
+	ss << num;
+	return ss.str();
+}
+
 std::vector<int> parseIPOctets(const std::string& ip)
 {
 	std::vector<int> octets;
@@ -40,13 +47,34 @@ std::vector<int> parseIPOctets(const std::string& ip)
 	return octets;
 }
 
+std::vector<std::string>	validUnitList(void)
+{
+	std::vector<std::string> units;
+	units.push_back("K");
+	units.push_back("KB");
+	units.push_back("M");
+	units.push_back("MB");
+	units.push_back("G");
+	units.push_back("GB");
+
+	return units;
+}
+bool	isValidUnit(std::vector<std::string>& unitList, std::string const& unit)
+{
+	std::vector<std::string>::iterator it;
+	for (it = unitList.begin(); it != unitList.end(); it++)
+		if (!it->compare(unit))
+			return true;
+	return false;
+}
 unsigned int parseSize(const std::string &value)
 {
 	if (value.empty())
 		return 0;
 
+	std::vector<std::string> validUnits = validUnitList();
 	std::string numStr;
-	char suffix = '\0';
+	std::string suffix;
 
 	for (size_t i = 0; i < value.length(); ++i)
 	{
@@ -54,33 +82,52 @@ unsigned int parseSize(const std::string &value)
 			numStr += value[i];
 		else
 		{
-			suffix = std::toupper(value[i]);
+			suffix = value.substr(i);
 			break;
 		}
 	}
 
 	if (numStr.empty())
-		return 0;
+		throw ERR_PARS("Invalid size format: no number found");
 
-	unsigned int num = static_cast<unsigned int>(atol(numStr.c_str()));
+	if (suffix.empty())
+	{
+		unsigned long long int size = atoll(numStr.c_str());
+		if (size > (1024 * 1024 * 1024) || size > std::numeric_limits<unsigned int>::max())
+			throw ERR_PARS("size is too big. Max size allowed is 1G");
+		return static_cast<unsigned int>(size);
+	}
+	for (size_t i = 0; i < suffix.length(); ++i)
+		suffix[i] = std::toupper(suffix[i]);
+	if (!isValidUnit(validUnits, suffix))
+		throw ERR_PARS("Invalid size format: unknown unit identifier");
 
-	switch (suffix)
+	unsigned long long int size = atoll(numStr.c_str());
+
+
+	switch (suffix[0])
 	{
 		case 'K':
-			return num * 1024;
+			if (size > (1024 * 1024))
+				throw ERR_PARS("Size is too big. Max size allowed is 1G");
+			size *= 1024;
 			break;
 		case 'M':
-			return num * 1024 * 1024;
+			if (size > 1024)
+				throw ERR_PARS("Size is too big. Max size allowed is 1G");
+			size *= (1024 * 1024);
 			break;
 		case 'G':
-			return num * 1024 * 1024 * 1024;
-			break;
-		case '\0':
-			return num;
+			if (size > 1)
+				throw ERR_PARS("Size is too big. Max size allowed is 1G");
+			size *= (1024 * 1024 * 1024);
 			break;
 		default:
-			return num;
+			break;
 	}
+	if (size > std::numeric_limits<unsigned int>::max())
+		throw ERR_PARS("size is too big. Max size allowed is 1G");
+	return static_cast<unsigned int>(size);
 }
 
 e_configtype	findType(std::string directive)
@@ -134,7 +181,7 @@ std::vector<std::string>	tokenizeLine(std::string& line, size_t nLine)
 		{
 			ss >> token;
 			if (token[0] == '#')// comment mark, stop reading the line
-				return tokenized;
+				break;
 			tokenized.push_back(token);
 		}
 	}
@@ -156,4 +203,61 @@ std::vector<std::string>	tokenizeLine(std::string& line, size_t nLine)
 	return tokenized;
 }
 
+void	setDefaults(Server& server)
+{
+	static int nbServers;
 
+	if (server.getName().empty())
+	{
+		if (nbServers > 0)
+			server.setName("default_server_" + intToString(nbServers));
+		else
+			server.setName("default_server");
+
+		std::cout << CYAN << "info: " << RESET
+		<< "server " << "[" << "" << "]"
+		<< " did not define [name], setting default value: "
+		<< BOLD << server.getName() << RESET << std::endl;
+	}
+
+	if (server.getIndex().empty())
+	{
+		server.setIndex("index.html");
+
+		std::cout << CYAN << "info: " << RESET
+		<< "server " << "[" << server.getName() << "]"
+		<< " did not define [index], setting default value: "
+		<< BOLD << "index.html" << RESET << std::endl;
+	}
+
+	if (server.getMaxBodySize() == 0)
+	{
+		server.setMaxBodySize(1024 * 1024);
+
+		std::cout << CYAN << "info: " << RESET
+		<< "server " << "[" << server.getName() << "]"
+		<< " did not define [client_max_body_size], setting default value: "
+		<< BOLD << "1MB" << RESET << std::endl;
+	}
+
+	std::map<std::string, Location> tmpLocation = server.getLocationMap();
+	if (!tmpLocation.empty())
+	{
+		std::map<std::string, Location>::iterator it;
+		for (it = tmpLocation.begin(); it != tmpLocation.end(); it++)
+		{
+			if (it->second.getRoot().empty())
+			{
+				it->second.setRoot(server.getRoot());
+
+				std::cout << CYAN << "info: " << RESET
+				<< "location with path " << "[" << it->first << "]"
+				<< " did not define [root], setting inherited value from server: "
+				<< BOLD << server.getRoot() << RESET << std::endl;
+			}
+		}
+		server.setLocationMap(tmpLocation);
+	}
+
+	nbServers += 1;
+}

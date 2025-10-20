@@ -65,25 +65,28 @@ std::string Configuration::getStore() const
 }
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
+/*TODO: methods should be a vector of strings*/
 void Configuration::setMethods(const std::vector<std::string>& methods)
 {
-	if (methods.size() > 1)//TODO: check real limit for methods
-		throw ERR_PARS("Directive [methods] has more than one element");
-	this->_methods = methods.front();
+	for (size_t i = 0; i < methods.size(); i++)
+	{
+		this->_methods.append(methods[i]);
+		if (i + 1 < methods.size())
+			this->_methods.append("");
+	}
 }
 /* TODO: return should be a map up to 1 or two code URL, that stores the path as string value and the code as key*/
 void Configuration::setReturn(std::vector<std::string>& return_val)
 {
 	std::cerr << YELLOW << "WARNING! " << RESET
-		<< "Directive [return_val] implementation is unfinished, check < TODO: > comments"
+		<< "Directive [return] implementation is unfinished, check < TODO: > comments"
 		<< std::endl;//TODO: delete this warning after implementation
 
 	std::vector<std::string>::iterator it;
 	for (it = return_val.begin(); it != return_val.end(); it++)
 	{
 		this->_return.append(*it);
-		if (it != return_val.end())
+		if ((it + 1) != return_val.end())
 			this->_return.append(" ");
 	}
 }
@@ -93,6 +96,11 @@ void Configuration::setRoot(const std::vector<std::string>& root)
 	if (root.size() > 1)
 		throw ERR_PARS("Directive [root] has more than one element");
 	this->_root = root.front();
+}
+
+void Configuration::setRoot(std::string const& root)
+{
+	this->_root = root;
 }
 
 void Configuration::setAutoindex(bool autoindex)
@@ -109,6 +117,11 @@ void Configuration::setIndex(const std::vector<std::string>& index)
 				<< std::endl;//TODO: delete this warning after implementation
 	}
 	this->_index = index.front();
+}
+
+void Configuration::setIndex(std::string const& index)
+{
+	this->_index = index;
 }
 
 void Configuration::setMaxBodySize(unsigned int max_body_size)
@@ -185,6 +198,11 @@ std::map<std::string, Location> Server::getLocationMap() const
 	return (this->_location_map);
 }
 
+std::map<std::string, Location> Server::getLocationMap()
+{
+	return (this->_location_map);
+}
+
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 void Server::setName(const std::vector<std::string>& name)
@@ -196,6 +214,11 @@ void Server::setName(const std::vector<std::string>& name)
 				<< std::endl;//TODO: delete this warning after implementation
 	}
 	this->_name = name.front();
+}
+
+void Server::setName(std::string const& name)
+{
+	this->_name = name;
 }
 
 void Server::setHost(const std::string &host)
@@ -258,3 +281,31 @@ Location::~Location()
 }
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+
+
+bool	Server::minValidCfg(void) const
+{
+	if (this->_host.empty())
+	{
+		std::cerr << ORANGE << "WARNING!: " << RESET
+				<< "host not set for server "
+				<< "[" << this->_name << "]" << std::endl;
+		return false;
+	}
+	if (!this->_port)
+	{
+		std::cerr << ORANGE << "WARNING!: " << RESET
+				<< "port not set for server "
+				<< "[" << this->_name << "]" << std::endl;
+		return false;
+	}
+	if (this->_root.empty())
+	{
+		std::cerr << ORANGE << "WARNING!: " << RESET
+				<< "root not set for server"
+				<< "[" << this->_name << "]" << std::endl;
+		return false;
+	}
+	return true;
+}
+

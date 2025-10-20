@@ -30,7 +30,9 @@ Server	parseServer(File& file)
 		if (directiveType == UNKNOWN)
 			throw ERR_PARS_CFGLN("Unknown directive", file.nLines);
 
-		std::vector<std::string> value;//do we need to check size here?
+		if (tknLine.size() < 2)
+			throw ERR_PARS_CFGLN("Directive [" + directive + "] has no value", file.nLines);
+		std::vector<std::string> value;
 		value.assign(tknLine.begin() + 1, tknLine.end());
 		setDirective(server, directiveType, value);
 	}
@@ -49,8 +51,9 @@ void	parseLocation(Server& server, std::vector<std::string>& locationLine, File&
 	badToken.push_back("server");
 	badToken.push_back("{");
 
-	if (locationLine.size() >= 2)
-		locationPath = locationLine[1];
+	if (locationLine.size() < 2)
+		throw ERR_PARS_CFGLN("location directive missing path", file.nLines);
+	locationPath = locationLine[1];
 	if (!isValidLocationPath(locationPath))
 		throw ERR_PARS_CFGLN("Invalid location path", file.nLines);
 
@@ -72,6 +75,8 @@ void	parseLocation(Server& server, std::vector<std::string>& locationLine, File&
 		if (directiveType == UNKNOWN)
 			throw ERR_PARS_CFGLN("Unknown location directive", file.nLines);
 
+		if (tknLine.size() < 2)
+			throw ERR_PARS_CFGLN("Directive [" + directive + "] has no value", file.nLines);
 		std::vector<std::string> value;
 		value.assign(tknLine.begin() + 1, tknLine.end());
 
@@ -79,8 +84,6 @@ void	parseLocation(Server& server, std::vector<std::string>& locationLine, File&
 	}
 	if (line.find("}") == std::string::npos)
 		throw ERR_PARS_CFGLN("Location has no closing braces", file.nLines);
-
-	std::cout << "Parsed location: " << locationPath << std::endl;
 }
 
 void parse(std::map<std::string, Server> &buffer, char *path)
@@ -95,7 +98,7 @@ void parse(std::map<std::string, Server> &buffer, char *path)
 	if (!file.file.is_open())
 		throw ERR_PARS("Could'nt open config file");
 
-	while (std::getline(file.file, line))//main loop. if a server with open brace is found, store the content in a Server and add it to map
+	while (std::getline(file.file, line))//main loop. if a server with open brace is found, store the content in a Server and add it to servers map
 	{
 		file.nLines++;
 		std::vector<std::string> tknLine = tokenizeLine(line, file.nLines);//Line string is properly divided in "tokens"
@@ -105,6 +108,9 @@ void parse(std::map<std::string, Server> &buffer, char *path)
 		if (foundServer(tknLine, file))//server found, manage errors and fill it
 		{
 			serverInstance = parseServer(file);//fills creates an instance of server and fills it with all the directives and locations
+			setDefaults(serverInstance);
+			if (!serverInstance.minValidCfg())//minimun settings check
+				throw ERR_PARS("Abort");
 			buffer.insert(std::pair<std::string, Server>(serverInstance.getName(), serverInstance));//add server to the pool of servers, restart the loop
 		}
 	}

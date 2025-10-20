@@ -31,6 +31,7 @@
 #include <cctype>
 #include <sys/stat.h>
 #include "ParsingException.hpp"
+#include <limits>
 
 struct File
 {
@@ -54,5 +55,6 @@ e_configtype	findType(std::string directive);
 unsigned int parseSize(const std::string &value);
 std::vector<int> parseIPOctets(const std::string& ip);
 bool parseHostPort(const std::string& value, std::string& host, unsigned int& port);
+void	setDefaults(Server& server);
 
 int     socket_init(std::map<std::string, Server>::iterator current);
