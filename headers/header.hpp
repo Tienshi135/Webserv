@@ -21,9 +21,9 @@
 #include <sys/select.h>
 #include <fcntl.h>
 
-#include "Configuration.hpp"
+#include "Server.hpp"
 #include "Request.hpp"
 #include "Response.hpp"
 
-bool    parse(std::map<std::string, Server> &buffer, char *path);
-int     socket_init(std::map<std::string, Server>::iterator current);
+bool    parse(std::vector<Server> &buffer, char *path);
+int     socket_init(std::vector<Server>::iterator current);

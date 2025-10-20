@@ -1,6 +1,6 @@
 #include "Response.hpp"
 #include "Request.hpp"
-#include "Configuration.hpp"
+#include "Server.hpp"
 
 Response::Response(const Server &config, const Request &request) : _version("1.0")//need update
 {
@@ -137,18 +137,6 @@ void Response::setConnectionStatus(const std::string &connection_status)
 }
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
-void Response::printResponse() const
-{
-	std::cout << "=== Response Information ===" << std::endl;
-	std::cout << "HTTP Version: " << this->_version << std::endl;
-	std::cout << "Status Code: " << this->_code << " " << this->_code_str << std::endl;
-	std::cout << "Content-Type: " << this->_content_type << std::endl;
-	std::cout << "Content-Length: " << this->_content_length << std::endl;
-	std::cout << "Connection: " << this->_connection_status << std::endl;
-	std::cout << "Content Preview: " << (this->_content.length() > 50 ? this->_content.substr(0, 50) + "..." : this->_content) << std::endl;
-	std::cout << "=========================" << std::endl;
-}
 
 std::string Response::buildResponse() const
 {

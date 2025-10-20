@@ -1,4 +1,4 @@
-#include "Configuration.hpp"
+#include "Server.hpp"
 
 Configuration::Configuration() : _methods(""), _return(""), _root(""), _autoindex(false), _index(""), _max_body_size(0), _store("")
 {
@@ -101,7 +101,6 @@ void Configuration::setStore(const std::string &store)
 }
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 Server::Server() : Configuration(), _name(""), _host(""), _port(0), _error_page(""), _body_size(0), _location_map()
 {
@@ -194,7 +193,6 @@ void Server::setLocationMap(const std::map<std::string, Location> &location_map)
 	this->_location_map = location_map;
 }
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 Location::Location() : Configuration()

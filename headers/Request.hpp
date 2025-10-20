@@ -30,6 +30,5 @@ class Request {
         void            setRequest(t_request request);
         void            setPath(const std::string &path);
         
-        void            printRequest() const;
         std::string     requestTypeToString() const;
 };

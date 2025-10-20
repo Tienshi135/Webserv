@@ -194,7 +194,7 @@ int	parseLocation(std::ifstream &file, Server &buff, const std::string &currentL
 
 }
 
-bool parse(std::map<std::string, Server> &buffer, char *path)
+bool parse(std::vector<Server> &buffer, char *path)
 {
 	Server			temp;
 	std::ifstream   file;
@@ -338,7 +338,7 @@ bool parse(std::map<std::string, Server> &buffer, char *path)
 						break;
 				}
 			}
-			buffer.insert(std::pair<std::string, Server>(temp.getName(), temp));
+			buffer.push_back(temp);
 		}
 	}
 	

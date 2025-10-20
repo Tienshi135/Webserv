@@ -127,12 +127,3 @@ std::string Request::requestTypeToString() const
 			return ("UNKNOWN");
 	}
 }
-
-void Request::printRequest() const
-{
-	std::cout << "=== Request Information ===" << std::endl;
-	std::cout << "Request Type: " << requestTypeToString() << std::endl;
-	std::cout << "HTTP Version: " << this->_version << std::endl;
-	std::cout << "URL Path: " << this->_path << std::endl;
-	std::cout << "=========================" << std::endl;
-}

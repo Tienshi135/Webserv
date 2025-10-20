@@ -82,7 +82,7 @@ class Server : public Configuration
 		Server(const Server &copy);
 		Server &operator=(const Server &copy);
 		~Server();
-
+		
 		std::string						getName() const;
 		std::string						getHost() const;
 		unsigned int					getPort() const;

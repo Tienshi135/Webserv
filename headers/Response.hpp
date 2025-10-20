@@ -42,6 +42,5 @@ class Response
 		void			setContentLength(unsigned int content_length);
 		void			setConnectionStatus(const std::string &connection_status);
 		
-		void			printResponse() const;
 		std::string		buildResponse() const;
 };
