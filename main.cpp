@@ -153,6 +153,7 @@ int main(int argc, char **argv)
 				}
 			
 			char buffer[1024];
+			std::cout << "Client connected, reading request..." << std::endl;
 			ssize_t bytes_read = read(client_fd, buffer, sizeof(buffer) - 1);//add check for received bigger than buffer size
 			if (bytes_read > 0)
 			{
