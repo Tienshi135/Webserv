@@ -19,13 +19,13 @@ class Response
 		std::string     _content;
 		unsigned int    _content_length;
 		std::string		_connection_status;
-	
+
 	public:
 		Response(const Server &config, const Request &request);
 		Response(const Response &copy);
 		Response &operator=(const Response &copy);
 		~Response();
-		
+
 		std::string		getVersion() const;
 		unsigned int	getCode() const;
 		std::string		getCodeStr() const;
@@ -33,7 +33,7 @@ class Response
 		std::string		getContent() const;
 		unsigned int	getContentLength() const;
 		std::string		getConnectionStatus() const;
-		
+
 		void			setVersion(const std::string &version);
 		void			setCode(unsigned int code);
 		void			setCodeStr(const std::string &code_str);
@@ -41,7 +41,9 @@ class Response
 		void			setContent(const std::string &content);
 		void			setContentLength(unsigned int content_length);
 		void			setConnectionStatus(const std::string &connection_status);
-		
+
 		void			printResponse() const;
 		std::string		buildResponse() const;
+		std::string&	errorCodes(int const& errCode);
+
 };

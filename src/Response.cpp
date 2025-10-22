@@ -30,7 +30,7 @@ Response::Response(const Server &config, const Request &request) : _version("1.0
 		html_content += line + "\n";
 	}
 	file.close();
-	
+
 	this->_code = 200;
 	this->_code_str = "OK";
 	this->_content_type = "text/html";//to change
@@ -154,28 +154,85 @@ void Response::printResponse() const
 std::string Response::buildResponse() const
 {
 	std::string response;
-	
+
 	response = "HTTP/" + this->_version + " ";
 	if (this->_code < 100)
 		response += "0";
 	if (this->_code < 10)
 		response += "0";
-	
+
 	std::ostringstream oss;
 	oss << this->_code;
 	response += oss.str() + " " + this->_code_str + "\r\n";
-	
+
 	response += "Content-Type: " + this->_content_type + "\r\n";
-	
+
 	std::ostringstream len_oss;
 	len_oss << this->_content_length;
 	response += "Content-Length: " + len_oss.str() + "\r\n";
-	
+
 	response += "Connection: " + this->_connection_status + "\r\n";
-	
+
 	response += "\r\n";
-	
+
 	response += this->_content;
-	
+
 	return (response);
+}
+
+std::string&	Response::errorCodes(int const& errCode)
+{
+	static std::map<int, std::string> errorCodes;
+
+	// 1xx Informational
+	errorCodes[100] = "Continue";
+	errorCodes[101] = "Switching Protocols";
+
+	// 2xx Success
+	errorCodes[200] = "OK";
+	errorCodes[201] = "Created";
+	errorCodes[202] = "Accepted";
+	errorCodes[203] = "Non-Authoritative Information";
+	errorCodes[204] = "No Content";
+	errorCodes[205] = "Reset Content";
+	errorCodes[206] = "Partial Content";
+
+	// 3xx Redirection
+	errorCodes[300] = "Multiple Choices";
+	errorCodes[301] = "Moved Permanently";
+	errorCodes[302] = "Found";
+	errorCodes[303] = "See Other";
+	errorCodes[304] = "Not Modified";
+	errorCodes[305] = "Use Proxy";
+	errorCodes[307] = "Temporary Redirect";
+
+	// 4xx Client Errors
+	errorCodes[400] = "Bad Request";
+	errorCodes[401] = "Unauthorized";
+	errorCodes[402] = "Payment Required";
+	errorCodes[403] = "Forbidden";
+	errorCodes[404] = "Not Found";
+	errorCodes[405] = "Method Not Allowed";
+	errorCodes[406] = "Not Acceptable";
+	errorCodes[407] = "Proxy Authentication Required";
+	errorCodes[408] = "Request Timeout";
+	errorCodes[409] = "Conflict";
+	errorCodes[410] = "Gone";
+	errorCodes[411] = "Length Required";
+	errorCodes[412] = "Precondition Failed";
+	errorCodes[413] = "Payload Too Large";
+	errorCodes[414] = "URI Too Long";
+	errorCodes[415] = "Unsupported Media Type";
+	errorCodes[416] = "Range Not Satisfiable";
+	errorCodes[417] = "Expectation Failed";
+
+	// 5xx Server Errors
+	errorCodes[500] = "Internal Server Error";
+	errorCodes[501] = "Not Implemented";
+	errorCodes[502] = "Bad Gateway";
+	errorCodes[503] = "Service Unavailable";
+	errorCodes[504] = "Gateway Timeout";
+	errorCodes[505] = "HTTP Version Not Supported";
+
+	return errorCodes[errCode];
 }

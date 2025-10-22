@@ -10,18 +10,18 @@ Request::Request(std::string received)//might need to make it throw tbf
 	if (end_l == std::string::npos)
 		end_l = received.length();
 	line = received.substr(0, end_l);
-	
+
 	if (line.find("GET") == 0)
-		this->_request = GET;
+		this->_method = GET;
 	else if (line.find("POST") == 0)
-		this->_request = POST;
+		this->_method = POST;
 	else if (line.find("DELETE") == 0)
-		this->_request = DELETE;
+		this->_method = DELETE;
 	else
 	{
 		std::cout << "parse error: unknown method" << std::endl;//to change
 	}
-	
+
 	pos = line.find(' ');
 	if (pos != std::string::npos)
 	{
@@ -34,7 +34,7 @@ Request::Request(std::string received)//might need to make it throw tbf
 	}
 	else
 		this->_path = "/";//might need to change
-	
+
 	pos = line.find("HTTP/");
 	if (pos != std::string::npos)
 	{
@@ -59,7 +59,7 @@ Request::Request(std::string received)//might need to make it throw tbf
 	}
 }
 
-Request::Request(const Request &copy) : _version(copy._version), _request(copy._request), _path(copy._path)
+Request::Request(const Request &copy) : _version(copy._version), _method(copy._method), _path(copy._path)
 {
 }
 
@@ -68,7 +68,7 @@ Request &Request::operator=(const Request &copy)
 	if (this != &copy)
 	{
 		this->_version = copy._version;
-		this->_request = copy._request;
+		this->_method = copy._method;
 		this->_path = copy._path;
 	}
 	return (*this);
@@ -85,9 +85,9 @@ std::string Request::getVersion() const
 	return (this->_version);
 }
 
-t_request Request::getRequest() const
+t_method Request::getRequest() const
 {
-	return (this->_request);
+	return (this->_method);
 }
 
 std::string Request::getPath() const
@@ -101,9 +101,9 @@ void Request::setVersion(const std::string &version)
 	this->_version = version;
 }
 
-void Request::setRequest(t_request request)
+void Request::setRequest(t_method request)
 {
-	this->_request = request;
+	this->_method = request;
 }
 
 void Request::setPath(const std::string &path)
@@ -115,7 +115,7 @@ void Request::setPath(const std::string &path)
 
 std::string Request::requestTypeToString() const
 {
-	switch (this->_request)
+	switch (this->_method)
 	{
 		case GET:
 			return ("GET");
