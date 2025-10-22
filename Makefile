@@ -7,7 +7,7 @@ obj_dir = ./obj
 
 # compilator and compilation flags
 CC = c++
-CFLAGS = -Wall -Werror -Wextra --std=c++98
+CFLAGS = -Wall -Werror -Wextra --std=c++98 -g3
 INCLUDES = -I ./headers
 
 # source files (recursively find all .cpp files)
