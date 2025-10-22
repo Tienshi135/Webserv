@@ -41,9 +41,9 @@ struct File
 
 //parsing
 void    parse(std::map<std::string, Server> &buffer, char *path);
-bool hasCommonElement(std::vector<std::string>& v1, std::vector<std::string>& v2);
-bool pathExists(const std::string &path);
-bool isValidLocationPath(const std::string &path);
+bool	 hasCommonElement(std::vector<std::string>& v1, std::vector<std::string>& v2);
+bool 	pathExists(const std::string &path);
+bool 	isValidLocationPath(const std::string &path);
 std::vector<std::string>	tokenizeLine(std::string& line, size_t nbLine);
 void	setLocationDirective(Server& server, e_configtype& directive, std::vector<std::string>& value, std::string& locationPath);
 void	setDirective(Server& server, e_configtype& directive, std::vector<std::string>& value);

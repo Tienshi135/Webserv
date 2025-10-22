@@ -76,7 +76,7 @@ class Server : public Configuration
 		std::string						_name;
 		std::string						_host;
 		unsigned int					_port;
-		std::string						_error_page;
+		std::string						_error_page;//TODO change to map
 		unsigned int					_body_size;
 		std::map<std::string, Location>	_location_map;
 
