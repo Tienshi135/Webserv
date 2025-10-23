@@ -2,19 +2,15 @@
 
 #include "header.hpp"
 
-typedef enum e_method
-{
-    GET,
-    POST,
-    DELETE
-}   t_method;
-
 class Request {
 
     private:
+        std::string     _method;
+		std::string		_uri;
         std::string     _version;
-        t_method       _method;
-		std::string		_path;
+        std::map<std::string, std::string> _headers;//TODO: could/need this to be a map<std::string, std::vector> to store multiple values for header?
+        std::string     _body;
+        bool            _valid;
 
 	public:
 		Request(std::string received);
@@ -23,13 +19,19 @@ class Request {
         ~Request();
 
         std::string     getVersion() const;
-        t_method       getRequest() const;
-        std::string     getPath() const;
+        std::string     getMethod() const;
+        std::string     getUri() const;
+        std::string     getHeader(const std::string &key) const;
+        std::string     getBody() const;
+        bool            isValid() const;
 
         void            setVersion(const std::string &version);
-        void            setRequest(t_method request);
-        void            setPath(const std::string &path);
+        void            setMethod(std::string const& method);
+        void            setUri(const std::string &path);
 
         void            printRequest() const;
-        std::string     requestTypeToString() const;
+
+        bool	fillFirstLine(std::vector<std::string>& firstLine);
+        bool    validateRequest();
+
 };

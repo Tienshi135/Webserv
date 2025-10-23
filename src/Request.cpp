@@ -1,98 +1,95 @@
 #include "Request.hpp"
 
-Request::Request(std::string received)//might need to make it throw tbf
+/*============================= Constructors and destructor =====================================*/
+
+Request::Request(std::string received)
 {
-	std::size_t pos;
-	std::size_t end_l;
-	std::string line;
+	std::stringstream			iss(received);
+	std::string					line;
+	std::vector<std::string>	firstLine;
+	std::vector<std::string>	headerLine;
 
-	end_l = received.find_first_of('\n');
-	if (end_l == std::string::npos)
-		end_l = received.length();
-	line = received.substr(0, end_l);
 
-	if (line.find("GET") == 0)
-		this->_method = GET;
-	else if (line.find("POST") == 0)
-		this->_method = POST;
-	else if (line.find("DELETE") == 0)
-		this->_method = DELETE;
-	else
+	//REQUEST LINE
+	std::getline(iss, line);
+	firstLine = tokenizeLine(line);
+	this->_valid = this->fillFirstLine(firstLine);//fills method, uri, and version, returns false if not HTTP/1.1 complying
+	if (!this->_valid)
+		return;
+
+	//HEADERS
+	std::getline(iss, line);
+	headerLine = tokenizeLine(line);
+	while (!headerLine.empty())
 	{
-		std::cout << "parse error: unknown method" << std::endl;//to change
-	}
+		std::string key = headerLine.front();
+		if (!key.empty() && key[key.length() - 1] == ':')
+			key.erase(key.length() - 1);
 
-	pos = line.find(' ');
-	if (pos != std::string::npos)
-	{
-		pos++;
-		std::size_t path_end = line.find(" HTTP/", pos);
-		if (path_end != std::string::npos)
-			this->_path = line.substr(pos, path_end - pos);
-		else
-			this->_path = "/";
-	}
-	else
-		this->_path = "/";//might need to change
-
-	pos = line.find("HTTP/");
-	if (pos != std::string::npos)
-	{
-		std::string version_str = line.substr(pos + 5);
-		if (!version_str.empty())
+		std::string value;
+		for (size_t i = 1; i < headerLine.size(); i++)
 		{
-			size_t end = version_str.find_first_of(" \t\r\n");
-			if (end != std::string::npos)
-				version_str = version_str.substr(0, end);
-			this->_version = version_str;
+			value += headerLine[i];
+			if (!value.empty() && value[value.length() - 1] == ',')
+				value.erase(value.length() - 1);
+			if (i + 1 < headerLine.size())
+				value += " ";
 		}
-		else
-		{
-			std::cout << "parse error: empty version" << std::endl;// to change
-			this->_version = "1.0";
-		}
+		this->_headers[key] = value;
+
+		std::getline(iss, line);
+		headerLine = tokenizeLine(line);
 	}
-	else
-	{
-		std::cout << "parse error: no HTTP version found" << std::endl;// to change to opposite logic with if statement
-		this->_version = "1.0";
-	}
+
+	//BODY (if it exists)
+	std::getline(iss, this->_body, '\0');
+
+	//request validation
+	this->_valid = this->validateRequest();
 }
 
-Request::Request(const Request &copy) : _version(copy._version), _method(copy._method), _path(copy._path)
-{
-}
+Request::Request(const Request &copy)
+: _method(copy._method),
+_uri(copy._uri),
+_version(copy._version),
+_headers(copy._headers),
+_body(copy._body),
+_valid(copy._valid) {}
+
+
+Request::~Request() {}
+
+/*============================= assing operator =====================================*/
 
 Request &Request::operator=(const Request &copy)
 {
 	if (this != &copy)
 	{
-		this->_version = copy._version;
 		this->_method = copy._method;
-		this->_path = copy._path;
+		this->_uri = copy._uri;
+		this->_version = copy._version;
+		this->_headers = copy._headers;
+		this->_body = copy._body;
+		this->_valid = copy._valid;
 	}
 	return (*this);
 }
 
-Request::~Request()
-{
-}
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+/*============================= getters and setters =====================================*/
 
 std::string Request::getVersion() const
 {
 	return (this->_version);
 }
 
-t_method Request::getRequest() const
+std::string Request::getMethod() const
 {
 	return (this->_method);
 }
 
-std::string Request::getPath() const
+std::string Request::getUri() const
 {
-	return (this->_path);
+	return (this->_uri);
 }
 
 // Setters
@@ -101,38 +98,110 @@ void Request::setVersion(const std::string &version)
 	this->_version = version;
 }
 
-void Request::setRequest(t_method request)
+void Request::setMethod(std::string const& method)
 {
-	this->_method = request;
+	this->_method = method;
 }
 
-void Request::setPath(const std::string &path)
+void Request::setUri(const std::string &path)
 {
-	this->_path = path;
+	this->_uri = path;
+}
+std::string Request::getHeader(const std::string &key) const
+{
+    std::map<std::string, std::string>::const_iterator it = this->_headers.find(key);
+    if (it != this->_headers.end())
+        return it->second;
+    return "";
 }
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
-std::string Request::requestTypeToString() const
+std::string Request::getBody() const
 {
-	switch (this->_method)
-	{
-		case GET:
-			return ("GET");
-		case POST:
-			return ("POST");
-		case DELETE:
-			return ("DELETE");
-		default:
-			return ("UNKNOWN");
-	}
+    return this->_body;
 }
+
+bool Request::isValid() const
+{
+    return this->_valid;
+}
+
+/*============================= Member functions =====================================*/
+
 
 void Request::printRequest() const
 {
 	std::cout << "=== Request Information ===" << std::endl;
-	std::cout << "Request Type: " << requestTypeToString() << std::endl;
-	std::cout << "HTTP Version: " << this->_version << std::endl;
-	std::cout << "URL Path: " << this->_path << std::endl;
+	std::cout << "Method: " << this->_method << std::endl;
+	std::cout << "URI: " << this->_uri << std::endl;
+	std::cout << "Version: HTTP/" << this->_version << std::endl;
+	std::cout << "Valid: " << (this->_valid ? "Yes" : "No") << std::endl;
+	if (!this->_headers.empty())
+	{
+		std::cout << "\nHeaders:" << std::endl;
+		std::map<std::string, std::string>::const_iterator it;
+		for (it = this->_headers.begin(); it != this->_headers.end(); ++it)
+			std::cout << "  " << it->first << ": " << it->second << std::endl;
+	}
+
+	if (!this->_body.empty())
+	{
+		std::cout << "\nBody (" << this->_body.length() << " bytes):" << std::endl;
+		std::cout << this->_body << std::endl;
+	}
 	std::cout << "=========================" << std::endl;
 }
+
+bool	Request::fillFirstLine(std::vector<std::string>& firstLine)
+{
+	if (firstLine.size() != 3)
+	{
+		LOG_INFO("Invalid request: first line size has not 3 elements");
+		return false;
+	}
+
+	std::vector<std::string>::iterator it = firstLine.begin();
+	this->_method = *it;
+	it++;
+	this->_uri = *it;
+	it++;
+
+	std::string	validVersion = it->substr(0, 5);
+	if (validVersion != "HTTP/")
+	{
+		LOG_INFO("Invalid request: version does not match \"HTTP/\"");
+		return false;
+	}
+	this->_version = it->substr(5);
+	if (this->_version != "1.1" && this->_version != "1.0")
+	{
+		LOG_INFO("Invalid request: unsuported HTTP/ version");
+		return false;
+	}
+	return true;
+}
+
+
+bool	Request::validateRequest(void)
+{
+	if (!this->_body.empty())
+	{
+		if (this->_headers.find("Content-Length") == this->_headers.end())
+		{
+			LOG_INFO("Invalid request has body but not header [Content-lenght], sending error page");
+			return false;
+		}
+		size_t size = static_cast<size_t>(std::atol(this->_headers["Content-Length"].c_str()));
+		if (this->_body.size() != size)
+		{
+			LOG_INFO("Invalid request: header [Content-lenght] does not match body size");
+			return false;
+		}
+	}
+	if (this->_headers.find("Host") == this->_headers.end() || this->_headers["Host"].empty())
+	{
+		LOG_INFO("Invalid request: header [Host] not found");
+		return false;
+	}
+	return true;
+}
+

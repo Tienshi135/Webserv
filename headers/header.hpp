@@ -33,6 +33,20 @@
 #include "ParsingException.hpp"
 #include <limits>
 
+// LOG defines
+#define LOG_INFO(string) std::cout << BLUE << "Info: " << RESET << string << std::endl
+#define LOG_INFO_LINK(string) std::cout << BLUE << "Info: " << BOLD << string << RESET << "at: " << __FILE__ << __LINE__ << std::endl
+
+#define LOG_WARNING(string) std::cout << YELLOW << "Warning : " << RESET << string << std::endl
+#define LOG_WARNING_LINK(string) std::cout << YELLOW << "Warning : " << BOLD << string << RESET << "at: " << __FILE__ << __LINE__ << std::endl
+
+#define LOG_HIGH_WARNING(string) std::cout << ORANGE << "Warning: " << RESET << string << std::endl
+#define LOG_HIGH_WARNING_LINK(string) std::cout << ORANGE << "Warning: " << BOLD << string << RESET << "at: " << __FILE__ << __LINE__ << std::endl
+
+#define LOG_ERROR(string) std::cout << BLUE << "Error: " << RESET << string << std::endl
+#define LOG_ERROR_LINK(string) std::cout << BLUE << "Error: " << BOLD << string << string << RESET << "at: " << __FILE__ << __LINE__ << std::endl
+
+
 struct File
 {
 	std::ifstream	file;
@@ -45,6 +59,7 @@ bool	 hasCommonElement(std::vector<std::string>& v1, std::vector<std::string>& v
 bool 	pathExists(const std::string &path);
 bool 	isValidLocationPath(const std::string &path);
 std::vector<std::string>	tokenizeLine(std::string& line, size_t nbLine);
+std::vector<std::string>	tokenizeLine(std::string& line);
 void	setLocationDirective(Server& server, e_configtype& directive, std::vector<std::string>& value, std::string& locationPath);
 void	setDirective(Server& server, e_configtype& directive, std::vector<std::string>& value);
 Server	parseServer(File& file);

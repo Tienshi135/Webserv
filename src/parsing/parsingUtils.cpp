@@ -203,6 +203,36 @@ std::vector<std::string>	tokenizeLine(std::string& line, size_t nLine)
 	return tokenized;
 }
 
+std::vector<std::string>	tokenizeLine(std::string& line)
+{
+	std::string					token;
+	std::vector<std::string>	tokenized;
+	std::stringstream			ss(line);
+
+	while (ss >> std::ws)
+	{
+		char quote = ss.peek();
+		if (quote == '"' || quote == '\'')
+		{
+			ss.get();
+			if (!getline(ss, token, quote))
+			{
+				tokenized.clear();
+				return tokenized;
+			}
+			tokenized.push_back(token);
+		}
+		else
+		{
+			ss >> token;
+			if (token[0] == '#')// comment mark, stop reading the line
+				break;
+			tokenized.push_back(token);
+		}
+	}
+	return tokenized;
+}
+
 void	setDefaults(Server& server)
 {
 	static int nbServers;
