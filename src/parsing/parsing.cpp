@@ -2,10 +2,10 @@
 #include <fstream>
 #include <algorithm>
 
-Server	parseServer(File& file)
+ServerCfg	parseServer(File& file)
 {
 	std::string	line;
-	Server		server;
+	ServerCfg		server;
 
 	while (std::getline(file.file, line))
 	{
@@ -41,7 +41,7 @@ Server	parseServer(File& file)
 	return server;
 }
 
-void	parseLocation(Server& server, std::vector<std::string>& locationLine, File& file)
+void	parseLocation(ServerCfg& server, std::vector<std::string>& locationLine, File& file)
 {
 	std::string line;
 	std::string locationPath;
@@ -86,12 +86,12 @@ void	parseLocation(Server& server, std::vector<std::string>& locationLine, File&
 		throw ERR_PARS_CFGLN("Location has no closing braces", file.nLines);
 }
 
-void parse(std::map<std::string, Server> &buffer, char *path)
+void parse(std::map<std::string, ServerCfg> &buffer, char *path)
 {
 	File				file;
 	std::string			line;
-	std::vector<Server>	serverList;
-	Server serverInstance;
+	std::vector<ServerCfg>	serverList;
+	ServerCfg serverInstance;
 
 	file.nLines = 0;
 	file.file.open(path);
@@ -111,7 +111,7 @@ void parse(std::map<std::string, Server> &buffer, char *path)
 			setDefaults(serverInstance);
 			if (!serverInstance.minValidCfg())//minimun settings check
 				throw ERR_PARS("Abort");
-			buffer.insert(std::pair<std::string, Server>(serverInstance.getName(), serverInstance));//add server to the pool of servers, restart the loop
+			buffer.insert(std::pair<std::string, ServerCfg>(serverInstance.getName(), serverInstance));//add server to the pool of servers, restart the loop
 		}
 	}
 	/* TODO: check for duplicated servers and/or ip ,using map logic ? need documentation to check if it is needed */

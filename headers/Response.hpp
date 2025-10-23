@@ -1,49 +1,55 @@
 #pragma once
 
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <sstream>
-#include <stdexcept>
-
-class Request;
-class Server;
+// #include <iostream>
+// #include <fstream>
+// #include <string>
+// #include <sstream>
+// #include <stdexcept>
+// #include <unistd.h>
+// #include <sys/stat.h>
+// #include <fstream>
+// #include <cctype>
+#include "header.hpp"
 
 class Response
 {
-	private:
-		std::string     _version;
-		unsigned int    _code;
-		std::string     _code_str;
-		std::string     _content_type;
-		std::string     _content;
-		unsigned int    _content_length;
-		std::string		_connection_status;
+	protected:
+		Request const&		_req;
+		ServerCfg const&	_cfg;
+		std::string	const	_version;
 
-	public:
-		Response(const Server &config, const Request &request);
+		int				_statusCode;
+		std::string		_statusMsg;
+		std::map<std::string, std::string>	_headers;
+		std::string		_body;
+
+		bool			_bodyIsFile;
+		std::string		_bodyFilePath;
+
+		std::string		getReasonPhrase(int errCode) const;
+		std::string		getContentType(std::string const& path) const;
+
+		void	setStatus(int code);
+		void	setBody(std::string const& bodyContent, std::string const& contentType);
+		void	addHeader(std::string const& key, std::string const& value);
+		bool	sendFileAsBody(std::string const& path);
+
+
+		std::string resolvePathSafely(std::string const& uri, std::string const& root);
+		bool		isPathInsideRoot(std::string const& resolved, std::string const& root);
+		void		responseIsErrorPage(int errCode);
+
+
+	private:
 		Response(const Response &copy);
 		Response &operator=(const Response &copy);
+
+	public:
+		Response(ServerCfg const& config,  Request const& request);
 		~Response();
 
-		std::string		getVersion() const;
-		unsigned int	getCode() const;
-		std::string		getCodeStr() const;
-		std::string		getContentType() const;
-		std::string		getContent() const;
-		unsigned int	getContentLength() const;
-		std::string		getConnectionStatus() const;
+		virtual void	buildResponse() = 0;
+		std::string		getRawResponse() const;
 
-		void			setVersion(const std::string &version);
-		void			setCode(unsigned int code);
-		void			setCodeStr(const std::string &code_str);
-		void			setContentType(const std::string &content_type);
-		void			setContent(const std::string &content);
-		void			setContentLength(unsigned int content_length);
-		void			setConnectionStatus(const std::string &connection_status);
-
-		void			printResponse() const;
-		std::string		buildResponse() const;
-		std::string&	errorCodes(int const& errCode);
-
+		void		printResponse() const;
 };

@@ -70,7 +70,7 @@ class Location : public Configuration
 		virtual ~Location();
 };
 
-class Server : public Configuration
+class ServerCfg : public Configuration
 {
 	private:
 		std::string						_name;
@@ -81,10 +81,10 @@ class Server : public Configuration
 		std::map<std::string, Location>	_location_map;
 
 	public:
-		Server();
-		Server(const Server &copy);
-		Server &operator=(const Server &copy);
-		virtual ~Server();
+		ServerCfg();
+		ServerCfg(const ServerCfg &copy);
+		ServerCfg &operator=(const ServerCfg &copy);
+		virtual ~ServerCfg();
 
 		std::string						getName() const;
 		std::string						getHost() const;

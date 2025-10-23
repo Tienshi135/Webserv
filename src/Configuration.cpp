@@ -139,15 +139,15 @@ void Configuration::setStore(const std::vector<std::string>& store)
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-Server::Server() : Configuration(), _name(""), _host(""), _port(0), _error_page(""), _body_size(0), _location_map()
+ServerCfg::ServerCfg() : Configuration(), _name(""), _host(""), _port(0), _error_page(""), _body_size(0), _location_map()
 {
 }
 
-Server::Server(const Server &copy) : Configuration(copy), _name(copy._name), _host(copy._host), _port(copy._port), _error_page(copy._error_page), _body_size(copy._body_size), _location_map(copy._location_map)
+ServerCfg::ServerCfg(const ServerCfg &copy) : Configuration(copy), _name(copy._name), _host(copy._host), _port(copy._port), _error_page(copy._error_page), _body_size(copy._body_size), _location_map(copy._location_map)
 {
 }
 
-Server &Server::operator=(const Server &copy)
+ServerCfg &ServerCfg::operator=(const ServerCfg &copy)
 {
 	if (this != &copy)
 	{
@@ -162,50 +162,50 @@ Server &Server::operator=(const Server &copy)
 	return (*this);
 }
 
-Server::~Server()
+ServerCfg::~ServerCfg()
 {
 }
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-std::string Server::getName() const
+std::string ServerCfg::getName() const
 {
 	return (this->_name);
 }
 
-std::string Server::getHost() const
+std::string ServerCfg::getHost() const
 {
 	return (this->_host);
 }
 
-unsigned int Server::getPort() const
+unsigned int ServerCfg::getPort() const
 {
 	return (this->_port);
 }
 
-std::string Server::getErrorPage() const
+std::string ServerCfg::getErrorPage() const
 {
 	return (this->_error_page);
 }
 
-unsigned int Server::getBodySize() const
+unsigned int ServerCfg::getBodySize() const
 {
 	return (this->_body_size);
 }
 
-std::map<std::string, Location> Server::getLocationMap() const
+std::map<std::string, Location> ServerCfg::getLocationMap() const
 {
 	return (this->_location_map);
 }
 
-std::map<std::string, Location> Server::getLocationMap()
+std::map<std::string, Location> ServerCfg::getLocationMap()
 {
 	return (this->_location_map);
 }
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-void Server::setName(const std::vector<std::string>& name)
+void ServerCfg::setName(const std::vector<std::string>& name)
 {
 	if (name.size() > 1)
 	{
@@ -216,22 +216,22 @@ void Server::setName(const std::vector<std::string>& name)
 	this->_name = name.front();
 }
 
-void Server::setName(std::string const& name)
+void ServerCfg::setName(std::string const& name)
 {
 	this->_name = name;
 }
 
-void Server::setHost(const std::string &host)
+void ServerCfg::setHost(const std::string &host)
 {
 	this->_host = host;
 }
 
-void Server::setPort(unsigned int listen)
+void ServerCfg::setPort(unsigned int listen)
 {
 	this->_port = listen;
 }
 /* TODO: error page should be a map with all the error codes as keys and it's correspondent pages paths as string values*/
-void Server::setErrorPage(std::vector<std::string>& error_page)
+void ServerCfg::setErrorPage(std::vector<std::string>& error_page)
 {
 	std::cerr << YELLOW << "WARNING! " << RESET
 			<< "Directive [error_page] implementation is unfinished, check < TODO: > comments"
@@ -246,12 +246,12 @@ void Server::setErrorPage(std::vector<std::string>& error_page)
 	}
 }
 
-void Server::setBodySize(unsigned int body_size)
+void ServerCfg::setBodySize(unsigned int body_size)
 {
 	this->_body_size = body_size;
 }
 
-void Server::setLocationMap(const std::map<std::string, Location> &location_map)
+void ServerCfg::setLocationMap(const std::map<std::string, Location> &location_map)
 {
 	this->_location_map = location_map;
 }
@@ -283,7 +283,7 @@ Location::~Location()
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 
-bool	Server::minValidCfg(void) const
+bool	ServerCfg::minValidCfg(void) const
 {
 	if (this->_host.empty())
 	{

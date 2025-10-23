@@ -1,6 +1,6 @@
 #include "header.hpp"
 
-void printMap(const std::map<std::string, Server> &buffer)
+void printMap(const std::map<std::string, ServerCfg> &buffer)
 {
     std::cout << "=== Configuration Map Contents ===" << std::endl;
     std::cout << "Total servers: " << buffer.size() << std::endl;
@@ -12,7 +12,7 @@ void printMap(const std::map<std::string, Server> &buffer)
         return;
     }
 
-    for (std::map<std::string, Server>::const_iterator it = buffer.begin();
+    for (std::map<std::string, ServerCfg>::const_iterator it = buffer.begin();
          it != buffer.end(); ++it)
     {
         std::cout << "=== Server: " << it->first << " ===" << std::endl;
@@ -78,8 +78,8 @@ void printMap(const std::map<std::string, Server> &buffer)
 
 int main(int argc, char **argv)
 {
-	std::map<int, Server>					sfd;
-	std::map<std::string, Server>		buffer;//might be overkill and can change
+	std::map<int, ServerCfg>					sfd;
+	std::map<std::string, ServerCfg>		buffer;//might be overkill and can change
 
 	if (argc != 2)
 	{
@@ -102,13 +102,13 @@ int main(int argc, char **argv)
 	printMap(buffer);
 
 	//second part - socket creation and binding
-	std::map<std::string, Server>::iterator it = buffer.begin();
+	std::map<std::string, ServerCfg>::iterator it = buffer.begin();
 	while (it != buffer.end())
 	{
 		int	socket_fd = socket_init(it);
 		if (socket_fd != -1)
 		{
-			sfd.insert(std::pair<int, Server>(socket_fd, it->second));
+			sfd.insert(std::pair<int, ServerCfg>(socket_fd, it->second));
 			std::cout << "Server " << it->first << " listening successfully!" << std::endl;
 		}
 		it++;
@@ -128,7 +128,7 @@ int main(int argc, char **argv)
 		FD_ZERO(&readfds);
 		FD_ZERO(&writefds);// not used for now
 
-		for (std::map<int, Server>::iterator sfd_it = sfd.begin(); sfd_it != sfd.end(); ++sfd_it)
+		for (std::map<int, ServerCfg>::iterator sfd_it = sfd.begin(); sfd_it != sfd.end(); ++sfd_it)
 		{
 			FD_SET(sfd_it->first, &readfds);
 			if (sfd_it->first > max_fd)
@@ -141,7 +141,7 @@ int main(int argc, char **argv)
 		if (activity < 0)
 		{
 			perror("Select error");
-			for (std::map<int, Server>::iterator sfd_it = sfd.begin(); sfd_it != sfd.end(); ++sfd_it)
+			for (std::map<int, ServerCfg>::iterator sfd_it = sfd.begin(); sfd_it != sfd.end(); ++sfd_it)
 			{
 				close(sfd_it->first);
 			}
@@ -151,7 +151,7 @@ int main(int argc, char **argv)
 		{
 			return (1);
 		}
-		for (std::map<int, Server>::iterator sfd_it = sfd.begin(); sfd_it != sfd.end(); ++sfd_it)
+		for (std::map<int, ServerCfg>::iterator sfd_it = sfd.begin(); sfd_it != sfd.end(); ++sfd_it)
 		{
 			if (FD_ISSET(sfd_it->first, &readfds))
 			{
@@ -171,7 +171,7 @@ int main(int argc, char **argv)
 				Request	req(buffer);
 				req.printRequest();
 
-				const Server &server_config = sfd_it->second;
+				const ServerCfg &server_config = sfd_it->second;
 
 				Response response(server_config, req);
 				std::string response_str = response.buildResponse();

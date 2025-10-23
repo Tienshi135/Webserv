@@ -1,6 +1,6 @@
 #include "header.hpp"
 
-static struct sockaddr_in* init_sockaddr(Server conf)
+static struct sockaddr_in* init_sockaddr(ServerCfg conf)
 {
     struct addrinfo hints, *result;
     std::memset(&hints, 0, sizeof(hints));
@@ -21,7 +21,7 @@ static struct sockaddr_in* init_sockaddr(Server conf)
     return (addr_in);
 }
 
-int socket_init(std::map<std::string, Server>::iterator current)
+int socket_init(std::map<std::string, ServerCfg>::iterator current)
 {
     struct sockaddr_in *addr = init_sockaddr(current->second);
     if (addr == NULL)
@@ -40,7 +40,7 @@ int socket_init(std::map<std::string, Server>::iterator current)
         delete (addr);
         return -1;
     }
-    
+
     int opt = 1;
     if (setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1)//change to use erro rhandling func
     {
@@ -50,7 +50,7 @@ int socket_init(std::map<std::string, Server>::iterator current)
         delete (addr);
         return -1;
     }
-    
+
     if (bind(socket_fd, (struct sockaddr *)addr, sizeof(*addr)) == -1)// change to use error handling func
     {
         perror("Bind error");
@@ -59,7 +59,7 @@ int socket_init(std::map<std::string, Server>::iterator current)
         delete (addr);
         return -1;
     }
-    
+
     if (listen(socket_fd, 10) == -1)//change to use error handling func
     {
         perror("Port error");
@@ -68,7 +68,7 @@ int socket_init(std::map<std::string, Server>::iterator current)
         delete (addr);
         return -1;
     }
-    
+
     delete (addr);
     return (socket_fd);
 }

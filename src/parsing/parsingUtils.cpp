@@ -1,6 +1,13 @@
 #include "header.hpp"
 
-std::string intToString(int num)
+std::string numToString(int num)
+{
+	std::stringstream ss;
+	ss << num;
+	return ss.str();
+}
+
+std::string numToString(size_t num)
 {
 	std::stringstream ss;
 	ss << num;
@@ -233,14 +240,14 @@ std::vector<std::string>	tokenizeLine(std::string& line)
 	return tokenized;
 }
 
-void	setDefaults(Server& server)
+void	setDefaults(ServerCfg& server)
 {
 	static int nbServers;
 
 	if (server.getName().empty())
 	{
 		if (nbServers > 0)
-			server.setName("default_server_" + intToString(nbServers));
+			server.setName("default_server_" + numToString(nbServers));
 		else
 			server.setName("default_server");
 

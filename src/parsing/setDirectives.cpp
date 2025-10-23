@@ -1,6 +1,6 @@
 #include "header.hpp"
 
-void	setDirective(Server& server, e_configtype& directive, std::vector<std::string>& value)
+void	setDirective(ServerCfg& server, e_configtype& directive, std::vector<std::string>& value)
 {
 	switch (directive)
 	{
@@ -64,7 +64,7 @@ void	setDirective(Server& server, e_configtype& directive, std::vector<std::stri
 }
 
 
-void	setLocationDirective(Server& server, e_configtype& directive, std::vector<std::string>& value, std::string& locationPath)
+void	setLocationDirective(ServerCfg& server, e_configtype& directive, std::vector<std::string>& value, std::string& locationPath)
 {
 	std::map<std::string, Location> currentMap = server.getLocationMap();
 

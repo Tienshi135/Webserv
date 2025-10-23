@@ -2,185 +2,19 @@
 #include "Request.hpp"
 #include "Configuration.hpp"
 
-Response::Response(const Server &config, const Request &request) : _version("1.0")//need update
-{
-    std::string path;
+/*========================= Constructor and destructor ================================*/
 
-    path += "." + config.getRoot();
-    if (request.getPath().compare("/") == 0)
-        path += "/" + config.getIndex();
-    else
-        path += request.getPath();
-    std::cout << path << std::endl;
-	std::ifstream file(path.c_str());
-	if (!file.is_open())
-	{
-		this->_code = 404;
-		this->_code_str = "Can't fine page";
-		this->_content_type = "text/html";
-		this->_content = "<html><body><h1>404 Couldn't find page</h1></body></html>";
-		this->_content_length = this->_content.length();
-		this->_connection_status = "close";
-		return;
-	}
-	std::string html_content;
-	std::string line;
-	while (std::getline(file, line))
-	{
-		html_content += line + "\n";
-	}
-	file.close();
 
-	this->_code = 200;
-	this->_code_str = "OK";
-	this->_content_type = "text/html";//to change
-	this->_content = html_content;
-	this->_content_length = html_content.length();
-	this->_connection_status = "close";
-}
+Response::Response(const ServerCfg &config, const Request &request)
+: _cfg(config), _req(request), _version("HTTP/1.0") , _statusCode(200), _statusMsg("OK"), _bodyIsFile(false) {}
 
-Response::Response(const Response &copy) : _version(copy._version), _code(copy._code), _code_str(copy._code_str), _content_type(copy._content_type), _content(copy._content), _content_length(copy._content_length), _connection_status(copy._connection_status)
-{
-}
 
-Response &Response::operator=(const Response &copy)
-{
-	if (this != &copy)
-	{
-		this->_version = copy._version;
-		this->_code = copy._code;
-		this->_code_str = copy._code_str;
-		this->_content_type = copy._content_type;
-		this->_content = copy._content;
-		this->_content_length = copy._content_length;
-		this->_connection_status = copy._connection_status;
-	}
-	return (*this);
-}
+Response::~Response(){}
 
-Response::~Response()
-{
-}
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+/*========================= Protected member funcions  ================================*/
 
-std::string Response::getVersion() const
-{
-	return (this->_version);
-}
-
-unsigned int Response::getCode() const
-{
-	return (this->_code);
-}
-
-std::string Response::getCodeStr() const
-{
-	return (this->_code_str);
-}
-
-std::string Response::getContentType() const
-{
-	return (this->_content_type);
-}
-
-std::string Response::getContent() const
-{
-	return (this->_content);
-}
-
-unsigned int Response::getContentLength() const
-{
-	return (this->_content_length);
-}
-
-std::string Response::getConnectionStatus() const
-{
-	return (this->_connection_status);
-}
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
-void Response::setVersion(const std::string &version)
-{
-	this->_version = version;
-}
-
-void Response::setCode(unsigned int code)
-{
-	this->_code = code;
-}
-
-void Response::setCodeStr(const std::string &code_str)
-{
-	this->_code_str = code_str;
-}
-
-void Response::setContentType(const std::string &content_type)
-{
-	this->_content_type = content_type;
-}
-
-void Response::setContent(const std::string &content)
-{
-	this->_content = content;
-	this->_content_length = content.length();//might want to change it
-}
-
-void Response::setContentLength(unsigned int content_length)
-{
-	this->_content_length = content_length;
-}
-
-void Response::setConnectionStatus(const std::string &connection_status)
-{
-	this->_connection_status = connection_status;
-}
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
-void Response::printResponse() const
-{
-	std::cout << "=== Response Information ===" << std::endl;
-	std::cout << "HTTP Version: " << this->_version << std::endl;
-	std::cout << "Status Code: " << this->_code << " " << this->_code_str << std::endl;
-	std::cout << "Content-Type: " << this->_content_type << std::endl;
-	std::cout << "Content-Length: " << this->_content_length << std::endl;
-	std::cout << "Connection: " << this->_connection_status << std::endl;
-	std::cout << "Content Preview: " << (this->_content.length() > 50 ? this->_content.substr(0, 50) + "..." : this->_content) << std::endl;
-	std::cout << "=========================" << std::endl;
-}
-
-std::string Response::buildResponse() const
-{
-	std::string response;
-
-	response = "HTTP/" + this->_version + " ";
-	if (this->_code < 100)
-		response += "0";
-	if (this->_code < 10)
-		response += "0";
-
-	std::ostringstream oss;
-	oss << this->_code;
-	response += oss.str() + " " + this->_code_str + "\r\n";
-
-	response += "Content-Type: " + this->_content_type + "\r\n";
-
-	std::ostringstream len_oss;
-	len_oss << this->_content_length;
-	response += "Content-Length: " + len_oss.str() + "\r\n";
-
-	response += "Connection: " + this->_connection_status + "\r\n";
-
-	response += "\r\n";
-
-	response += this->_content;
-
-	return (response);
-}
-
-std::string&	Response::errorCodes(int const& errCode)
+std::string	Response::getReasonPhrase(int errCode) const
 {
 	static std::map<int, std::string> errorCodes;
 
@@ -234,5 +68,199 @@ std::string&	Response::errorCodes(int const& errCode)
 	errorCodes[504] = "Gateway Timeout";
 	errorCodes[505] = "HTTP Version Not Supported";
 
-	return errorCodes[errCode];
+	std::map<int, std::string>::const_iterator it = errorCodes.find(errCode);
+	if (it != errorCodes.end())
+		return it->second;
+	return "Unknown Status";
 }
+
+std::string Response::getContentType(std::string const& path) const
+{
+	// Find file extension
+	size_t dotPos = path.find_last_of('.');
+	if (dotPos == std::string::npos)
+		return "application/octet-stream";  // Default binary
+
+	std::string ext = path.substr(dotPos + 1);
+
+	// Convert to lowercase
+	for (size_t i = 0; i < ext.length(); ++i)
+		ext[i] = std::tolower(ext[i]);
+
+	// Map extensions to MIME types
+	if (ext == "html" || ext == "htm")
+		return "text/html";
+	if (ext == "css")
+		return "text/css";
+	if (ext == "js")
+		return "application/javascript";
+	if (ext == "json")
+		return "application/json";
+	if (ext == "png")
+		return "image/png";
+	if (ext == "jpg" || ext == "jpeg")
+		return "image/jpeg";
+	if (ext == "gif")
+		return "image/gif";
+	if (ext == "svg")
+		return "image/svg+xml";
+	if (ext == "ico")
+		return "image/x-icon";
+	if (ext == "txt")
+		return "text/plain";
+	if (ext == "pdf")
+		return "application/pdf";
+
+	return "application/octet-stream";  // Default
+}
+
+
+void	Response::setStatus(int code)
+{
+	this->_statusCode = code;
+}
+
+void	Response::setBody(std::string const& bodyContent, std::string const& contentType)
+{
+	this->_body = bodyContent;
+	this->addHeader("Content-Type", contentType);
+	this->addHeader("Content-Length", numToString(this->_body.size()));
+}
+
+void	Response::addHeader(std::string const& key, std::string const& value)
+{
+	this->_headers[key] = value;
+}
+
+bool	Response::sendFileAsBody(std::string const& path)
+{
+	//check if the file exists and is readeable
+	if (access(path.c_str(), F_OK) < 0)
+	{
+		this->responseIsErrorPage(404);
+		LOG_INFO("File not found, sending error page 404");
+		return false;
+	}
+	if (access(path.c_str(), R_OK) < 0)
+	{
+		this->responseIsErrorPage(403);
+		LOG_INFO("Can't read file, forbidden, sending error page 403");
+		return false;
+	}
+	// Get file stats (size, type, etc.)
+	struct stat fileStat;
+	if (stat(path.c_str(), &fileStat) != 0)
+	{
+		this->responseIsErrorPage(500);
+		LOG_INFO("Failed to get file stats, sending error page 500");
+		return false;
+	}
+
+	// Check if it's a regular file
+	if (!S_ISREG(fileStat.st_mode))
+	{
+		this->responseIsErrorPage(403);
+		LOG_INFO("Path is not a regular file, sending error page 403");
+		return false;
+	}
+
+	std::string	type = this->getContentType(path);
+	this->addHeader("Content-Type", type);
+	this->addHeader("Content-Length", numToString(static_cast<size_t>(fileStat.st_size)));
+
+	this->_bodyFilePath = path;
+	this->setStatus(200);
+	return true;
+}
+
+void	Response::responseIsErrorPage(int errCode)
+{
+	static std::map<int, std::string> errorPages;
+
+	// 4xx Client Errors
+	errorPages[400] = "<!DOCTYPE html><html><body><h1>400 Bad Request</h1><p>The request could not be understood by the server.</p></body></html>";
+	errorPages[401] = "<!DOCTYPE html><html><body><h1>401 Unauthorized</h1><p>Authentication is required to access this resource.</p></body></html>";
+	errorPages[403] = "<!DOCTYPE html><html><body><h1>403 Forbidden</h1><p>Access to this resource is forbidden.</p></body></html>";
+	errorPages[404] = "<!DOCTYPE html><html><body><h1>404 Not Found</h1><p>The requested resource could not be found.</p></body></html>";
+	errorPages[405] = "<!DOCTYPE html><html><body><h1>405 Method Not Allowed</h1><p>The method is not allowed for this resource.</p></body></html>";
+	errorPages[408] = "<!DOCTYPE html><html><body><h1>408 Request Timeout</h1><p>The server timed out waiting for the request.</p></body></html>";
+	errorPages[409] = "<!DOCTYPE html><html><body><h1>409 Conflict</h1><p>The request conflicts with the current state of the server.</p></body></html>";
+	errorPages[410] = "<!DOCTYPE html><html><body><h1>410 Gone</h1><p>The requested resource is no longer available.</p></body></html>";
+	errorPages[411] = "<!DOCTYPE html><html><body><h1>411 Length Required</h1><p>Content-Length header is required.</p></body></html>";
+	errorPages[413] = "<!DOCTYPE html><html><body><h1>413 Payload Too Large</h1><p>The request entity is too large.</p></body></html>";
+	errorPages[414] = "<!DOCTYPE html><html><body><h1>414 URI Too Long</h1><p>The request URI is too long.</p></body></html>";
+	errorPages[415] = "<!DOCTYPE html><html><body><h1>415 Unsupported Media Type</h1><p>The media type is not supported.</p></body></html>";
+
+	// 5xx Server Errors
+	errorPages[500] = "<!DOCTYPE html><html><body><h1>500 Internal Server Error</h1><p>The server encountered an unexpected condition.</p></body></html>";
+	errorPages[501] = "<!DOCTYPE html><html><body><h1>501 Not Implemented</h1><p>The server does not support the functionality required.</p></body></html>";
+	errorPages[502] = "<!DOCTYPE html><html><body><h1>502 Bad Gateway</h1><p>The server received an invalid response from an upstream server.</p></body></html>";
+	errorPages[503] = "<!DOCTYPE html><html><body><h1>503 Service Unavailable</h1><p>The server is temporarily unable to handle the request.</p></body></html>";
+	errorPages[504] = "<!DOCTYPE html><html><body><h1>504 Gateway Timeout</h1><p>The server did not receive a timely response from an upstream server.</p></body></html>";
+	errorPages[505] = "<!DOCTYPE html><html><body><h1>505 HTTP Version Not Supported</h1><p>The HTTP version is not supported by the server.</p></body></html>";
+
+	this->_statusCode = errCode;
+	this->_statusMsg = this->getReasonPhrase(errCode);
+	this->_body = errorPages[errCode];
+	this->_bodyIsFile = false;
+
+	this->addHeader("Content-Type", "text/html");
+	this->addHeader("Content-Length", numToString(this->_body.size()));
+}
+/*========================= Public member functions  ================================*/
+
+
+void Response::printResponse() const
+{
+	std::cout << "=== Response Information ===" << std::endl;
+	std::cout << "HTTP Version: " << this->_version << " ";
+	std::cout << "Status Code: " << this->_statusCode << " " << this->_statusMsg << std::endl;
+	std::map< std::string, std::string >::const_iterator it;
+	for (it = this->_headers.begin(); it != this->_headers.end(); it++)
+		std::cout << it->first << ": " << it->second << std::endl;
+	std::cout << "Content Preview: " << (this->_body.length() > 50 ? this->_body.substr(0, 50) + "..." : this->_body) << std::endl;
+	std::cout << "=========================" << std::endl;
+}
+
+
+std::string	Response::getRawResponse(void) const
+{
+	std::ostringstream response;
+
+	//first line
+	response << this->_version << " "
+			<< this->_statusCode << " "
+			<< this->_statusMsg << "\r\n";
+
+	//headers
+	std::map<std::string, std::string>::const_iterator it;
+	for (it = this->_headers.begin(); it != this->_headers.end(); it++)
+		response << it->first << ": " << it->second << "\r\n";
+
+	//empty line
+	response << "\r\n";
+
+	//body
+	if (this->_bodyIsFile)
+	{
+		std::ifstream file(this->_bodyFilePath.c_str(), std::ios::binary);
+		if (file.is_open())
+		{
+			response << file.rdbuf();
+			file.close();
+		}
+		else
+		{
+			response << "<!DOCTYPE html><html><body>"
+					<< "<h1>500 Internal Server Error</h1>"
+					<< "<p>File temporarily unavailable.</p>"
+					<< "</body></html>";
+			LOG_WARNING_LINK("Access to a file was unexpectedly lost after first check, sending error page 500");
+		}
+	}
+	else
+		response << this->_body;
+
+	return response.str();
+}
+
