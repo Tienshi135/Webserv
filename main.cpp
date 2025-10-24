@@ -1,4 +1,10 @@
 #include "header.hpp"
+#include "Request.hpp"
+#include "Response.hpp"
+#include "ResponseFactory.hpp"
+#include "ResponseError.hpp"
+#include "ResponseGet.hpp"
+
 
 void printMap(const std::map<std::string, ServerCfg> &buffer)
 {
@@ -162,33 +168,32 @@ int main(int argc, char **argv)
 					continue;
 				}
 
-			char buffer[1024];
-			std::cout << "Client connected, reading request..." << std::endl;
-			ssize_t bytes_read = read(client_fd, buffer, sizeof(buffer) - 1);//add check for received bigger than buffer size
-			if (bytes_read > 0)
-			{
-				buffer[bytes_read] = '\0';
-				Request	req(buffer);
-				req.printRequest();
+				char buffer[1024];
+				std::cout << "Client connected, reading request..." << std::endl;
+				ssize_t bytes_read = read(client_fd, buffer, sizeof(buffer) - 1);//add check for received bigger than buffer size
+				if (bytes_read > 0)
+				{
+					buffer[bytes_read] = '\0';
 
-				const ServerCfg &server_config = sfd_it->second;
+					std::string 		received(buffer);
+					Request				req(received);
+					ServerCfg const&	cfg = sfd_it->second;
 
-				Response response(server_config, req);
-				std::string response_str = response.buildResponse();
-				ssize_t bytes_sent = send(client_fd, response_str.c_str(), response_str.length(), 0);
-				if (bytes_sent == -1)
-					perror("Send error");
+					Response* response = ResponseFactory::createResponse(cfg, req);
+					response->buildResponse();
+					std::string builtResponse = response->getRawResponse();
 
-				// std::string error_response = "HTTP/1.0 500 Internal Server Error\r\n";
-				// error_response += "Content-Type: text/html\r\n";
-				// error_response += "Content-Length: 52\r\n";
-				// error_response += "Connection: close\r\n\r\n";
-				// error_response += "<html><body><h1>500 Internal Server Error</h1></body></html>";
+					response->printResponse();
+					ssize_t bytes_sent = send(client_fd, builtResponse.c_str(), builtResponse.length(), 0);
+					if (bytes_sent == -1)
+						perror("Send error");
+					// delete response;
+				}
+				if (bytes_read == -1)
+					perror("Read error");
+				close(client_fd);
 			}
-			if (bytes_read == -1)
-				perror("Read error");
-			close(client_fd);
-			}
+			LOG_INFO("Conection closed, awaiting next client");
 		}
 	}
 }

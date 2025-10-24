@@ -6,11 +6,16 @@
 
 
 Response::Response(const ServerCfg &config, const Request &request)
-: _cfg(config), _req(request), _version("HTTP/1.0") , _statusCode(200), _statusMsg("OK"), _bodyIsFile(false) {}
+: _cfg(config), _req(request), _version("HTTP/1.0") , _statusCode(200), _statusMsg("OK"), _bodyIsFile(false)
+{
+	this->addHeader("Server", "Amazing webserv");
+	this->addHeader("Connection", "close");
+}
 
 
 Response::~Response(){}
 
+/*========================= getters and setters  ================================*/
 
 /*========================= Protected member funcions  ================================*/
 
@@ -118,6 +123,7 @@ std::string Response::getContentType(std::string const& path) const
 void	Response::setStatus(int code)
 {
 	this->_statusCode = code;
+	this->_statusMsg = this->getReasonPhrase(code);
 }
 
 void	Response::setBody(std::string const& bodyContent, std::string const& contentType)
@@ -132,41 +138,49 @@ void	Response::addHeader(std::string const& key, std::string const& value)
 	this->_headers[key] = value;
 }
 
-bool	Response::sendFileAsBody(std::string const& path)
+off_t	Response::validateFilePath(std::string const& path)
 {
 	//check if the file exists and is readeable
 	if (access(path.c_str(), F_OK) < 0)
 	{
 		this->responseIsErrorPage(404);
-		LOG_INFO("File not found, sending error page 404");
-		return false;
+		LOG_INFO_LINK("File not found, sending error page 404");
+		return -1;
 	}
 	if (access(path.c_str(), R_OK) < 0)
 	{
 		this->responseIsErrorPage(403);
-		LOG_INFO("Can't read file, forbidden, sending error page 403");
-		return false;
+		LOG_INFO_LINK("Can't read file, forbidden, sending error page 403");
+		return -1;
 	}
 	// Get file stats (size, type, etc.)
 	struct stat fileStat;
 	if (stat(path.c_str(), &fileStat) != 0)
 	{
 		this->responseIsErrorPage(500);
-		LOG_INFO("Failed to get file stats, sending error page 500");
-		return false;
+		LOG_INFO_LINK("Failed to get file stats, sending error page 500");
+		return -1;
 	}
 
 	// Check if it's a regular file
 	if (!S_ISREG(fileStat.st_mode))
 	{
 		this->responseIsErrorPage(403);
-		LOG_INFO("Path is not a regular file, sending error page 403");
-		return false;
+		LOG_INFO_LINK("Path is not a regular file, sending error page 403");
+		return -1;
 	}
+	return fileStat.st_size;
+}
+
+bool	Response::sendFileAsBody(std::string const& path)
+{
+	off_t contentSize = this->validateFilePath(path);
+	if (contentSize < 0)
+		return false;
 
 	std::string	type = this->getContentType(path);
 	this->addHeader("Content-Type", type);
-	this->addHeader("Content-Length", numToString(static_cast<size_t>(fileStat.st_size)));
+	this->addHeader("Content-Length", numToString(static_cast<size_t>(contentSize)));
 
 	this->_bodyFilePath = path;
 	this->setStatus(200);
@@ -199,27 +213,56 @@ void	Response::responseIsErrorPage(int errCode)
 	errorPages[504] = "<!DOCTYPE html><html><body><h1>504 Gateway Timeout</h1><p>The server did not receive a timely response from an upstream server.</p></body></html>";
 	errorPages[505] = "<!DOCTYPE html><html><body><h1>505 HTTP Version Not Supported</h1><p>The HTTP version is not supported by the server.</p></body></html>";
 
-	this->_statusCode = errCode;
-	this->_statusMsg = this->getReasonPhrase(errCode);
+	this->setStatus(errCode);
 	this->_body = errorPages[errCode];
 	this->_bodyIsFile = false;
 
 	this->addHeader("Content-Type", "text/html");
 	this->addHeader("Content-Length", numToString(this->_body.size()));
 }
+
+bool	Response::isSecurePath(std::string const& path)
+{
+	if (path.find("../") != std::string::npos)
+		return false;
+	if (path.find("..\\") != std::string::npos)//windows style
+		return false;
+	if (path.find("%2e%2e") != std::string::npos)//URL-encoded
+		return false;
+	if (path.find("%2E%2E") != std::string::npos)
+		return false;
+
+	return true;
+}
+
+std::string	Response::normalizePath(std::string const& root, std::string const& uri)
+{
+	std::string	normalizedRoot = root;
+	std::string	normalizedUri = uri;
+
+	if (!root.empty() && root[root.size() - 1] != '/')
+		normalizedRoot += "/";
+
+
+	if (!uri.empty() && uri[0] == '/')
+		normalizedUri = uri.substr(1);
+
+	return normalizedRoot + normalizedUri;
+}
+
 /*========================= Public member functions  ================================*/
 
 
 void Response::printResponse() const
 {
-	std::cout << "=== Response Information ===" << std::endl;
+	std::cout << GREEN << "\n=== Response Information ===" << RESET << std::endl;
 	std::cout << "HTTP Version: " << this->_version << " ";
 	std::cout << "Status Code: " << this->_statusCode << " " << this->_statusMsg << std::endl;
 	std::map< std::string, std::string >::const_iterator it;
 	for (it = this->_headers.begin(); it != this->_headers.end(); it++)
 		std::cout << it->first << ": " << it->second << std::endl;
 	std::cout << "Content Preview: " << (this->_body.length() > 50 ? this->_body.substr(0, 50) + "..." : this->_body) << std::endl;
-	std::cout << "=========================" << std::endl;
+	std::cout << GREEN << "=========== End of Response==============\n"  << RESET<< std::endl;
 }
 
 
@@ -263,4 +306,5 @@ std::string	Response::getRawResponse(void) const
 
 	return response.str();
 }
+
 

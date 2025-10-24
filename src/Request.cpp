@@ -46,6 +46,7 @@ Request::Request(std::string received)
 
 	//request validation
 	this->_valid = this->validateRequest();
+	this->printRequest();
 }
 
 Request::Request(const Request &copy)
@@ -130,7 +131,7 @@ bool Request::isValid() const
 
 void Request::printRequest() const
 {
-	std::cout << "=== Request Information ===" << std::endl;
+	std::cout << MAGENTA << "\n=== Request Information ===" << RESET << std::endl;
 	std::cout << "Method: " << this->_method << std::endl;
 	std::cout << "URI: " << this->_uri << std::endl;
 	std::cout << "Version: HTTP/" << this->_version << std::endl;
@@ -148,14 +149,14 @@ void Request::printRequest() const
 		std::cout << "\nBody (" << this->_body.length() << " bytes):" << std::endl;
 		std::cout << this->_body << std::endl;
 	}
-	std::cout << "=========================" << std::endl;
+	std::cout << MAGENTA << "========== end of request ===============\n" << MAGENTA << std::endl;
 }
 
 bool	Request::fillFirstLine(std::vector<std::string>& firstLine)
 {
 	if (firstLine.size() != 3)
 	{
-		LOG_INFO("Invalid request: first line size has not 3 elements");
+		LOG_INFO_LINK("Invalid request: first line size has not 3 elements");
 		return false;
 	}
 
@@ -168,13 +169,13 @@ bool	Request::fillFirstLine(std::vector<std::string>& firstLine)
 	std::string	validVersion = it->substr(0, 5);
 	if (validVersion != "HTTP/")
 	{
-		LOG_INFO("Invalid request: version does not match \"HTTP/\"");
+		LOG_INFO_LINK("Invalid request: version does not match \"HTTP/\"");
 		return false;
 	}
 	this->_version = it->substr(5);
 	if (this->_version != "1.1" && this->_version != "1.0")
 	{
-		LOG_INFO("Invalid request: unsuported HTTP/ version");
+		LOG_INFO_LINK("Invalid request: unsuported HTTP/ version");
 		return false;
 	}
 	return true;
@@ -187,19 +188,19 @@ bool	Request::validateRequest(void)
 	{
 		if (this->_headers.find("Content-Length") == this->_headers.end())
 		{
-			LOG_INFO("Invalid request has body but not header [Content-lenght], sending error page");
+			LOG_INFO_LINK("Invalid request has body but not header [Content-lenght], sending error page");
 			return false;
 		}
 		size_t size = static_cast<size_t>(std::atol(this->_headers["Content-Length"].c_str()));
 		if (this->_body.size() != size)
 		{
-			LOG_INFO("Invalid request: header [Content-lenght] does not match body size");
+			LOG_INFO_LINK("Invalid request: header [Content-lenght] does not match body size");
 			return false;
 		}
 	}
 	if (this->_headers.find("Host") == this->_headers.end() || this->_headers["Host"].empty())
 	{
-		LOG_INFO("Invalid request: header [Host] not found");
+		LOG_INFO_LINK("Invalid request: header [Host] not found");
 		return false;
 	}
 	return true;

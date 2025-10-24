@@ -32,16 +32,16 @@
 
 // LOG defines
 #define LOG_INFO(string) std::cout << BLUE << "Info: " << RESET << string << std::endl
-#define LOG_INFO_LINK(string) std::cout << BLUE << "Info: " << BOLD << string << RESET << "at: " << __FILE__ << __LINE__ << std::endl
+#define LOG_INFO_LINK(string) std::cout << BLUE << "Info: " << RESET << BOLD << string << RESET << " at: " << __FILE__ << ":" << __LINE__ << std::endl
 
 #define LOG_WARNING(string) std::cout << YELLOW << "Warning : " << RESET << string << std::endl
-#define LOG_WARNING_LINK(string) std::cout << YELLOW << "Warning : " << BOLD << string << RESET << "at: " << __FILE__ << __LINE__ << std::endl
+#define LOG_WARNING_LINK(string) std::cout << YELLOW << "Warning : " << RESET << BOLD << string << RESET << " at: " << __FILE__ << ":" << __LINE__ << std::endl
 
 #define LOG_HIGH_WARNING(string) std::cout << ORANGE << "Warning: " << RESET << string << std::endl
-#define LOG_HIGH_WARNING_LINK(string) std::cout << ORANGE << "Warning: " << BOLD << string << RESET << "at: " << __FILE__ << __LINE__ << std::endl
+#define LOG_HIGH_WARNING_LINK(string) std::cout << ORANGE << "Warning: " << RESET << BOLD << string << RESET << " at: " << __FILE__ << ":" << __LINE__ << std::endl
 
 #define LOG_ERROR(string) std::cout << BLUE << "Error: " << RESET << string << std::endl
-#define LOG_ERROR_LINK(string) std::cout << BLUE << "Error: " << BOLD << string << string << RESET << "at: " << __FILE__ << __LINE__ << std::endl
+#define LOG_ERROR_LINK(string) std::cout << BLUE << "Error: " << RESET << BOLD << string << string << RESET << " at: " << __FILE__ << ":" << __LINE__ << std::endl
 
 class Request;
 class ServerCfg;

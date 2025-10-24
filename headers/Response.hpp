@@ -14,8 +14,8 @@
 class Response
 {
 	protected:
-		Request const&		_req;
 		ServerCfg const&	_cfg;
+		Request const&		_req;
 		std::string	const	_version;
 
 		int				_statusCode;
@@ -34,11 +34,12 @@ class Response
 		void	addHeader(std::string const& key, std::string const& value);
 		bool	sendFileAsBody(std::string const& path);
 
-
-		std::string resolvePathSafely(std::string const& uri, std::string const& root);
-		bool		isPathInsideRoot(std::string const& resolved, std::string const& root);
+		bool		isSecurePath(std::string const& path);
+		std::string	normalizePath(std::string const& root, std::string const& uri);
+		// std::string resolvePathSafely(std::string const& uri, std::string const& root);
+		// bool		isPathInsideRoot(std::string const& resolved, std::string const& root);
 		void		responseIsErrorPage(int errCode);
-
+		off_t		validateFilePath(std::string const& path);
 
 	private:
 		Response(const Response &copy);
@@ -46,7 +47,7 @@ class Response
 
 	public:
 		Response(ServerCfg const& config,  Request const& request);
-		~Response();
+		virtual ~Response();
 
 		virtual void	buildResponse() = 0;
 		std::string		getRawResponse() const;

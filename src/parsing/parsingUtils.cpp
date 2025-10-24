@@ -174,6 +174,8 @@ std::vector<std::string>	tokenizeLine(std::string& line, size_t nLine)
 	std::vector<std::string>	tokenized;
 	std::stringstream			ss(line);
 
+	line.erase(std::remove(line.begin(), line.end(), '\r'), line.end());
+
 	while (ss >> std::ws)
 	{
 		char quote = ss.peek();// check first character for quotes
@@ -214,9 +216,12 @@ std::vector<std::string>	tokenizeLine(std::string& line)
 {
 	std::string					token;
 	std::vector<std::string>	tokenized;
+
+	line.erase(std::remove(line.begin(), line.end(), '\r'), line.end());
 	std::stringstream			ss(line);
 
-	while (ss >> std::ws)
+
+	while (ss >> std::ws && ss.peek() != EOF)
 	{
 		char quote = ss.peek();
 		if (quote == '"' || quote == '\'')
@@ -232,8 +237,6 @@ std::vector<std::string>	tokenizeLine(std::string& line)
 		else
 		{
 			ss >> token;
-			if (token[0] == '#')// comment mark, stop reading the line
-				break;
 			tokenized.push_back(token);
 		}
 	}
