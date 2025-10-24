@@ -33,7 +33,7 @@ void	ResponseGet::buildResponse(void)
 		path =  this->normalizePath(this->_cfg.getRoot(), this->_req.getUri());
 
 	//set the file requested as body if exits, error page if not, fill first line and headers accordingly
-	this->_bodyIsFile = this->sendFileAsBody(path);
+	this->sendFileAsBody(path);//TODO BUG if it sends a custom error page, it won't work because all errors sets bodyIsFile to false;
 
 }
 

@@ -32,7 +32,8 @@ class Response
 		void	setStatus(int code);
 		void	setBody(std::string const& bodyContent, std::string const& contentType);
 		void	addHeader(std::string const& key, std::string const& value);
-		bool	sendFileAsBody(std::string const& path);
+		void	sendFileAsBody(std::string const& path);
+		bool	sendCustomErrorPage(int errCode);
 
 		bool		isSecurePath(std::string const& path);
 		std::string	normalizePath(std::string const& root, std::string const& uri);

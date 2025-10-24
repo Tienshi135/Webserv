@@ -7,7 +7,7 @@ class ResponseGet : public Response
 
 public:
 	ResponseGet(ServerCfg const& cfg, Request const& req);
-	~ResponseGet();
+	virtual ~ResponseGet();
 
 	virtual void	buildResponse();
 };

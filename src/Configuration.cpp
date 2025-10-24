@@ -139,11 +139,11 @@ void Configuration::setStore(const std::vector<std::string>& store)
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-ServerCfg::ServerCfg() : Configuration(), _name(""), _host(""), _port(0), _error_page(""), _body_size(0), _location_map()
+ServerCfg::ServerCfg() : Configuration(), _name(""), _host(""), _port(0), _body_size(0), _location_map()
 {
 }
 
-ServerCfg::ServerCfg(const ServerCfg &copy) : Configuration(copy), _name(copy._name), _host(copy._host), _port(copy._port), _error_page(copy._error_page), _body_size(copy._body_size), _location_map(copy._location_map)
+ServerCfg::ServerCfg(const ServerCfg &copy) : Configuration(copy), _name(copy._name), _host(copy._host), _port(copy._port), _errorPages(copy._errorPages), _body_size(copy._body_size), _location_map(copy._location_map)
 {
 }
 
@@ -155,7 +155,7 @@ ServerCfg &ServerCfg::operator=(const ServerCfg &copy)
 		this->_name = copy._name;
 		this->_host = copy._host;
 		this->_port = copy._port;
-		this->_error_page = copy._error_page;
+		this->_errorPages = copy._errorPages;
 		this->_body_size = copy._body_size;
 		this->_location_map = copy._location_map;
 	}
@@ -183,9 +183,9 @@ unsigned int ServerCfg::getPort() const
 	return (this->_port);
 }
 
-std::string ServerCfg::getErrorPage() const
+std::map<int, std::string> const& ServerCfg::getErrorPages() const
 {
-	return (this->_error_page);
+	return (this->_errorPages);
 }
 
 unsigned int ServerCfg::getBodySize() const
@@ -233,16 +233,28 @@ void ServerCfg::setPort(unsigned int listen)
 /* TODO: error page should be a map with all the error codes as keys and it's correspondent pages paths as string values*/
 void ServerCfg::setErrorPage(std::vector<std::string>& error_page)
 {
-	std::cerr << YELLOW << "WARNING! " << RESET
-			<< "Directive [error_page] implementation is unfinished, check < TODO: > comments"
-			<< std::endl;//TODO: delete this warning after implementation
+	if (error_page.size() % 2 != 0)
+		throw ERR_PARS("Directive [error_page] need a pair number of elements");
 
 	std::vector<std::string>::iterator it;
 	for (it = error_page.begin(); it != error_page.end(); it++)
 	{
-		this->_error_page.append(*it);
-		if (it != error_page.end())
-			this->_error_page.append(" ");
+		std::stringstream	ss(*it);
+		int					code;
+		ss >> code;
+		if (ss.fail() || !ss.eof())
+			throw ERR_PARS("Error code [" + *it + "] not recognizable");
+		if (code < 100 || code > 599)
+			throw ERR_PARS("Error code [" + *it + "] out of range (100-599)");
+
+		it++;
+		std::string	page = *it;
+		if (page.empty())
+			throw ERR_PARS("missing error page path");
+		if (page.find("..") != std::string::npos)
+			throw ERR_PARS("Error page path contains '..' which is not allowed");
+
+		this->_errorPages[code] = page;
 	}
 }
 

@@ -30,8 +30,14 @@ void printMap(const std::map<std::string, ServerCfg> &buffer)
             std::cout << "  Host/IP: " << it->second.getHost() << std::endl;
         if (it->second.getPort() != 0)
             std::cout << "  Port: " << it->second.getPort() << std::endl;
-        if (!it->second.getErrorPage().empty())
-            std::cout << "  Error Page: " << it->second.getErrorPage() << std::endl;
+        if (!it->second.getErrorPages().empty())
+		{
+			std::cout << "  Error Pages: " << std::endl;
+			std::map<int, std::string>::const_iterator it_err;
+			std::map<int, std::string> const& errorPages = it->second.getErrorPages();
+			for (it_err = errorPages.begin(); it_err != errorPages.end(); it_err++)
+				std::cout << "    " << it_err->first << " " << it_err->second << std::endl;
+		}
         if (it->second.getBodySize() != 0)
             std::cout << "  Body Size Limit: " << it->second.getBodySize() << std::endl;
 
@@ -187,7 +193,7 @@ int main(int argc, char **argv)
 					ssize_t bytes_sent = send(client_fd, builtResponse.c_str(), builtResponse.length(), 0);
 					if (bytes_sent == -1)
 						perror("Send error");
-					// delete response;
+					delete response;
 				}
 				if (bytes_read == -1)
 					perror("Read error");

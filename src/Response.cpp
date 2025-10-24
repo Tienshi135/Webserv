@@ -6,7 +6,7 @@
 
 
 Response::Response(const ServerCfg &config, const Request &request)
-: _cfg(config), _req(request), _version("HTTP/1.0") , _statusCode(200), _statusMsg("OK"), _bodyIsFile(false)
+: _cfg(config), _req(request), _version("HTTP/1.0") , _statusCode(200), _statusMsg("OK"), _bodyIsFile(true)
 {
 	this->addHeader("Server", "Amazing webserv");
 	this->addHeader("Connection", "close");
@@ -75,8 +75,92 @@ std::string	Response::getReasonPhrase(int errCode) const
 
 	std::map<int, std::string>::const_iterator it = errorCodes.find(errCode);
 	if (it != errorCodes.end())
-		return it->second;
+	return it->second;
 	return "Unknown Status";
+}
+
+void	Response::responseIsErrorPage(int errCode)
+{
+	static std::map<int, std::string> errorPages;
+
+	if (this->sendCustomErrorPage(errCode))
+		return;
+	// 4xx Client Errors
+	errorPages[400] = "<!DOCTYPE html><html><body><h1>400 Bad Request</h1><p>The request could not be understood by the server.</p></body></html>";
+	errorPages[401] = "<!DOCTYPE html><html><body><h1>401 Unauthorized</h1><p>Authentication is required to access this resource.</p></body></html>";
+	errorPages[403] = "<!DOCTYPE html><html><body><h1>403 Forbidden</h1><p>Access to this resource is forbidden.</p></body></html>";
+	errorPages[404] = "<!DOCTYPE html><html><body><h1>404 Not Found</h1><p>The requested resource could not be found.</p></body></html>";
+	errorPages[405] = "<!DOCTYPE html><html><body><h1>405 Method Not Allowed</h1><p>The method is not allowed for this resource.</p></body></html>";
+	errorPages[408] = "<!DOCTYPE html><html><body><h1>408 Request Timeout</h1><p>The server timed out waiting for the request.</p></body></html>";
+	errorPages[409] = "<!DOCTYPE html><html><body><h1>409 Conflict</h1><p>The request conflicts with the current state of the server.</p></body></html>";
+	errorPages[410] = "<!DOCTYPE html><html><body><h1>410 Gone</h1><p>The requested resource is no longer available.</p></body></html>";
+	errorPages[411] = "<!DOCTYPE html><html><body><h1>411 Length Required</h1><p>Content-Length header is required.</p></body></html>";
+	errorPages[413] = "<!DOCTYPE html><html><body><h1>413 Payload Too Large</h1><p>The request entity is too large.</p></body></html>";
+	errorPages[414] = "<!DOCTYPE html><html><body><h1>414 URI Too Long</h1><p>The request URI is too long.</p></body></html>";
+	errorPages[415] = "<!DOCTYPE html><html><body><h1>415 Unsupported Media Type</h1><p>The media type is not supported.</p></body></html>";
+
+	// 5xx Server Errors
+	errorPages[500] = "<!DOCTYPE html><html><body><h1>500 Internal Server Error</h1><p>The server encountered an unexpected condition.</p></body></html>";
+	errorPages[501] = "<!DOCTYPE html><html><body><h1>501 Not Implemented</h1><p>The server does not support the functionality required.</p></body></html>";
+	errorPages[502] = "<!DOCTYPE html><html><body><h1>502 Bad Gateway</h1><p>The server received an invalid response from an upstream server.</p></body></html>";
+	errorPages[503] = "<!DOCTYPE html><html><body><h1>503 Service Unavailable</h1><p>The server is temporarily unable to handle the request.</p></body></html>";
+	errorPages[504] = "<!DOCTYPE html><html><body><h1>504 Gateway Timeout</h1><p>The server did not receive a timely response from an upstream server.</p></body></html>";
+	errorPages[505] = "<!DOCTYPE html><html><body><h1>505 HTTP Version Not Supported</h1><p>The HTTP version is not supported by the server.</p></body></html>";
+
+	this->setStatus(errCode);
+	this->_body = errorPages[errCode];
+	this->_bodyIsFile = false;
+
+	this->addHeader("Content-Type", "text/html; charset=UTF-8");
+	this->addHeader("Content-Length", numToString(this->_body.size()));
+}
+
+bool	Response::sendCustomErrorPage(int errCode)
+{
+	std::map<int, std::string> const& customPages = this->_cfg.getErrorPages();
+	std::map<int, std::string>::const_iterator it = customPages.find(errCode);
+
+	if (it == customPages.end())
+	{
+		LOG_INFO_LINK("No custom error page configured for code " + numToString(errCode));
+		return false;
+	}
+	std::string errorPage = this->normalizePath(this->_cfg.getRoot(), it->second);
+
+	if (!this->isSecurePath(errorPage))
+	{
+		LOG_HIGH_WARNING_LINK("Custom error page failed security check: " + errorPage);
+		return false;
+	}
+	if (access(errorPage.c_str(), F_OK) < 0)
+	{
+		LOG_WARNING_LINK("Custom error page not found: " + errorPage);
+		return false;
+	}
+	if (access(errorPage.c_str(), R_OK) < 0)
+	{
+		LOG_WARNING_LINK("Custom error page not readable: " + errorPage);
+		return false;
+	}
+	struct stat fileStat;
+	if (stat(errorPage.c_str(), &fileStat) != 0)
+	{
+		LOG_WARNING_LINK("Failed to get stats for custom error page: " + errorPage);
+		return false;
+	}
+	if (!S_ISREG(fileStat.st_mode))
+	{
+		LOG_WARNING_LINK("Custom error page is not a regular file: " + errorPage);
+		return false;
+	}
+
+	this->setStatus(errCode);
+	this->_bodyFilePath = errorPage;
+	this->_bodyIsFile = true;
+
+	this->addHeader("Content-Type", "text/html; charset=UTF-8");
+	this->addHeader("Content-Length", numToString(static_cast<size_t>(fileStat.st_size)));
+	return true;
 }
 
 std::string Response::getContentType(std::string const& path) const
@@ -84,7 +168,7 @@ std::string Response::getContentType(std::string const& path) const
 	// Find file extension
 	size_t dotPos = path.find_last_of('.');
 	if (dotPos == std::string::npos)
-		return "application/octet-stream";  // Default binary
+		return "application/octet-stream";
 
 	std::string ext = path.substr(dotPos + 1);
 
@@ -92,15 +176,22 @@ std::string Response::getContentType(std::string const& path) const
 	for (size_t i = 0; i < ext.length(); ++i)
 		ext[i] = std::tolower(ext[i]);
 
-	// Map extensions to MIME types
+	//Map extensions to MIME types
+	//Text-based formats (add charset)
 	if (ext == "html" || ext == "htm")
-		return "text/html";
+		return "text/html; charset=UTF-8";
 	if (ext == "css")
-		return "text/css";
+		return "text/css; charset=UTF-8";
 	if (ext == "js")
-		return "application/javascript";
+		return "application/javascript; charset=UTF-8";
 	if (ext == "json")
-		return "application/json";
+		return "application/json; charset=UTF-8";
+	if (ext == "txt")
+		return "text/plain; charset=UTF-8";
+	if (ext == "xml")
+		return "application/xml; charset=UTF-8";
+
+	//Binary formats (no charset)
 	if (ext == "png")
 		return "image/png";
 	if (ext == "jpg" || ext == "jpeg")
@@ -111,12 +202,16 @@ std::string Response::getContentType(std::string const& path) const
 		return "image/svg+xml";
 	if (ext == "ico")
 		return "image/x-icon";
-	if (ext == "txt")
-		return "text/plain";
 	if (ext == "pdf")
 		return "application/pdf";
+	if (ext == "zip")
+		return "application/zip";
+	if (ext == "mp4")
+		return "video/mp4";
+	if (ext == "mp3")
+		return "audio/mpeg";
 
-	return "application/octet-stream";  // Default
+	return "application/octet-stream";
 }
 
 
@@ -172,54 +267,23 @@ off_t	Response::validateFilePath(std::string const& path)
 	return fileStat.st_size;
 }
 
-bool	Response::sendFileAsBody(std::string const& path)
+void	Response::sendFileAsBody(std::string const& path)
 {
 	off_t contentSize = this->validateFilePath(path);
 	if (contentSize < 0)
-		return false;
+		return ;
 
 	std::string	type = this->getContentType(path);
 	this->addHeader("Content-Type", type);
 	this->addHeader("Content-Length", numToString(static_cast<size_t>(contentSize)));
 
+	this->_bodyIsFile = true;
 	this->_bodyFilePath = path;
 	this->setStatus(200);
-	return true;
+	return ;
 }
 
-void	Response::responseIsErrorPage(int errCode)
-{
-	static std::map<int, std::string> errorPages;
 
-	// 4xx Client Errors
-	errorPages[400] = "<!DOCTYPE html><html><body><h1>400 Bad Request</h1><p>The request could not be understood by the server.</p></body></html>";
-	errorPages[401] = "<!DOCTYPE html><html><body><h1>401 Unauthorized</h1><p>Authentication is required to access this resource.</p></body></html>";
-	errorPages[403] = "<!DOCTYPE html><html><body><h1>403 Forbidden</h1><p>Access to this resource is forbidden.</p></body></html>";
-	errorPages[404] = "<!DOCTYPE html><html><body><h1>404 Not Found</h1><p>The requested resource could not be found.</p></body></html>";
-	errorPages[405] = "<!DOCTYPE html><html><body><h1>405 Method Not Allowed</h1><p>The method is not allowed for this resource.</p></body></html>";
-	errorPages[408] = "<!DOCTYPE html><html><body><h1>408 Request Timeout</h1><p>The server timed out waiting for the request.</p></body></html>";
-	errorPages[409] = "<!DOCTYPE html><html><body><h1>409 Conflict</h1><p>The request conflicts with the current state of the server.</p></body></html>";
-	errorPages[410] = "<!DOCTYPE html><html><body><h1>410 Gone</h1><p>The requested resource is no longer available.</p></body></html>";
-	errorPages[411] = "<!DOCTYPE html><html><body><h1>411 Length Required</h1><p>Content-Length header is required.</p></body></html>";
-	errorPages[413] = "<!DOCTYPE html><html><body><h1>413 Payload Too Large</h1><p>The request entity is too large.</p></body></html>";
-	errorPages[414] = "<!DOCTYPE html><html><body><h1>414 URI Too Long</h1><p>The request URI is too long.</p></body></html>";
-	errorPages[415] = "<!DOCTYPE html><html><body><h1>415 Unsupported Media Type</h1><p>The media type is not supported.</p></body></html>";
-
-	// 5xx Server Errors
-	errorPages[500] = "<!DOCTYPE html><html><body><h1>500 Internal Server Error</h1><p>The server encountered an unexpected condition.</p></body></html>";
-	errorPages[501] = "<!DOCTYPE html><html><body><h1>501 Not Implemented</h1><p>The server does not support the functionality required.</p></body></html>";
-	errorPages[502] = "<!DOCTYPE html><html><body><h1>502 Bad Gateway</h1><p>The server received an invalid response from an upstream server.</p></body></html>";
-	errorPages[503] = "<!DOCTYPE html><html><body><h1>503 Service Unavailable</h1><p>The server is temporarily unable to handle the request.</p></body></html>";
-	errorPages[504] = "<!DOCTYPE html><html><body><h1>504 Gateway Timeout</h1><p>The server did not receive a timely response from an upstream server.</p></body></html>";
-	errorPages[505] = "<!DOCTYPE html><html><body><h1>505 HTTP Version Not Supported</h1><p>The HTTP version is not supported by the server.</p></body></html>";
-
-	this->setStatus(errCode);
-	this->_body = errorPages[errCode];
-	this->_bodyIsFile = false;
-
-	this->addHeader("Content-Type", "text/html");
-	this->addHeader("Content-Length", numToString(this->_body.size()));
-}
 
 bool	Response::isSecurePath(std::string const& path)
 {
@@ -261,7 +325,10 @@ void Response::printResponse() const
 	std::map< std::string, std::string >::const_iterator it;
 	for (it = this->_headers.begin(); it != this->_headers.end(); it++)
 		std::cout << it->first << ": " << it->second << std::endl;
-	std::cout << "Content Preview: " << (this->_body.length() > 50 ? this->_body.substr(0, 50) + "..." : this->_body) << std::endl;
+	if (this->_bodyIsFile)
+		std::cout << "Content Preview: sent from the file " << this->_bodyFilePath << std::endl;
+	else
+		std::cout << "Content Preview: " << (this->_body.length() > 50 ? this->_body.substr(0, 50) + "..." : this->_body) << std::endl;
 	std::cout << GREEN << "=========== End of Response==============\n"  << RESET<< std::endl;
 }
 

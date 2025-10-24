@@ -76,7 +76,7 @@ class ServerCfg : public Configuration
 		std::string						_name;
 		std::string						_host;
 		unsigned int					_port;
-		std::string						_error_page;//TODO change to map
+		std::map<int, std::string>		_errorPages;
 		unsigned int					_body_size;
 		std::map<std::string, Location>	_location_map;
 
@@ -86,13 +86,13 @@ class ServerCfg : public Configuration
 		ServerCfg &operator=(const ServerCfg &copy);
 		virtual ~ServerCfg();
 
-		std::string						getName() const;
-		std::string						getHost() const;
-		unsigned int					getPort() const;
-		std::string						getErrorPage() const;
-		unsigned int					getBodySize() const;
-		std::map<std::string, Location>	getLocationMap() const;
-		std::map<std::string, Location>	getLocationMap();
+		std::string							getName() const;
+		std::string							getHost() const;
+		unsigned int						getPort() const;
+		std::map<int, std::string>const&	getErrorPages() const;
+		unsigned int						getBodySize() const;
+		std::map<std::string, Location>		getLocationMap() const;
+		std::map<std::string, Location>		getLocationMap();
 
 		void			setName(const std::vector<std::string>& name);
 		void			setName(std::string const& name);
