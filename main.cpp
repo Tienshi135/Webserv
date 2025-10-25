@@ -1,21 +1,91 @@
 #include "header.hpp"
+#include "Request.hpp"
+#include "Response.hpp"
+#include "ResponseFactory.hpp"
+#include "ResponseError.hpp"
+#include "ResponseGet.hpp"
 
-int setNonBlocking(int fd)
+
+void printMap(const std::map<std::string, ServerCfg> &buffer)
 {
-    int flags = fcntl(fd, F_GETFL, 0);
-    if (flags == -1)
+    std::cout << "=== Configuration Map Contents ===" << std::endl;
+    std::cout << "Total servers: " << buffer.size() << std::endl;
+    std::cout << std::endl;
+
+    if (buffer.empty())
     {
-        std::cerr << "fcntl F_GETFL error: " << strerror(errno) << std::endl;
-        return -1;
+        std::cout << "Map is empty!" << std::endl;
+        return;
     }
-    
-    if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1)
+
+    for (std::map<std::string, ServerCfg>::const_iterator it = buffer.begin();
+         it != buffer.end(); ++it)
     {
-        std::cerr << "fcntl F_SETFL error: " << strerror(errno) << std::endl;
-        return -1;
+        std::cout << "=== Server: " << it->first << " ===" << std::endl;
+
+        // Server-specific fields
+        if (!it->second.getName().empty())
+            std::cout << "  Server Name: " << it->second.getName() << std::endl;
+        if (!it->second.getHost().empty())
+            std::cout << "  Host/IP: " << it->second.getHost() << std::endl;
+        if (it->second.getPort() != 0)
+            std::cout << "  Port: " << it->second.getPort() << std::endl;
+        if (!it->second.getErrorPages().empty())
+		{
+			std::cout << "  Error Pages: " << std::endl;
+			std::map<int, std::string>::const_iterator it_err;
+			std::map<int, std::string> const& errorPages = it->second.getErrorPages();
+			for (it_err = errorPages.begin(); it_err != errorPages.end(); it_err++)
+				std::cout << "    " << it_err->first << " " << it_err->second << std::endl;
+		}
+        if (it->second.getBodySize() != 0)
+            std::cout << "  Body Size Limit: " << it->second.getBodySize() << std::endl;
+
+        // Configuration fields (inherited) - only show non-empty
+        if (!it->second.getMethods().empty())
+            std::cout << "  Methods: " << it->second.getMethods() << std::endl;
+        if (!it->second.getReturn().empty())
+            std::cout << "  Return: " << it->second.getReturn() << std::endl;
+        if (!it->second.getRoot().empty())
+            std::cout << "  Root: " << it->second.getRoot() << std::endl;
+        if (it->second.getAutoindex())
+            std::cout << "  Autoindex: on" << std::endl;
+        if (!it->second.getIndex().empty())
+            std::cout << "  Index: " << it->second.getIndex() << std::endl;
+        if (it->second.getMaxBodySize() != 0)
+            std::cout << "  Max Body Size: " << it->second.getMaxBodySize() << std::endl;
+        if (!it->second.getStore().empty())
+            std::cout << "  Store: " << it->second.getStore() << std::endl;
+
+        // Location map
+        std::map<std::string, Location> locationMap = it->second.getLocationMap();
+        if (!locationMap.empty())
+        {
+            std::cout << "  Locations (" << locationMap.size() << "):" << std::endl;
+            for (std::map<std::string, Location>::const_iterator loc_it = locationMap.begin();
+                 loc_it != locationMap.end(); ++loc_it)
+            {
+                std::cout << "    Location: " << loc_it->first << std::endl;
+                if (!loc_it->second.getMethods().empty())
+                    std::cout << "      Methods: " << loc_it->second.getMethods() << std::endl;
+                if (!loc_it->second.getReturn().empty())
+                    std::cout << "      Return: " << loc_it->second.getReturn() << std::endl;
+                if (!loc_it->second.getRoot().empty())
+                    std::cout << "      Root: " << loc_it->second.getRoot() << std::endl;
+                if (loc_it->second.getAutoindex())
+                    std::cout << "      Autoindex: on" << std::endl;
+                if (!loc_it->second.getIndex().empty())
+                    std::cout << "      Index: " << loc_it->second.getIndex() << std::endl;
+                if (loc_it->second.getMaxBodySize() != 0)
+                    std::cout << "      Max Body Size: " << loc_it->second.getMaxBodySize() << std::endl;
+                if (!loc_it->second.getStore().empty())
+                    std::cout << "      Store: " << loc_it->second.getStore() << std::endl;
+            }
+        }
+
+        std::cout << "================================" << std::endl;
+        std::cout << std::endl;
     }
-    
-    return 0;
 }
 
 int main(int argc, char **argv)
@@ -31,7 +101,18 @@ int main(int argc, char **argv)
 	}
 
 	//first part - parsing
-	parse(buffer, argv[1]);
+	try
+	{
+		parse(buffer, argv[1]);
+	}
+	catch(const std::exception& e)
+	{
+
+		std::cerr << e.what() << '\n';
+		buffer.clear();
+		return (-1);
+	}
+	printMap(buffer);
 
 	//second part - socket creation and binding
 	std::vector<Server>::iterator it = buffer.begin();
@@ -117,6 +198,7 @@ int main(int argc, char **argv)
 				perror("Read error");			
 			close(client_fd);
 			}
+			LOG_INFO("Conection closed, awaiting next client");
 		}
     }
 }

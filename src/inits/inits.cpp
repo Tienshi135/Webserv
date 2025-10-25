@@ -1,6 +1,6 @@
 #include "header.hpp"
 
-static struct sockaddr_in* init_sockaddr(Server conf)
+static struct sockaddr_in* init_sockaddr(ServerCfg conf)
 {
     struct sockaddr_in  *addr_in = new struct sockaddr_in;
     struct addrinfo     hints, *result;
@@ -26,7 +26,11 @@ static struct sockaddr_in* init_sockaddr(Server conf)
     return (addr_in);
 }
 
+<<<<<<< HEAD
 int socket_init(std::vector<Server>::iterator current)
+=======
+int socket_init(std::map<std::string, ServerCfg>::iterator current)
+>>>>>>> main
 {
     struct sockaddr_in *addr = init_sockaddr(*current);
     if (addr == NULL)
@@ -53,7 +57,11 @@ int socket_init(std::vector<Server>::iterator current)
         return (-1);
     }
 
+<<<<<<< HEAD
     if (bind(socket_fd, (struct sockaddr *)addr, sizeof(*addr)) == -1)
+=======
+    if (bind(socket_fd, (struct sockaddr *)addr, sizeof(*addr)) == -1)// change to use error handling func
+>>>>>>> main
     {
         perror("Bind error");
         close(socket_fd);
@@ -62,7 +70,11 @@ int socket_init(std::vector<Server>::iterator current)
         return (-1);
     }
 
+<<<<<<< HEAD
     if (listen(socket_fd, 10) == -1)
+=======
+    if (listen(socket_fd, 10) == -1)//change to use error handling func
+>>>>>>> main
     {
         perror("listen error");
         close(socket_fd);
@@ -70,6 +82,10 @@ int socket_init(std::vector<Server>::iterator current)
         delete (addr);
         return (-1);
     }
+<<<<<<< HEAD
+=======
+
+>>>>>>> main
     delete (addr);
     return (socket_fd);
 }

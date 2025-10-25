@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string>
 #include <map>
+#include <vector>
 
 typedef enum ConfigType
 {
@@ -10,7 +11,7 @@ typedef enum ConfigType
 	HOST,
 	ERROR_PAGE,
 	BODY_SIZE,
-	
+
 	METHODS,
 	RETURN,
 	ROOT,
@@ -18,15 +19,15 @@ typedef enum ConfigType
 	INDEX,
 	MAX_BODY_SIZE,
 	STORE,
-	
+
 	LOCATION,
-	
+
 	UNKNOWN
 }	e_configtype;
 
 class Configuration
 {
-	private:
+	protected:
 		std::string		_methods;
 		std::string		_return;
 		std::string		_root;
@@ -39,7 +40,7 @@ class Configuration
 		Configuration();
 		Configuration(const Configuration &copy);
 		Configuration &operator=(const Configuration &copy);
-		~Configuration();
+		virtual ~Configuration();
 
 		std::string		getMethods() const;
 		std::string		getReturn() const;
@@ -49,13 +50,15 @@ class Configuration
 		unsigned int	getMaxBodySize() const;
 		std::string		getStore() const;
 
-		void			setMethods(const std::string &methods);
-		void			setReturn(const std::string &return_val);
-		void			setRoot(const std::string &root);
+		void			setMethods(const std::vector<std::string>& methods);
+		void			setReturn(std::vector<std::string>& return_val);
+		void			setRoot(const std::vector<std::string>& root);
+		void			setRoot(std::string const& root);
 		void			setAutoindex(bool autoindex);
-		void			setIndex(const std::string &index);
+		void			setIndex(const std::vector<std::string>& index);
+		void			setIndex(std::string const& index);
 		void			setMaxBodySize(unsigned int max_body_size);
-		void			setStore(const std::string &store);
+		void			setStore(const std::vector<std::string>& store);
 };
 
 class Location : public Configuration
@@ -64,20 +67,25 @@ class Location : public Configuration
 		Location();
 		Location(const Location &copy);
 		Location &operator=(const Location &copy);
-		~Location();
+		virtual ~Location();
 };
 
-class Server : public Configuration
+class ServerCfg : public Configuration
 {
 	private:
 		std::string						_name;
 		std::string						_host;
 		unsigned int					_port;
+<<<<<<< HEAD:headers/Server.hpp
 		std::string						_error_page;//probably change to a map
+=======
+		std::map<int, std::string>		_errorPages;
+>>>>>>> main:headers/Configuration.hpp
 		unsigned int					_body_size;
 		std::map<std::string, Location>	_location_map;
 
 	public:
+<<<<<<< HEAD:headers/Server.hpp
 		Server();
 		Server(const Server &copy);
 		Server &operator=(const Server &copy);
@@ -89,11 +97,28 @@ class Server : public Configuration
 		std::string						getErrorPage() const;
 		unsigned int					getBodySize() const;
 		std::map<std::string, Location>	getLocationMap() const;
+=======
+		ServerCfg();
+		ServerCfg(const ServerCfg &copy);
+		ServerCfg &operator=(const ServerCfg &copy);
+		virtual ~ServerCfg();
 
-		void			setName(const std::string &name);
+		std::string							getName() const;
+		std::string							getHost() const;
+		unsigned int						getPort() const;
+		std::map<int, std::string>const&	getErrorPages() const;
+		unsigned int						getBodySize() const;
+		std::map<std::string, Location>		getLocationMap() const;
+		std::map<std::string, Location>		getLocationMap();
+>>>>>>> main:headers/Configuration.hpp
+
+		void			setName(const std::vector<std::string>& name);
+		void			setName(std::string const& name);
 		void			setHost(const std::string &host);
 		void			setPort(unsigned int listen);
-		void			setErrorPage(const std::string &error_page);
+		void			setErrorPage(std::vector<std::string>& error_page);
 		void			setBodySize(unsigned int body_size);
 		void			setLocationMap(const std::map<std::string, Location> &location_map);
+
+		bool			minValidCfg() const;
 };
