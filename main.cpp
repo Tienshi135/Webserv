@@ -84,20 +84,39 @@ int main(int argc, char **argv)
 		{
 			if (FD_ISSET(sfd_it->first, &read_fd))
 			{
-				struct sockaddr_in client_addr;
-				socklen_t client_len = sizeof(client_addr);
-				int client_fd = accept(sfd_it->first, (struct sockaddr *)&client_addr, &client_len);
-				if (client_fd < 0)
-					std::cerr << "accept() error: " << strerror(errno) << std::endl;
-				if (setNonBlocking(client_fd) == -1)
-					close(client_fd);
-				cfd[sfd_it->first].push_back(client_fd);
-			}
-			else if (FD_ISSET(sfd_it->first, &read_fd) && !cfd[sfd_it->first].empty())
+				int client_fd = accept(sfd_it->first, NULL, NULL);
+				if (client_fd == -1)
+				{
+					perror("Accept error");
+					continue;
+				}
+			
+			char buffer[1024];
+			std::cout << "Client connected, reading request..." << std::endl;
+			ssize_t bytes_read = read(client_fd, buffer, sizeof(buffer) - 1);//add check for received bigger than buffer size
+			if (bytes_read > 0)
 			{
-				// Handle data from connected clients (not implemented here)
+				buffer[bytes_read] = '\0';
+				Request	req(buffer);
+					
+				const Server &server_config = sfd_it->second;
+					
+				Response response(server_config, req);
+				std::string response_str = response.buildResponse();
+				ssize_t bytes_sent = send(client_fd, response_str.c_str(), response_str.length(), 0);
+				if (bytes_sent == -1)
+					perror("Send error");
+					
+				// std::string error_response = "HTTP/1.0 500 Internal Server Error\r\n";
+				// error_response += "Content-Type: text/html\r\n";
+				// error_response += "Content-Length: 52\r\n";
+				// error_response += "Connection: close\r\n\r\n";
+				// error_response += "<html><body><h1>500 Internal Server Error</h1></body></html>";
 			}
-			sfd_it++;
+			if (bytes_read == -1)
+				perror("Read error");			
+			close(client_fd);
+			}
 		}
     }
 }
