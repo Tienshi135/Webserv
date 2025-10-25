@@ -19,16 +19,6 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <sys/select.h>
-<<<<<<< HEAD
-#include <fcntl.h>
-
-#include "Server.hpp"
-#include "Request.hpp"
-#include "Response.hpp"
-
-bool    parse(std::vector<Server> &buffer, char *path);
-int     socket_init(std::vector<Server>::iterator current);
-=======
 #include "Configuration.hpp"
 
 // Parsing includes
@@ -65,7 +55,7 @@ struct File
 
 /*======= PARSING =====*/
 //parsing
-void				parse(std::map<std::string, ServerCfg> &buffer, char *path);
+void				parse(std::vector<ServerCfg> &buffer, char *path);
 void				parseLocation(ServerCfg& server, std::vector<std::string>& locationLine, File &file);
 ServerCfg			parseServer(File& file);
 
@@ -92,5 +82,4 @@ void	setLocationDirective(ServerCfg& server, e_configtype& directive, std::vecto
 void	setDirective(ServerCfg& server, e_configtype& directive, std::vector<std::string>& value);
 
 /*=========== INIT ============*/
-int     socket_init(std::map<std::string, ServerCfg>::iterator current);
->>>>>>> main
+int     socket_init(std::vector<ServerCfg>::iterator current);

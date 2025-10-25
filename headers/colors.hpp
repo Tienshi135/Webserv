@@ -13,9 +13,11 @@
 # define ORANGE		"\033[38;5;208m"
 # define BOLD		"\033[1m"
 # define DIM		"\033[2m"
+
 # ifndef DEFAULT
 #  define DEFAULT 0
 # endif
+
 # include <iostream>
 
 #endif

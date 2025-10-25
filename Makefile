@@ -7,11 +7,7 @@ obj_dir = ./obj
 
 # compilator and compilation flags
 CC = c++
-<<<<<<< HEAD
 CFLAGS = -Wall -Werror -Wextra --std=c++98 -g
-=======
-CFLAGS = -Wall -Werror -Wextra --std=c++98 -g3
->>>>>>> main
 INCLUDES = -I ./headers
 
 # source files (recursively find all .cpp files)
@@ -62,13 +58,4 @@ fclean: clean
 # Rebuild everything
 re: fclean all
 
-<<<<<<< HEAD
 .PHONY: all clean fclean re debug
-=======
-# Debug: show variables
-debug:
-	@echo "SRCS: $(SRCS)"
-	@echo "OBJS: $(OBJS)"
-
-.PHONY: all clean fclean re debug
->>>>>>> main

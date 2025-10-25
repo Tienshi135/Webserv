@@ -45,28 +45,6 @@ class Response
 	private:
 		Response(const Response &copy);
 		Response &operator=(const Response &copy);
-<<<<<<< HEAD
-		~Response();
-		
-		std::string		getVersion() const;
-		unsigned int	getCode() const;
-		std::string		getCodeStr() const;
-		std::string		getContentType() const;
-		std::string		getContent() const;
-		unsigned int	getContentLength() const;
-		std::string		getConnectionStatus() const;
-		
-		void			setVersion(const std::string &version);
-		void			setCode(unsigned int code);
-		void			setCodeStr(const std::string &code_str);
-		void			setContentType(const std::string &content_type);
-		void			setContent(const std::string &content);
-		void			setContentLength(unsigned int content_length);
-		void			setConnectionStatus(const std::string &connection_status);
-		
-		std::string		buildResponse() const;
-};
-=======
 
 	public:
 		Response(ServerCfg const& config,  Request const& request);
@@ -77,4 +55,3 @@ class Response
 
 		void		printResponse() const;
 };
->>>>>>> main

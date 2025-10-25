@@ -1,42 +1,8 @@
 #include "Response.hpp"
 #include "Request.hpp"
-#include "Server.hpp"
 
 /*========================= Constructor and destructor ================================*/
 
-<<<<<<< HEAD
-    path += "." + config.getRoot();
-    if (request.getPath().compare("/") == 0)
-        path += "/" + config.getIndex();
-    else
-        path += request.getPath();
-    std::cout << path << std::endl;
-	std::ifstream file(path.c_str());
-	if (!file.is_open())
-	{
-		path = "." + config.getRoot() + "/" + config.getErrorPage();//will need to change once it's a map
-		std::ifstream file(path.c_str());
-		if (!file.is_open())
-			throw("big error");
-		this->_code = 404;
-		this->_code_str = "Can't fine page";
-		this->_content_type = "text/html";
-		this->_content = std::string((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-		this->_content_length = this->_content.length();
-		this->_connection_status = "close";
-		return;
-	}
-	
-	this->_content = std::string((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-	file.close();
-	
-	this->_code = 200;
-	this->_code_str = "OK";
-	this->_content_type = "text/html";
-	this->_content_length = this->_content.length();
-	this->_connection_status = "close";
-}
-=======
 
 Response::Response(const ServerCfg &config, const Request &request)
 : _cfg(config), _req(request), _version("HTTP/1.0") , _statusCode(200), _statusMsg("OK"), _bodyIsFile(true)
@@ -159,7 +125,6 @@ bool	Response::sendCustomErrorPage(int errCode)
 		return false;
 	}
 	std::string errorPage = this->normalizePath(this->_cfg.getRoot(), it->second);
->>>>>>> main
 
 	if (!this->isSecurePath(errorPage))
 	{
@@ -351,9 +316,6 @@ std::string	Response::normalizePath(std::string const& root, std::string const& 
 /*========================= Public member functions  ================================*/
 
 
-<<<<<<< HEAD
-std::string Response::buildResponse() const
-=======
 void Response::printResponse() const
 {
 	std::cout << GREEN << "\n=== Response Information ===" << RESET << std::endl;
@@ -371,7 +333,6 @@ void Response::printResponse() const
 
 
 std::string	Response::getRawResponse(void) const
->>>>>>> main
 {
 	std::ostringstream response;
 

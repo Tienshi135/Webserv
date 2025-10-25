@@ -76,28 +76,11 @@ class ServerCfg : public Configuration
 		std::string						_name;
 		std::string						_host;
 		unsigned int					_port;
-<<<<<<< HEAD:headers/Server.hpp
-		std::string						_error_page;//probably change to a map
-=======
 		std::map<int, std::string>		_errorPages;
->>>>>>> main:headers/Configuration.hpp
 		unsigned int					_body_size;
 		std::map<std::string, Location>	_location_map;
 
 	public:
-<<<<<<< HEAD:headers/Server.hpp
-		Server();
-		Server(const Server &copy);
-		Server &operator=(const Server &copy);
-		~Server();
-		
-		std::string						getName() const;
-		std::string						getHost() const;
-		unsigned int					getPort() const;
-		std::string						getErrorPage() const;
-		unsigned int					getBodySize() const;
-		std::map<std::string, Location>	getLocationMap() const;
-=======
 		ServerCfg();
 		ServerCfg(const ServerCfg &copy);
 		ServerCfg &operator=(const ServerCfg &copy);
@@ -110,7 +93,6 @@ class ServerCfg : public Configuration
 		unsigned int						getBodySize() const;
 		std::map<std::string, Location>		getLocationMap() const;
 		std::map<std::string, Location>		getLocationMap();
->>>>>>> main:headers/Configuration.hpp
 
 		void			setName(const std::vector<std::string>& name);
 		void			setName(std::string const& name);

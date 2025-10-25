@@ -120,8 +120,6 @@ std::string Request::getBody() const
 {
     return this->_body;
 }
-<<<<<<< HEAD
-=======
 
 bool Request::isValid() const
 {
@@ -208,4 +206,3 @@ bool	Request::validateRequest(void)
 	return true;
 }
 
->>>>>>> main

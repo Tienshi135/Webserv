@@ -1,4 +1,4 @@
-#include "Server.hpp"
+#include "Configuration.hpp"
 #include "ParsingException.hpp"
 
 Configuration::Configuration() : _methods(""), _return(""), _root(""), _autoindex(false), _index(""), _max_body_size(0), _store("")

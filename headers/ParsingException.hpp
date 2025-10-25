@@ -10,12 +10,12 @@
 
 class ParsingException : public std::exception
 {
-private:
-	std::string	_msg;
-public:
-	ParsingException(std::string file, int line, std::string errormsg);
-	ParsingException(std::string file, int line, std::string errormsg, size_t cfgLine);
-	virtual ~ParsingException() throw();
-	virtual const char *what() const throw();
+	private:
+		std::string	_msg;
+	public:
+		ParsingException(std::string file, int line, std::string errormsg);
+		ParsingException(std::string file, int line, std::string errormsg, size_t cfgLine);
+		virtual ~ParsingException() throw();
+		virtual const char *what() const throw();
 };
 
