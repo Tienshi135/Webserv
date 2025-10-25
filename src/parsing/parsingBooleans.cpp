@@ -126,3 +126,27 @@ bool parseHostPort(const std::string& value, std::string& host, unsigned int& po
 
 	return true;
 }
+
+/*
+ * Returns true if string is a valid URL or relative path for return directive
+ * Valid formats:
+ *	- Relative path: /page, /old/page.html
+ *	- Absolute URL: http://example.com, http://example.com/page
+ */
+bool	isUrl(std::string const& url)
+{
+	if (url.empty())
+		return false;
+
+	if (url[0] == '/')
+		return true;
+
+	if (url.size() >= 7)
+	{
+		std::string http = strToLower(url.substr(0, 7));
+		if (http == "http://")
+			return true;
+	}
+
+	return false;
+}

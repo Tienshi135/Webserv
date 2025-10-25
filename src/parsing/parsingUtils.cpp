@@ -14,6 +14,15 @@ std::string numToString(size_t num)
 	return ss.str();
 }
 
+std::string	strToLower(std::string const& string)
+{
+	std::string	lowered;
+	for (size_t i = 0; i < string.size(); i++)
+		lowered[i] = std::tolower(string[i]);
+
+	return lowered;
+}
+
 std::vector<int> parseIPOctets(const std::string& ip)
 {
 	std::vector<int> octets;
@@ -168,6 +177,10 @@ e_configtype	findType(std::string directive)
 	return (UNKNOWN);
 }
 
+/*Takes a string and splits it using whitespaces as delimiters
+ -quotes will ignore whitespaces
+ -text after a '#' character will be ignored
+ -throw exception when error is detected */
 std::vector<std::string>	tokenizeLine(std::string& line, size_t nLine)
 {
 	std::string					token;
@@ -212,6 +225,9 @@ std::vector<std::string>	tokenizeLine(std::string& line, size_t nLine)
 	return tokenized;
 }
 
+/* Overload function to use specifically at request parsing
+ -handles quotes
+ -if error or void line, returns empty vector*/
 std::vector<std::string>	tokenizeLine(std::string& line)
 {
 	std::string					token;

@@ -13,6 +13,6 @@ ResponseError::~ResponseError() {}
 
 void	ResponseError::buildResponse(void)
 {
-	this->responseIsErrorPage(400);
+	this->responseIsErrorPage(405);
 }
 

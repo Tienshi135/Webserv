@@ -69,8 +69,13 @@ void	setLocationDirective(ServerCfg& server, e_configtype& directive, std::vecto
 	std::map<std::string, Location> currentMap = server.getLocationMap();
 
 	Location& tempLocation = currentMap[locationPath];
+
+	tempLocation.setLocationPath(locationPath);
 	switch (directive)
 	{
+		case(CGIPASS) :
+			tempLocation.setCgiPass(value);
+			break;
 		case(METHODS):
 			tempLocation.setMethods(value);
 			break;

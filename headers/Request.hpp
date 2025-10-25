@@ -8,8 +8,9 @@ class Request {
         std::string     _method;
 		std::string		_uri;
         std::string     _version;
-        std::map<std::string, std::string> _headers;//TODO: could/need this to be a map<std::string, std::vector> to store multiple values for header?
+        std::map<std::string, std::string> _headers;
         std::string     _body;
+        size_t          _bodySize;
         bool            _valid;
 
 	public:
@@ -23,6 +24,7 @@ class Request {
         std::string     getUri() const;
         std::string     getHeader(const std::string &key) const;
         std::string     getBody() const;
+        size_t          getBodySize() const;
         bool            isValid() const;
 
         void            setVersion(const std::string &version);

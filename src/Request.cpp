@@ -2,7 +2,7 @@
 
 /*============================= Constructors and destructor =====================================*/
 
-Request::Request(std::string received)
+Request::Request(std::string received) : _bodySize(0), _valid(false)
 {
 	std::stringstream			iss(received);
 	std::string					line;
@@ -55,6 +55,7 @@ _uri(copy._uri),
 _version(copy._version),
 _headers(copy._headers),
 _body(copy._body),
+_bodySize(copy._bodySize),
 _valid(copy._valid) {}
 
 
@@ -78,21 +79,25 @@ Request &Request::operator=(const Request &copy)
 
 /*============================= getters and setters =====================================*/
 
-std::string Request::getVersion() const
+std::string Request::getVersion(void) const
 {
 	return (this->_version);
 }
 
-std::string Request::getMethod() const
+std::string Request::getMethod(void) const
 {
 	return (this->_method);
 }
 
-std::string Request::getUri() const
+std::string Request::getUri(void) const
 {
 	return (this->_uri);
 }
 
+size_t	Request::getBodySize(void) const
+{
+	return (this->_bodySize);
+}
 // Setters
 void Request::setVersion(const std::string &version)
 {
@@ -156,7 +161,7 @@ bool	Request::fillFirstLine(std::vector<std::string>& firstLine)
 {
 	if (firstLine.size() != 3)
 	{
-		LOG_INFO_LINK("Invalid request: first line size has not 3 elements");
+		LOG_WARNING_LINK("Invalid request: first line size has not 3 elements");
 		return false;
 	}
 
@@ -169,13 +174,13 @@ bool	Request::fillFirstLine(std::vector<std::string>& firstLine)
 	std::string	validVersion = it->substr(0, 5);
 	if (validVersion != "HTTP/")
 	{
-		LOG_INFO_LINK("Invalid request: version does not match \"HTTP/\"");
+		LOG_WARNING_LINK("Invalid request: version does not match \"HTTP/\"");
 		return false;
 	}
 	this->_version = it->substr(5);
 	if (this->_version != "1.1" && this->_version != "1.0")
 	{
-		LOG_INFO_LINK("Invalid request: unsuported HTTP/ version");
+		LOG_WARNING_LINK("Invalid request: unsuported HTTP/ version");
 		return false;
 	}
 	return true;
@@ -184,6 +189,8 @@ bool	Request::fillFirstLine(std::vector<std::string>& firstLine)
 
 bool	Request::validateRequest(void)
 {
+	size_t size;
+
 	if (!this->_body.empty())
 	{
 		if (this->_headers.find("Content-Length") == this->_headers.end())
@@ -191,12 +198,13 @@ bool	Request::validateRequest(void)
 			LOG_INFO_LINK("Invalid request has body but not header [Content-lenght], sending error page");
 			return false;
 		}
-		size_t size = static_cast<size_t>(std::atol(this->_headers["Content-Length"].c_str()));
+		size = static_cast<size_t>(std::atol(this->_headers["Content-Length"].c_str()));
 		if (this->_body.size() != size)
 		{
 			LOG_INFO_LINK("Invalid request: header [Content-lenght] does not match body size");
 			return false;
 		}
+		this->_bodySize = size;
 	}
 	if (this->_headers.find("Host") == this->_headers.end() || this->_headers["Host"].empty())
 	{

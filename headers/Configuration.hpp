@@ -21,6 +21,7 @@ typedef enum ConfigType
 	STORE,
 
 	LOCATION,
+	CGIPASS,
 
 	UNKNOWN
 }	e_configtype;
@@ -29,7 +30,6 @@ class Configuration
 {
 	protected:
 		std::string		_methods;
-		std::string		_return;
 		std::string		_root;
 		bool			_autoindex;
 		std::string		_index;
@@ -43,7 +43,6 @@ class Configuration
 		virtual ~Configuration();
 
 		std::string		getMethods() const;
-		std::string		getReturn() const;
 		std::string		getRoot() const;
 		bool			getAutoindex() const;
 		std::string		getIndex() const;
@@ -51,7 +50,6 @@ class Configuration
 		std::string		getStore() const;
 
 		void			setMethods(const std::vector<std::string>& methods);
-		void			setReturn(std::vector<std::string>& return_val);
 		void			setRoot(const std::vector<std::string>& root);
 		void			setRoot(std::string const& root);
 		void			setAutoindex(bool autoindex);
@@ -63,12 +61,36 @@ class Configuration
 
 class Location : public Configuration
 {
+	private:
+		struct ReturnDirective
+	{
+		int			code;	// HTTP status code (0 if not set)
+		std::string	value;	// URL or text
+		bool		isSet;	// Whether return directive was configured
+
+		ReturnDirective() : code(0), value(""), isSet(false) {}
+	};
+
+		ReturnDirective	_return;
+		std::string		_locationPath;
+		std::string		_cgiPass;
+
+		int	parseReturnCode(std::string const& strCode);
+
 	public:
 		Location();
 		Location(const Location &copy);
 		Location &operator=(const Location &copy);
 		virtual ~Location();
-};
+
+		void	setLocationPath(std::string const& locationPath);
+		void	setCgiPass(std::vector<std::string> const& value);
+		void	setReturn(std::vector<std::string>& return_val);
+
+		ReturnDirective	getReturn() const;
+
+		bool	minValidLocation() const;
+	};
 
 class ServerCfg : public Configuration
 {

@@ -10,6 +10,6 @@ Response*	ResponseFactory::createResponse(ServerCfg const& cfg, Request const& r
 	if (req.getMethod() == "GET")
 		return new ResponseGet(cfg, req);
 
-	LOG_INFO_LINK("Requested method: [" + req.getMethod() + "] not recognized, sendind error page 400");
+	LOG_WARNING_LINK("Requested method: [" + req.getMethod() + "] not recognized, sendind error page 405");
 	return new ResponseError(cfg, req);
 }

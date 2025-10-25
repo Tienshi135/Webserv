@@ -1,42 +1,54 @@
 #include "Configuration.hpp"
 #include "ParsingException.hpp"
+#include "header.hpp"
 
-Configuration::Configuration() : _methods(""), _return(""), _root(""), _autoindex(false), _index(""), _max_body_size(0), _store("")
-{
-}
+struct ReturnDirective;
+/*************************************************************/
+/*               CONFIGURATION BASE CLASS                    */
+/*************************************************************/
 
-Configuration::Configuration(const Configuration &copy) : _methods(copy._methods), _return(copy._return), _root(copy._root), _autoindex(copy._autoindex), _index(copy._index), _max_body_size(copy._max_body_size), _store(copy._store)
-{
-}
+/*============== Constructor and destructors ================*/
 
+Configuration::Configuration()
+: _methods(""),
+_root(""),
+_autoindex(false),
+_index(""),
+_max_body_size(0),
+_store(""){}
+
+Configuration::Configuration(const Configuration &copy)
+: _methods(copy._methods),
+_root(copy._root),
+_autoindex(copy._autoindex),
+_index(copy._index),
+_max_body_size(copy._max_body_size),
+_store(copy._store){}
+
+Configuration::~Configuration(){}
+
+
+/*============== Assing overload operator ================*/
 Configuration &Configuration::operator=(const Configuration &copy)
 {
-    if (this != &copy)
-    {
-        this->_methods = copy._methods;
-        this->_return = copy._return;
-        this->_root = copy._root;
-        this->_autoindex = copy._autoindex;
-        this->_index = copy._index;
-        this->_max_body_size = copy._max_body_size;
-        this->_store = copy._store;
-    }
-    return (*this);
+	if (this != &copy)
+	{
+		this->_methods = copy._methods;
+		this->_root = copy._root;
+		this->_autoindex = copy._autoindex;
+		this->_index = copy._index;
+		this->_max_body_size = copy._max_body_size;
+		this->_store = copy._store;
+	}
+	return (*this);
 }
 
-Configuration::~Configuration()
-{
-}
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+/*============== Getters ================*/
 
 std::string Configuration::getMethods() const
 {
 	return (this->_methods);
-}
-std::string Configuration::getReturn() const
-{
-	return (this->_return);
 }
 
 std::string Configuration::getRoot() const
@@ -64,10 +76,16 @@ std::string Configuration::getStore() const
 	return (this->_store);
 }
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/*TODO: methods should be a vector of strings*/
+
+/*============== setters ================*/
+
+/*TODO: methods should be a vector of strings an call itself methods allowed*/
 void Configuration::setMethods(const std::vector<std::string>& methods)
 {
+	std::cerr << YELLOW << "WARNING! " << RESET
+		<< "Directive [methods] implementation is unfinished, check < TODO: > comments"
+		<< std::endl;//TODO: delete this warning after implementation
+
 	for (size_t i = 0; i < methods.size(); i++)
 	{
 		this->_methods.append(methods[i]);
@@ -76,20 +94,6 @@ void Configuration::setMethods(const std::vector<std::string>& methods)
 	}
 }
 /* TODO: return should be a map up to 1 or two code URL, that stores the path as string value and the code as key*/
-void Configuration::setReturn(std::vector<std::string>& return_val)
-{
-	std::cerr << YELLOW << "WARNING! " << RESET
-		<< "Directive [return] implementation is unfinished, check < TODO: > comments"
-		<< std::endl;//TODO: delete this warning after implementation
-
-	std::vector<std::string>::iterator it;
-	for (it = return_val.begin(); it != return_val.end(); it++)
-	{
-		this->_return.append(*it);
-		if ((it + 1) != return_val.end())
-			this->_return.append(" ");
-	}
-}
 
 void Configuration::setRoot(const std::vector<std::string>& root)
 {
@@ -115,37 +119,57 @@ void Configuration::setIndex(const std::vector<std::string>& index)
 		std::cerr << YELLOW << "WARNING! " << RESET
 				<< "Directive [index] has not implemented yet multiple directives management, only first will be stored"
 				<< std::endl;//TODO: delete this warning after implementation
-	}
-	this->_index = index.front();
-}
+			}
+			this->_index = index.front();
+		}
 
-void Configuration::setIndex(std::string const& index)
-{
-	this->_index = index;
-}
+		void Configuration::setIndex(std::string const& index)
+		{
+			this->_index = index;
+		}
 
-void Configuration::setMaxBodySize(unsigned int max_body_size)
-{
-	this->_max_body_size = max_body_size;
-}
+		void Configuration::setMaxBodySize(unsigned int max_body_size)
+		{
+			this->_max_body_size = max_body_size;
+		}
 
-void Configuration::setStore(const std::vector<std::string>& store)
-{
-	if (store.size() > 1)
-		throw ERR_PARS("Directive [store] has more than one element");
-	this->_store = store.front();
-}
+		void Configuration::setStore(const std::vector<std::string>& store)
+		{
+			if (store.size() > 1)
+			throw ERR_PARS("Directive [store] has more than one element");
+			this->_store = store.front();
+		}
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+		/*============== Private memeber functions ================*/
 
-ServerCfg::ServerCfg() : Configuration(), _name(""), _host(""), _port(0), _body_size(0), _location_map()
-{
-}
 
-ServerCfg::ServerCfg(const ServerCfg &copy) : Configuration(copy), _name(copy._name), _host(copy._host), _port(copy._port), _errorPages(copy._errorPages), _body_size(copy._body_size), _location_map(copy._location_map)
-{
-}
+		/*************************************************************/
+		/*                    SERVERCFG CLASS                        */
+		/*************************************************************/
+
+/*============== Constructor and destructors ================*/
+
+ServerCfg::ServerCfg()
+: Configuration(),
+_name(""),
+_host(""),
+_port(0),
+_body_size(0),
+_location_map(){}
+
+ServerCfg::ServerCfg(const ServerCfg &copy)
+: Configuration(copy),
+_name(copy._name),
+_host(copy._host),
+_port(copy._port),
+_errorPages(copy._errorPages),
+_body_size(copy._body_size),
+_location_map(copy._location_map){}
+
+ServerCfg::~ServerCfg(){}
+
+
+/*============== Assing overload operator ================*/
 
 ServerCfg &ServerCfg::operator=(const ServerCfg &copy)
 {
@@ -162,11 +186,8 @@ ServerCfg &ServerCfg::operator=(const ServerCfg &copy)
 	return (*this);
 }
 
-ServerCfg::~ServerCfg()
-{
-}
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+/*=========================== Getters ===========================*/
 
 std::string ServerCfg::getName() const
 {
@@ -203,7 +224,8 @@ std::map<std::string, Location> ServerCfg::getLocationMap()
 	return (this->_location_map);
 }
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+
+/*============================ Setters ===========================*/
 
 void ServerCfg::setName(const std::vector<std::string>& name)
 {
@@ -268,32 +290,7 @@ void ServerCfg::setLocationMap(const std::map<std::string, Location> &location_m
 	this->_location_map = location_map;
 }
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
-Location::Location() : Configuration()
-{
-}
-
-Location::Location(const Location &copy) : Configuration(copy)
-{
-}
-
-Location &Location::operator=(const Location &copy)
-{
-	if (this != &copy)
-	{
-		Configuration::operator=(copy);
-	}
-	return (*this);
-}
-
-Location::~Location()
-{
-}
-
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
+/*============== Member functions ================*/
 
 bool	ServerCfg::minValidCfg(void) const
 {
@@ -321,3 +318,117 @@ bool	ServerCfg::minValidCfg(void) const
 	return true;
 }
 
+/*************************************************************/
+/*                     LOCATION CLASS                        */
+/*************************************************************/
+
+/*============== Constructor and destructors ================*/
+
+Location::Location() : Configuration() {}
+
+Location::Location(const Location &copy) : Configuration(copy){}
+
+Location::~Location(){}
+
+
+/*============== Assing overload operator ================*/
+
+Location &Location::operator=(const Location &copy)
+{
+	if (this != &copy)
+	{
+		Configuration::operator=(copy);
+	}
+	return (*this);
+}
+
+
+/*============== setters and getters ================*/
+
+void	Location::setLocationPath(std::string const& locationPath)
+{
+	this->_locationPath = locationPath;
+}
+
+void	Location::setCgiPass(std::vector<std::string> const& value)
+{
+	this->_cgiPass = value.front();
+}
+
+
+
+
+void Location::setReturn(std::vector<std::string>& return_val)
+{
+	size_t size = return_val.size();
+
+	if (size == 1)
+	{
+		std::string value = return_val.front();
+		if (isUrl(value))
+		{
+			this->_return.code = 302;
+			this->_return.value = value;
+			this->_return.isSet = true;
+			return;
+		}
+
+		int code = parseReturnCode(return_val.front());
+		this->_return.code = code;
+		this->_return.value = "";
+		this->_return.isSet = true;
+		return;
+	}
+
+	int code = parseReturnCode(return_val.front());
+	this->_return.code = code;
+
+	if (return_val[1].empty())
+		throw ERR_PARS("Directive [return] code [" + return_val[0] + "] has empty value");
+
+	if (code >= 300 && code < 400 && !isUrl(return_val[1]))
+	throw ERR_PARS("Location directive [return] has code: [" + return_val.front() + "] with no URL");
+
+	std::vector<std::string>::iterator it;
+	for (it = return_val.begin() + 1; it != return_val.end(); it++)
+	{
+		this->_return.value.append(*it);
+		if (it + 1 != return_val.end())
+			this->_return.value.append(" ");
+	}
+	this->_return.isSet = true;
+
+}
+
+/*============== Member functions ================*/
+
+bool	Location::minValidLocation(void) const
+{
+	if (this->_locationPath.empty())
+		return false;
+
+	bool hasRoot = !this->_root.empty();
+	bool hasCGI = !this->_cgiPass.empty();
+	bool hasReturn = this->_return.isSet;
+
+	if (!hasRoot && !hasCGI && !hasReturn)
+		return false;
+
+	//if hasroot validate path
+
+	//if hascfg validate executable file
+}
+
+int	Location::parseReturnCode(std::string const& strCode)
+{
+	std::stringstream ss(strCode);
+	int	code;
+	ss >> code;
+
+	if (ss.fail() || !ss.eof())
+		throw ERR_PARS("Location directive [return] has invalid code: [" + strCode + "]");
+	if (code < 100 || code > 599)
+		throw ERR_PARS("Location directive [return] code: [" + strCode + "] is out of bounds");
+
+	return code;
+}

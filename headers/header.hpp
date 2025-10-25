@@ -65,6 +65,7 @@ std::vector<std::string>	tokenizeLine(std::string& line);
 std::vector<int>			parseIPOctets(const std::string& ip);
 std::string					numToString(int num);
 std::string					numToString(size_t num);
+std::string					strToLower(std::string const& string);
 e_configtype				findType(std::string directive);
 unsigned int 				parseSize(const std::string &value);
 void						setDefaults(ServerCfg& server);
@@ -74,8 +75,10 @@ bool	foundServer(std::vector<std::string>& tknLine, File& file);
 bool	foundLocation(std::vector<std::string>& tknLine, File& file);
 bool	pathExists(const std::string &path);
 bool	isValidLocationPath(const std::string &path);
+bool	isUrl(std::string const& url);
 bool	hasCommonElement(std::vector<std::string>& v1, std::vector<std::string>& v2);
 bool	parseHostPort(const std::string& value, std::string& host, unsigned int& port);
+
 
 //set directives
 void	setLocationDirective(ServerCfg& server, e_configtype& directive, std::vector<std::string>& value, std::string& locationPath);
