@@ -5,6 +5,7 @@
 #include "ResponseError.hpp"
 #include "ResponseGet.hpp"
 #include <unistd.h>
+#include <signal.h>
 
 
 void printVector(const std::vector<ServerCfg> &buffer)
@@ -89,6 +90,12 @@ void printVector(const std::vector<ServerCfg> &buffer)
     }
 }
 
+void signalHandler(int signum)
+{
+    std::cout << RED << "\n🛑 Signal: " << strsignal(signum) << ". Cleaning up..." << RESET << std::endl;
+    exit(0);
+}
+
 int main(int argc, char **argv)
 {
 	std::map<int, ServerCfg>			sfd;//map of server fds to their configurations
@@ -101,6 +108,7 @@ int main(int argc, char **argv)
 		return (-1);
 	}
 
+    // signal(SIGINT, signalHandler);
 	//first part - parsing
 	try
 	{
@@ -144,12 +152,21 @@ int main(int argc, char **argv)
 		std::map<int, ServerCfg>::iterator sfd_it = sfd.begin();
 		while (sfd_it != sfd.end())
 		{
+			// Add server socket
 			FD_SET(sfd_it->first, &read_fd);
 			if (sfd_it->first > max_fd)
 				max_fd = sfd_it->first;
+			
+			// Add all client sockets for this server
+			for (std::vector<int>::iterator client_it = cfd[sfd_it->first].begin();
+				 client_it != cfd[sfd_it->first].end(); ++client_it)
+			{
+				FD_SET(*client_it, &read_fd);
+				if (*client_it > max_fd)
+					max_fd = *client_it;
+			}
 			sfd_it++;
 		}
-		
 		struct timeval timeout;
 		timeout.tv_sec = 0;
 		timeout.tv_usec = 0;
@@ -167,7 +184,7 @@ int main(int argc, char **argv)
             ServerCfg &server_config = sfd_it->second;
 
 			if (FD_ISSET(sfd_it->first, &read_fd))
-			{
+            {
 				int client_fd = accept(sfd_it->first, NULL, NULL);
 				if (client_fd == -1)
 				{
@@ -189,34 +206,48 @@ int main(int argc, char **argv)
                     continue;
                 }
                 LOG_INFO("Client connected on server : " + server_config.getName() + " (fd: " + numToString(client_fd) + ")");
-                char buffer[server_config.getMaxBodySize() + 1];
-                sleep(1);
-                ssize_t bytes_read = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
-                if (bytes_read > 0)
+                cfd[sfd_it->first].push_back(client_fd);
+            }
+            // Check all client sockets for this server
+            std::vector<int>::iterator client_it = cfd[sfd_it->first].begin();
+            while (client_it != cfd[sfd_it->first].end())
+            {
+                int client_fd = *client_it;
+                if (FD_ISSET(client_fd, &read_fd))
                 {
-                    buffer[bytes_read] = '\0';
-                    Request	req(buffer);
-                        
-                    const ServerCfg &server_config = sfd_it->second;
-                        
-                    Response* response = ResponseFactory::createResponse(server_config, req);
-                    if (response)
+                    char buffer[server_config.getMaxBodySize() + 1];
+                    ssize_t bytes_read = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
+                    if (bytes_read > 0)
                     {
-                        response->buildResponse();
-                        std::string response_str = response->getRawResponse();
-                        ssize_t bytes_sent = send(client_fd, response_str.c_str(), response_str.length(), 0);
-                        if (bytes_sent == -1)
-                            perror("Send error");
-                        delete response;
+                        buffer[bytes_read] = '\0';
+                        Request	req(buffer);
+                            
+                        const ServerCfg &server_config = sfd_it->second;
+                        
+                        Response* response = ResponseFactory::createResponse(server_config, req);
+                        if (response)
+                        {
+                            response->buildResponse();
+                            std::string response_str = response->getRawResponse();
+                            ssize_t bytes_sent = send(client_fd, response_str.c_str(), response_str.length(), 0);
+                            if (bytes_sent == -1)
+                                perror("Send error");
+                            delete response;
+                        }
+                        
                     }
-                    
+                    if (bytes_read == 0)
+                        LOG_INFO("Client disconnected : " + numToString(client_fd));
+                    close(client_fd);
+                    LOG_INFO("Connection closed with client : " + numToString(client_fd) + ", awaiting next client");
+                    cfd[sfd_it->first].erase(client_it);
+                    client_it = cfd[sfd_it->first].begin();
                 }
-                if (bytes_read == -1)
-                    perror("Recv error");
-                close(client_fd);
-                LOG_INFO("Connection closed with client : " + numToString(client_fd) + ", awaiting next client");
+                else
+                    client_it++;
             }
             sfd_it++;
         }
     }
+    return (0);
 }

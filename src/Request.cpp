@@ -149,7 +149,7 @@ void Request::printRequest() const
 		std::cout << "\nBody (" << this->_body.length() << " bytes):" << std::endl;
 		std::cout << this->_body << std::endl;
 	}
-	std::cout << MAGENTA << "========== end of request ===============\n" << MAGENTA << std::endl;
+	std::cout << MAGENTA << "========== end of request ===============\n" << RESET << std::endl;
 }
 
 bool	Request::fillFirstLine(std::vector<std::string>& firstLine)
