@@ -108,7 +108,7 @@ int main(int argc, char **argv)
 		return (-1);
 	}
 
-    // signal(SIGINT, signalHandler);
+    signal(SIGINT, signalHandler);
 	//first part - parsing
 	try
 	{
