@@ -42,7 +42,16 @@ Request::Request(std::string received) : _bodySize(0), _valid(false)
 	}
 
 	//BODY (if it exists)
-	std::getline(iss, this->_body, '\0');
+	if (this->_headers.find("Content-Length") != this->_headers.end())
+	{
+		size_t contentLength = static_cast<size_t>(std::atol(this->_headers["Content-Length"].c_str()));
+
+		if (contentLength > 0)
+		{
+			this->_body.resize(contentLength);
+			iss.read(&this->_body[0], contentLength);
+		}
+	}
 
 	//request validation
 	this->_valid = this->validateRequest();

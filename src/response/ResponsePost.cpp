@@ -5,11 +5,83 @@
 /*============== constructor and destructor =============*/
 
 ResponsePost::ResponsePost(ServerCfg const& cfg, Request const& req)
-: Response(cfg, req) {}
+: Response(cfg, req)
+{
+	std::string elements = this->_req.getHeader("Content-Type");
+	if (elements.empty())
+		return;
+	this->_contentTypeElements = parseHeaderParameters(elements);
+	std::map<std::string, std::string>::iterator it = this->_contentTypeElements.begin();//TODO implement stronger assignment method
+	this->_contentType = it->first;
+
+	std::string boundary = this->_contentTypeElements["boundary"];
+
+	size_t beginContent = this->_req.getBody().find(boundary);
+	if (beginContent == std::string::npos)
+	{
+		LOG_WARNING_LINK("boundary begin not found");
+		return;
+	}
+
+	size_t endContent = this->_req.getBody().find(boundary, beginContent - 1);
+	if (endContent == std::string::npos)
+	{
+		LOG_WARNING_LINK("boundary end not found");
+		return;
+	}
+//check npos
+
+	std::string Content = this->_req.getBody().substr(beginContent, endContent);
+	this->_contentDisposition = parseHeaderParameters(Content);
+
+	this->printContentTypeElements();
+}
 
 ResponsePost::~ResponsePost() {}
 
 /*============== private member functions =============*/
+
+void	ResponsePost::printContentTypeElements(void)
+{
+	std::cout << "Content-type elements in POST request" << std::endl;
+	std::cout << "Content-type: " << this->_contentType << std::endl;
+	std::map<std::string, std::string>::iterator it;
+	for (it = this->_contentTypeElements.begin(); it != this->_contentTypeElements.end(); it++)
+		std::cout << "Element: " << it->first << "; value = " << it->second << std::endl;
+	std::cout << "....................................." << std::endl;
+	std::cout << "Content-disposition: " << std::endl;
+		std::map<std::string, std::string>::iterator it_d;
+	for (it_d = this->_contentDisposition.begin(); it_d != this->_contentDisposition.end(); it_d++)
+		std::cout << "Element: " << it_d->first << "; value = " << it_d->second << std::endl;
+
+}
+
+std::string	ResponsePost::parseNameFromMultipart(void)//TODO upgrade this parser
+{
+	std::string baseName;
+	std::string type;
+
+	std::string fileName = this->_contentDisposition["filename"];
+
+	size_t	dotPos = fileName.find_last_of(".");//TODO make this a helper method "findExtension"
+	if (dotPos != std::string::npos && dotPos > 0)
+	{
+		baseName = fileName.substr(0, dotPos);
+		type = fileName.substr(dotPos + 1);
+		if (type.empty())
+			type = "dat";
+	}
+	else
+	{
+		baseName = fileName.empty() ? "upload" : fileName;
+		type = "dat";
+	}
+
+	this->makeUnicIde(baseName, type);
+
+	return baseName;
+}
+
 
 std::string	ResponsePost::getFileName()
 {
@@ -17,6 +89,11 @@ std::string	ResponsePost::getFileName()
 	std::string baseName;
 	std::string type;
 
+	if (!this->_contentType.empty() && this->_contentType == "multipart/form-data")
+	{
+		baseName = this->parseNameFromMultipart();
+		return baseName;
+	}
 	std::string rawValues = this->_req.getHeader("Content-Disposition");
 	std::vector<std::string> values = tokenizeLine(rawValues);
 
@@ -26,7 +103,7 @@ std::string	ResponsePost::getFileName()
 		if (it->substr(0, 9) == "filename=")
 		{
 			fileName = it->substr(9);
-			this->trimFileName(fileName);
+			trimQuotes(fileName);
 			break;
 		}
 	}
@@ -69,25 +146,11 @@ void	ResponsePost::makeUnicIde(std::string& fileName, std::string const& type)
 	fileName = ss.str();
 }
 
-void	ResponsePost::trimFileName(std::string& fileName)
-{
-	if (fileName.empty())
-		return;
-	if (fileName[0] == '\"' || fileName[0] == '\'')
-		fileName.erase(0, 1);
-
-	if (fileName.empty())
-		return;
-
-	if (fileName[fileName.size() -1] == '\"' || fileName[fileName.size() -1] ==  '\'')
-		fileName.erase(fileName.size() - 1, 1);
-}
-
 bool	ResponsePost::setOrCreatePath(std::string const& path)
 {
 	if (pathIsDirectory(path))
 		return true;
-
+	this->printContentTypeElements();
 
 	if (pathIsExecutable(path))
 	{
@@ -142,6 +205,7 @@ void	ResponsePost::buildResponse(void)
 		if (!this->setOrCreatePath(savePath))
 			return;
 	}
+
 
 	fileName = this->getFileName();
 	savePath += ("/" + fileName);
