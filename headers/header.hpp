@@ -62,6 +62,7 @@ void				parseLocation(ServerCfg& server, std::vector<std::string>& locationLine,
 ServerCfg			parseServer(File& file);
 
 //parsing utils
+std::map<std::string, std::string>	parseHeaderParameters(std::string& strElements);
 std::vector<std::string>	tokenizeLine(std::string& line, size_t nbLine);
 std::vector<std::string>	tokenizeLine(std::string& line);
 std::vector<int>			parseIPOctets(const std::string& ip);
@@ -71,6 +72,7 @@ std::string					strToLower(std::string const& string);
 e_configtype				findType(std::string directive);
 unsigned int 				parseSize(const std::string &value);
 void						setDefaults(ServerCfg& server);
+void						trimQuotes(std::string& quoted);
 
 //parsing booleans
 bool	foundServer(std::vector<std::string>& tknLine, File& file);
