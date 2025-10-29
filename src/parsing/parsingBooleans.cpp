@@ -1,5 +1,12 @@
 #include "header.hpp"
 
+/**
+ * @brief Checks if two string vectors share any common element
+ *
+ * @param v1 First vector to compare
+ * @param v2 Second vector to compare
+ * @return true if at least one element exists in both vectors, false otherwise
+ */
 bool hasCommonElement(std::vector<std::string>& v1, std::vector<std::string>& v2)
 {
 	std::vector<std::string>::iterator	it;
@@ -11,12 +18,29 @@ bool hasCommonElement(std::vector<std::string>& v1, std::vector<std::string>& v2
 	return false;
 }
 
+/**
+ * @brief Checks if a path exists in the filesystem
+ *
+ * @param path Path to check
+ * @return true if path exists, false otherwise
+ */
 bool pathExists(const std::string &path)
 {
 	struct stat info;
 	return (stat(path.c_str(), &info) == 0);
 }
 
+/**
+ * @brief Validates if path is a readable directory
+ *
+ * Checks that path:
+ *   - Exists
+ *   - Is a directory (not a file)
+ *   - Has read permissions
+ *
+ * @param path Directory path to validate
+ * @return true if path is a readable directory, false otherwise
+ */
 bool	pathIsDirectory(std::string const& path)
 {
 	struct stat st;
@@ -30,6 +54,17 @@ bool	pathIsDirectory(std::string const& path)
 	return true;
 }
 
+/**
+ * @brief Validates if path is a readable regular file
+ *
+ * Checks that path:
+ *   - Exists
+ *   - Is a regular file (not a directory or special file)
+ *   - Has read permissions
+ *
+ * @param path File path to validate
+ * @return true if path is a readable regular file, false otherwise
+ */
 bool	pathIsRegFile(std::string const& path)
 {
 	struct stat st;
@@ -43,6 +78,17 @@ bool	pathIsRegFile(std::string const& path)
 	return true;
 }
 
+/**
+ * @brief Validates if path is an executable
+ *
+ * Checks that path:
+ *   - Exists
+ *   - Is not a directory
+ *   - Has execute permissions
+ *
+ * @param path Directory path to validate
+ * @return true if path is an executable, false otherwise
+ */
 bool	pathIsExecutable(std::string const& path)
 {
 	struct stat st;
@@ -56,6 +102,16 @@ bool	pathIsExecutable(std::string const& path)
 	return true;
 }
 
+/**
+ * @brief Validates location path format for configuration (URI)
+ *
+ * Valid paths must:
+ *   - Start with '/'
+ *   - Not contain whitespace characters (space, tab, newline)
+ *
+ * @param path Location path to validate
+ * @return true if path format is valid, false otherwise
+ */
 bool isValidLocationPath(const std::string &path)
 {
 	if (path.empty() || path[0] != '/')
@@ -68,6 +124,19 @@ bool isValidLocationPath(const std::string &path)
 	return true;
 }
 
+/**
+ * @brief Detects and validates server block opening in configuration file
+ *
+ * Valid formats:
+ *   - "server {" on same line
+ *   - "server" on one line, "{" on next line (with max 1 empty line between)
+ *
+ * @param tknLine Tokenized current line
+ * @param file File object that contains the ifstream file and line counter
+ * (modified: advances line counter if reading ahead)
+ * @return true if valid server block opening found, false otherwise
+ * @throws ParsingException if server block syntax is invalid
+ */
 bool	foundServer(std::vector<std::string>& tknLine, File& file)
 {
 	std::string	line;
@@ -97,6 +166,19 @@ bool	foundServer(std::vector<std::string>& tknLine, File& file)
 	return false;
 }
 
+/**
+ * @brief Detects and validates location block opening in configuration file
+ *
+ * Valid formats:
+ *   - "location /path {" on same line (3 tokens)
+ *   - "location /path" on one line, "{" on next line (with max 1 empty line between)
+ *
+ * @param tknLine Tokenized current line
+ * @param file File object that contains the ifstream file and line counter
+ * (modified: advances line counter if reading ahead)
+ * @return true if valid location block opening found, false otherwise
+ * @throws ParsingException if location block syntax is invalid
+ */
 bool	foundLocation(std::vector<std::string>& tknLine, File& file)
 {
 
@@ -126,6 +208,19 @@ bool	foundLocation(std::vector<std::string>& tknLine, File& file)
 	return false;
 }
 
+/**
+ * @brief Parses and validates "host:port" string format
+ *
+ * Validates:
+ *   - Format is "host:port" (colon-separated)
+ *   - Port is numeric and in range 1-65535
+ *   - Host is valid IPv4 address (4 octets, each 0-255)
+ *
+ * @param value String to parse (e.g., "127.0.0.1:8080")
+ * @param host Output parameter for validated host/IP
+ * @param port Output parameter for validated port number
+ * @return true if format is valid and values are set, false otherwise
+ */
 bool parseHostPort(const std::string& value, std::string& host, unsigned int& port)
 {
 	if (value.empty())
@@ -166,11 +261,15 @@ bool parseHostPort(const std::string& value, std::string& host, unsigned int& po
 	return true;
 }
 
-/*
- * Returns true if string is a valid URL or relative path for return directive
+/**
+ * @brief Validates URL or relative path format for redirect directives
+ *
  * Valid formats:
- *	- Relative path: /page, /old/page.html
- *	- Absolute URL: http://example.com, http://example.com/page
+ *   - Relative path: /page, /old/page.html
+ *   - Absolute URL: http://example.com, http://example.com/page
+ *
+ * @param url String to validate
+ * @return true if string is a valid URL or path, false otherwise
  */
 bool	isUrl(std::string const& url)
 {

@@ -1,5 +1,78 @@
 #include "header.hpp"
 
+/**
+ * @brief Removes leading and trailing quotes from a string
+ *
+ * @param quoted String to trim (modified in place)
+ */
+void	trimQuotes(std::string& quoted)
+{
+	if (quoted.empty())
+		return;
+	if (quoted[0] == '\"' || quoted[0] == '\'')
+		quoted.erase(0, 1);
+
+	if (quoted.empty())
+		return;
+
+	if (quoted[quoted.size() -1] == '\"' || quoted[quoted.size() -1] ==  '\'')
+		quoted.erase(quoted.size() - 1, 1);
+}
+
+/**
+ * @brief Parses HTTP header parameters (semicolon-separated key=value pairs)
+ *
+ * Handles common HTTP header formats like:
+ *   - Content-Disposition: form-data; name="file"; filename="photo.jpg"
+ *   - Content-Type: multipart/form-data; boundary=----WebKitBoundary
+ *
+ * @param strElements String containing parameters (without header name)
+ *                    Example: "form-data; name=\"file\"; filename=\"photo.jpg\""
+ *
+ * @return Map of key-value pairs
+ *         - Quoted values have quotes removed
+ *         - Trailing semicolons are removed
+ *         - Keys without values have empty string as value
+ *
+ * @note Input should NOT include the header name (e.g., "Content-Disposition:")
+ */
+std::map<std::string, std::string>	parseHeaderParameters(std::string& strElements)
+{
+	std::map<std::string, std::string>	elementsMap;
+	std::vector<std::string> elementsVec = tokenizeLine(strElements);
+
+	std::vector<std::string>::iterator it;
+	for (it = elementsVec.begin(); it != elementsVec.end(); it++)
+	{
+		std::string key;
+		std::string value;
+		size_t assingPos = it->find("=");
+		if (assingPos != std::string::npos)
+		{
+			key = it->substr(0, assingPos);
+			value = it->substr(assingPos + 1);
+			trimQuotes(value);
+			if (!value.empty() && value[value.size() - 1] == ';')
+				value.erase(value.size() -1, 1);
+		}
+		else
+		{
+			key = *it;
+			if (!key.empty() && key[key.size() - 1] == ';')
+				key.erase(key.size() -1, 1);
+			value = "";
+		}
+		elementsMap.insert(std::make_pair(key, value));
+	}
+	return elementsMap;
+}
+
+/**
+ * @brief Converts an integer to string
+ *
+ * @param num Integer to convert
+ * @return String representation of the number
+ */
 std::string numToString(int num)
 {
 	std::stringstream ss;
@@ -7,6 +80,12 @@ std::string numToString(int num)
 	return ss.str();
 }
 
+/**
+ * @brief Converts a size_t to string (overload)
+ *
+ * @param num Size value to convert
+ * @return String representation of the number
+ */
 std::string numToString(size_t num)
 {
 	std::stringstream ss;
@@ -14,6 +93,12 @@ std::string numToString(size_t num)
 	return ss.str();
 }
 
+/**
+ * @brief Converts a string to lowercase
+ *
+ * @param string Input string to convert
+ * @return New string with all characters in lowercase
+ */
 std::string	strToLower(std::string const& string)
 {
 	std::string	lowered;
@@ -23,6 +108,18 @@ std::string	strToLower(std::string const& string)
 	return lowered;
 }
 
+/**
+ * @brief Parses an IPv4 address into its four octets
+ *
+ * Validates format and returns empty vector on any error:
+ *   - Leading/trailing dots
+ *   - Empty segments
+ *   - Non-digit characters
+ *   - Leading zeros (e.g., "192.01.0.1")
+ *
+ * @param ip IPv4 address as string (e.g., "192.168.1.1")
+ * @return Vector of 4 integers (0-255), or empty vector if invalid
+ */
 std::vector<int> parseIPOctets(const std::string& ip)
 {
 	std::vector<int> octets;
@@ -63,6 +160,11 @@ std::vector<int> parseIPOctets(const std::string& ip)
 	return octets;
 }
 
+/**
+ * @brief Returns list of valid size unit suffixes
+ *
+ * @return Vector containing: "K", "KB", "M", "MB", "G", "GB"
+ */
 std::vector<std::string>	validUnitList(void)
 {
 	std::vector<std::string> units;
@@ -75,6 +177,14 @@ std::vector<std::string>	validUnitList(void)
 
 	return units;
 }
+
+/**
+ * @brief Checks if a unit string is in the valid unit list
+ *
+ * @param unitList Vector of valid units to check against
+ * @param unit Unit string to validate
+ * @return true if unit is found in the list, false otherwise
+ */
 bool	isValidUnit(std::vector<std::string>& unitList, std::string const& unit)
 {
 	std::vector<std::string>::iterator it;
@@ -83,6 +193,20 @@ bool	isValidUnit(std::vector<std::string>& unitList, std::string const& unit)
 			return true;
 	return false;
 }
+
+/**
+ * @brief Parses size strings with optional unit suffixes (K/KB, M/MB, G/GB)
+ *
+ * Validates and converts sizes like:
+ *   - "1024" → 1024 bytes
+ *   - "1K" or "1KB" → 1024 bytes
+ *   - "5M" or "5MB" → 5242880 bytes
+ *   - "1G" or "1GB" → 1073741824 bytes (maximum allowed)
+ *
+ * @param value Size string to parse (case-insensitive for units)
+ * @return Size in bytes as unsigned int
+ * @throws ERR_PARS if format is invalid or size exceeds 1GB limit
+ */
 unsigned int parseSize(const std::string &value)
 {
 	if (value.empty())
@@ -146,6 +270,18 @@ unsigned int parseSize(const std::string &value)
 	return static_cast<unsigned int>(size);
 }
 
+/**
+ * @brief Maps directive names to their corresponding configuration type enum
+ *
+ * Uses static map for efficiency (initialized once).
+ * Supported directives:
+ *   - Server: server_name, host, error_page, body_size
+ *   - Location: methods/allow_methods, return/redirect, root, autoindex,
+ *               index, client_max_body_size/max_body_size, store, location
+ *
+ * @param directive Directive name as string
+ * @return e_configtype enum value, or UNKNOWN if not found
+ */
 e_configtype	findType(std::string directive)
 {
 	static std::map<std::string, e_configtype> typeMap;
@@ -177,10 +313,21 @@ e_configtype	findType(std::string directive)
 	return (UNKNOWN);
 }
 
-/*Takes a string and splits it using whitespaces as delimiters
- -quotes will ignore whitespaces
- -text after a '#' character will be ignored
- -throw exception when error is detected */
+/**
+ * @brief Tokenizes configuration file lines into directive components
+ *
+ * Handles:
+ *   - Whitespace-delimited tokens
+ *   - Quoted strings (preserves spaces within quotes)
+ *   - Comments (text after '#' is ignored)
+ *   - Semicolon removal from last token (required syntax)
+ *   - Special tokens: '{', '}'
+ *
+ * @param line Configuration line to parse (modified to remove '\r')
+ * @param nLine Line number for error reporting
+ * @return Vector of tokens (empty if line is empty/comment)
+ * @throws ParsingException for unclosed quotes or missing semicolons
+ */
 std::vector<std::string>	tokenizeLine(std::string& line, size_t nLine)
 {
 	std::string					token;
@@ -225,9 +372,18 @@ std::vector<std::string>	tokenizeLine(std::string& line, size_t nLine)
 	return tokenized;
 }
 
-/* Overload function to use specifically at request parsing
- -handles quotes
- -if error or void line, returns empty vector*/
+/**
+ * @brief Tokenizes HTTP request lines (simplified version without strict validation)
+ *
+ * Similar to config tokenizer but:
+ *   - No semicolon requirements
+ *   - No comment handling
+ *   - Returns empty vector on parse errors instead of throwing
+ *   - Handles quoted strings with whitespace
+ *
+ * @param line Request line to parse (modified to remove '\r')
+ * @return Vector of tokens (empty on error or empty line)
+ */
 std::vector<std::string>	tokenizeLine(std::string& line)
 {
 	std::string					token;
@@ -259,6 +415,19 @@ std::vector<std::string>	tokenizeLine(std::string& line)
 	return tokenized;
 }
 
+/**
+ * @brief Sets default values for server configuration if not explicitly defined
+ *
+ * Applied defaults:
+ *   - server_name: "default_server" (or "default_server_N" for multiple servers)
+ *   - index: "index.html"
+ *   - client_max_body_size: 1MB
+ *   - location root: inherits from server root if not set
+ *
+ * Prints informational messages for each default applied.
+ *
+ * @param server ServerCfg object to apply defaults to (modified in place)
+ */
 void	setDefaults(ServerCfg& server)
 {
 	static int nbServers;

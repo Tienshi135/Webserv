@@ -174,6 +174,7 @@ void	ResponsePost::buildResponse(void)
 	resourceUri += fileName;
 
 	this->addHeader("Location", resourceUri);
+	this->_bodyIsFile = false;
 	this->setStatus(201);
 	this->setBody("<html><body><h1>201 Created</h1></body></html>", "text/html");//TODO  this is a placeholder, delete this when implemented a response page for upload
 
