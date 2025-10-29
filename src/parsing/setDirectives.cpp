@@ -36,9 +36,6 @@ void	setDirective(ServerCfg& server, e_configtype& directive, std::vector<std::s
 		case(METHODS):
 			server.setMethods(value);
 			break;
-		case(RETURN):
-			server.setReturn(value);
-			break;
 		case(ROOT):
 			server.setRoot(value);
 			break;

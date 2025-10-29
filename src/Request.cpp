@@ -195,20 +195,20 @@ bool	Request::validateRequest(void)
 	{
 		if (this->_headers.find("Content-Length") == this->_headers.end())
 		{
-			LOG_INFO_LINK("Invalid request has body but not header [Content-lenght], sending error page");
+			LOG_WARNING_LINK("Invalid request has body but not header [Content-lenght], sending error page");
 			return false;
 		}
 		size = static_cast<size_t>(std::atol(this->_headers["Content-Length"].c_str()));
 		if (this->_body.size() != size)
 		{
-			LOG_INFO_LINK("Invalid request: header [Content-lenght] does not match body size");
+			LOG_WARNING_LINK("Invalid request: Body size mismatch: got " + numToString(this->_body.size()) + ", expected " + numToString(size));
 			return false;
 		}
 		this->_bodySize = size;
 	}
 	if (this->_headers.find("Host") == this->_headers.end() || this->_headers["Host"].empty())
 	{
-		LOG_INFO_LINK("Invalid request: header [Host] not found");
+		LOG_WARNING_LINK("Invalid request: header [Host] not found");
 		return false;
 	}
 	return true;

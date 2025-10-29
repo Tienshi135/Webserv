@@ -27,6 +27,8 @@
 #include <map>
 #include <cctype>
 #include <sys/stat.h>
+#include <sys/types.h>
+#include <ctime>
 #include "ParsingException.hpp"
 #include <limits>
 
@@ -78,6 +80,9 @@ bool	isValidLocationPath(const std::string &path);
 bool	isUrl(std::string const& url);
 bool	hasCommonElement(std::vector<std::string>& v1, std::vector<std::string>& v2);
 bool	parseHostPort(const std::string& value, std::string& host, unsigned int& port);
+bool	pathIsDirectory(std::string const& path);
+bool	pathIsRegFile(std::string const& path);
+bool	pathIsExecutable(std::string const& path);
 
 
 //set directives

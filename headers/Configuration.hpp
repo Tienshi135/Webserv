@@ -26,6 +26,15 @@ typedef enum ConfigType
 	UNKNOWN
 }	e_configtype;
 
+struct ReturnDirective
+{
+	int			code;	// HTTP status code (0 if not set)
+	std::string	value;	// URL or text
+	bool		isSet;	// Whether return directive was configured
+
+	ReturnDirective() : code(0), value(""), isSet(false) {}
+};
+
 class Configuration
 {
 	protected:
@@ -62,14 +71,7 @@ class Configuration
 class Location : public Configuration
 {
 	private:
-		struct ReturnDirective
-	{
-		int			code;	// HTTP status code (0 if not set)
-		std::string	value;	// URL or text
-		bool		isSet;	// Whether return directive was configured
 
-		ReturnDirective() : code(0), value(""), isSet(false) {}
-	};
 
 		ReturnDirective	_return;
 		std::string		_locationPath;
@@ -115,6 +117,8 @@ class ServerCfg : public Configuration
 		unsigned int						getBodySize() const;
 		std::map<std::string, Location>		getLocationMap() const;
 		std::map<std::string, Location>		getLocationMap();
+		Location const*						getSpecificLocation(std::string const& location) const;
+		Location const*						findMatchingLocation(std::string const& location) const;
 
 		void			setName(const std::vector<std::string>& name);
 		void			setName(std::string const& name);

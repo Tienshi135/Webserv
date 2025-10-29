@@ -17,6 +17,45 @@ bool pathExists(const std::string &path)
 	return (stat(path.c_str(), &info) == 0);
 }
 
+bool	pathIsDirectory(std::string const& path)
+{
+	struct stat st;
+
+	if (stat(path.c_str(), &st) != 0)
+		return false;
+	if (!S_ISDIR(st.st_mode))
+		return false;
+	if (access(path.c_str(), R_OK) != 0)
+		return false;
+	return true;
+}
+
+bool	pathIsRegFile(std::string const& path)
+{
+	struct stat st;
+
+	if (stat(path.c_str(), &st) != 0)
+		return false;
+	if (!S_ISREG(st.st_mode))
+		return false;
+	if (access(path.c_str(), R_OK) != 0)
+		return false;
+	return true;
+}
+
+bool	pathIsExecutable(std::string const& path)
+{
+	struct stat st;
+
+	if (stat(path.c_str(), &st) != 0)
+		return false;
+	if (!S_ISDIR(st.st_mode))
+		return false;
+	if (access(path.c_str(), X_OK) != 0)
+		return false;
+	return true;
+}
+
 bool isValidLocationPath(const std::string &path)
 {
 	if (path.empty() || path[0] != '/')

@@ -44,8 +44,6 @@ void printMap(const std::map<std::string, ServerCfg> &buffer)
         // Configuration fields (inherited) - only show non-empty
         if (!it->second.getMethods().empty())
             std::cout << "  Methods: " << it->second.getMethods() << std::endl;
-        if (!it->second.getReturn().empty())
-            std::cout << "  Return: " << it->second.getReturn() << std::endl;
         if (!it->second.getRoot().empty())
             std::cout << "  Root: " << it->second.getRoot() << std::endl;
         if (it->second.getAutoindex())
@@ -68,8 +66,9 @@ void printMap(const std::map<std::string, ServerCfg> &buffer)
                 std::cout << "    Location: " << loc_it->first << std::endl;
                 if (!loc_it->second.getMethods().empty())
                     std::cout << "      Methods: " << loc_it->second.getMethods() << std::endl;
-                if (!loc_it->second.getReturn().empty())
-                    std::cout << "      Return: " << loc_it->second.getReturn() << std::endl;
+                if (!loc_it->second.getReturn().isSet)
+                    std::cout << "      Return: " << loc_it->second.getReturn().code << " "
+							<< loc_it->second.getReturn().value << std::endl;
                 if (!loc_it->second.getRoot().empty())
                     std::cout << "      Root: " << loc_it->second.getRoot() << std::endl;
                 if (loc_it->second.getAutoindex())
@@ -147,7 +146,7 @@ int main(int argc, char **argv)
 				max_fd = sfd_it->first;
 		}
 
-		timeout.tv_sec = 30;
+		timeout.tv_sec = 60;
 		timeout.tv_usec = 0;
 		int activity = select(max_fd + 1, &readfds, NULL, NULL, &timeout);
 		if (activity < 0)

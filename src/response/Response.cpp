@@ -122,7 +122,7 @@ bool	Response::sendCustomErrorPage(int errCode)
 
 	if (it == customPages.end())
 	{
-		LOG_INFO_LINK("No custom error page configured for code " + numToString(errCode));
+		LOG_INFO_LINK("No custom error page configured for code [" + numToString(errCode) + "], sending default");
 		return false;
 	}
 	std::string errorPage = this->normalizePath(this->_cfg.getRoot(), it->second);

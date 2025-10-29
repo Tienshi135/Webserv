@@ -97,8 +97,12 @@ void Configuration::setMethods(const std::vector<std::string>& methods)
 
 void Configuration::setRoot(const std::vector<std::string>& root)
 {
+	if (root.empty())
+		throw ERR_PARS("Directive [root] has no value");
 	if (root.size() > 1)
 		throw ERR_PARS("Directive [root] has more than one element");
+	if (!pathIsDirectory(root.front()))
+		throw ERR_PARS("Directive [root] path is not a directory: [" + root.front() + "]");
 	this->_root = root.front();
 }
 
@@ -222,6 +226,46 @@ std::map<std::string, Location> ServerCfg::getLocationMap() const
 std::map<std::string, Location> ServerCfg::getLocationMap()
 {
 	return (this->_location_map);
+}
+
+Location const*	ServerCfg::getSpecificLocation(std::string const& location) const
+{
+	std::map<std::string, Location>::const_iterator it;
+	it = this->_location_map.find(location);
+
+	if (it != this->_location_map.end())
+		return &it->second;
+
+	return 	NULL;
+}
+
+Location const* ServerCfg::findMatchingLocation(std::string const& location) const
+{
+	Location const* bestMatch = NULL;
+	size_t longestMatch = 0;
+
+	std::map<std::string, Location>::const_iterator it;
+	for (it = this->_location_map.begin(); it != this->_location_map.end(); ++it)
+	{
+		std::string const& locationPath = it->first;
+		size_t locationLen = locationPath.size();
+
+		if (location.compare(0, locationLen, locationPath) == 0)
+		{
+			if (location.size() == locationLen ||
+				location[locationLen] == '/' ||
+				locationPath[locationLen - 1] == '/')
+			{
+				if (locationLen > longestMatch)
+				{
+					longestMatch = locationLen;
+					bestMatch = &(it->second);
+				}
+			}
+		}
+	}
+
+	return bestMatch;
 }
 
 
@@ -352,6 +396,12 @@ void	Location::setLocationPath(std::string const& locationPath)
 
 void	Location::setCgiPass(std::vector<std::string> const& value)
 {
+	 if (value.empty())
+		throw ERR_PARS("Location directive [cgi_pass] has no value");
+	if (value.size() > 1)
+		throw ERR_PARS("Location directive [cgi_pass] has too many values");
+	if (!pathIsExecutable(value.front()))
+		throw ERR_PARS("Location directive [cgi_pass] path is not executable: [" + value.front() + "]");
 	this->_cgiPass = value.front();
 }
 
@@ -397,7 +447,12 @@ void Location::setReturn(std::vector<std::string>& return_val)
 			this->_return.value.append(" ");
 	}
 	this->_return.isSet = true;
+}
 
+
+ReturnDirective	Location::getReturn(void) const
+{
+	return this->_return;
 }
 
 /*============== Member functions ================*/
@@ -415,8 +470,25 @@ bool	Location::minValidLocation(void) const
 		return false;
 
 	//if hasroot validate path
+	if (hasRoot)
+	{
+		if (!pathIsDirectory(this->_root))
+		{
+			LOG_WARNING_LINK("Invalid Location: root [" + this->_root + "] is not a valid directory");
+			return false;
+		}
+	}
 
-	//if hascfg validate executable file
+	if (hasCGI)
+	{
+		if (!pathIsExecutable(this->_cgiPass))
+		{
+			LOG_WARNING_LINK("Invalid Location: cgipass [" + this->_cgiPass + "] is not a valid executable");
+			return false;
+		}
+	}
+
+	return true;
 }
 
 int	Location::parseReturnCode(std::string const& strCode)
