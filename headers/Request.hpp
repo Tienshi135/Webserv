@@ -33,7 +33,7 @@ class Request {
 
         void            printRequest() const;
 
-        bool	fillFirstLine(std::vector<std::string>& firstLine);
-        bool    validateRequest();
+        bool	        fillFirstLine(std::vector<std::string>& firstLine);
+        bool            validateRequest();
 
 };

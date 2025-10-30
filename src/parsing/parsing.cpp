@@ -91,12 +91,11 @@ void	parseLocation(ServerCfg& server, std::vector<std::string>& locationLine, Fi
 		throw ERR_PARS("abort");
 }
 
-void parse(std::map<std::string, ServerCfg> &buffer, char *path)
+void parse(std::vector<ServerCfg> &buffer, char *path)
 {
 	File				file;
 	std::string			line;
-	std::vector<ServerCfg>	serverList;
-	ServerCfg serverInstance;
+	ServerCfg			serverInstance;
 
 	file.nLines = 0;
 	file.file.open(path);
@@ -116,7 +115,7 @@ void parse(std::map<std::string, ServerCfg> &buffer, char *path)
 			setDefaults(serverInstance);
 			if (!serverInstance.minValidCfg())//minimun settings check
 				throw ERR_PARS("Abort");
-			buffer.insert(std::pair<std::string, ServerCfg>(serverInstance.getName(), serverInstance));//add server to the pool of servers, restart the loop
+			buffer.push_back(serverInstance);//add server to the pool of servers, restart the loop
 		}
 	}
 	/* TODO: check for duplicated servers and/or ip ,using map logic ? need documentation to check if it is needed */

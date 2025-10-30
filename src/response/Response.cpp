@@ -1,6 +1,5 @@
 #include "Response.hpp"
 #include "Request.hpp"
-#include "Configuration.hpp"
 
 /*========================= Constructor and destructor ================================*/
 

@@ -7,7 +7,7 @@ obj_dir = ./obj
 
 # compilator and compilation flags
 CC = c++
-CFLAGS = -Wall -Werror -Wextra --std=c++98 -g3
+CFLAGS = -Wall -Werror -Wextra --std=c++98 -g
 INCLUDES = -I ./headers
 
 # source files (recursively find all .cpp files)
@@ -39,7 +39,7 @@ $(obj_dir)/%.o: $(src_dir)/*/%.cpp | $(obj_dir)
 
 $(obj_dir)/%.o: %.cpp | $(obj_dir)
 	@echo "$(GREEN)Compiling $<...$(NC)"
-	@$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+	@$(CC) $(CFLAGS) -g $(INCLUDES) -c $< -o $@
 
 # Create object directory
 $(obj_dir):
@@ -57,10 +57,5 @@ fclean: clean
 
 # Rebuild everything
 re: fclean all
-
-# Debug: show variables
-debug:
-	@echo "SRCS: $(SRCS)"
-	@echo "OBJS: $(OBJS)"
 
 .PHONY: all clean fclean re debug

@@ -4,64 +4,66 @@
 #include "ResponseFactory.hpp"
 #include "ResponseError.hpp"
 #include "ResponseGet.hpp"
+#include <unistd.h>
+#include <signal.h>
 
 
-void printMap(const std::map<std::string, ServerCfg> &buffer)
+void printVector(const std::vector<ServerCfg> &buffer)
 {
-    std::cout << "=== Configuration Map Contents ===" << std::endl;
+    std::cout << "=== Configuration Vector Contents ===" << std::endl;
     std::cout << "Total servers: " << buffer.size() << std::endl;
     std::cout << std::endl;
 
     if (buffer.empty())
     {
-        std::cout << "Map is empty!" << std::endl;
+        std::cout << "Vector is empty!" << std::endl;
         return;
     }
 
-    for (std::map<std::string, ServerCfg>::const_iterator it = buffer.begin();
+    for (std::vector<ServerCfg>::const_iterator it = buffer.begin();
          it != buffer.end(); ++it)
     {
-        std::cout << "=== Server: " << it->first << " ===" << std::endl;
+        std::cout << "=== Server: " << it->getName() << " ===" << std::endl;
 
         // Server-specific fields
-        if (!it->second.getName().empty())
-            std::cout << "  Server Name: " << it->second.getName() << std::endl;
-        if (!it->second.getHost().empty())
-            std::cout << "  Host/IP: " << it->second.getHost() << std::endl;
-        if (it->second.getPort() != 0)
-            std::cout << "  Port: " << it->second.getPort() << std::endl;
-        if (!it->second.getErrorPages().empty())
+        if (!it->getName().empty())
+            std::cout << "  Server Name: " << it->getName() << std::endl;
+        if (!it->getHost().empty())
+            std::cout << "  Host/IP: " << it->getHost() << std::endl;
+        if (it->getPort() != 0)
+            std::cout << "  Port: " << it->getPort() << std::endl;
+        if (!it->getErrorPages().empty())
 		{
 			std::cout << "  Error Pages: " << std::endl;
 			std::map<int, std::string>::const_iterator it_err;
-			std::map<int, std::string> const& errorPages = it->second.getErrorPages();
+			std::map<int, std::string> const& errorPages = it->getErrorPages();
 			for (it_err = errorPages.begin(); it_err != errorPages.end(); it_err++)
 				std::cout << "    " << it_err->first << " " << it_err->second << std::endl;
 		}
-        if (it->second.getBodySize() != 0)
-            std::cout << "  Body Size Limit: " << it->second.getBodySize() << std::endl;
+        if (it->getBodySize() != 0)
+            std::cout << "  Body Size Limit: " << it->getBodySize() << std::endl;
 
         // Configuration fields (inherited) - only show non-empty
-        if (!it->second.getMethods().empty())
-            std::cout << "  Methods: " << it->second.getMethods() << std::endl;
-        if (!it->second.getRoot().empty())
-            std::cout << "  Root: " << it->second.getRoot() << std::endl;
-        if (it->second.getAutoindex())
+        if (!it->getMethods().empty())
+            std::cout << "  Methods: " << it->getMethods() << std::endl;
+        if (!it->getRoot().empty())
+            std::cout << "  Root: " << it->getRoot() << std::endl;
+        if (it->getAutoindex())
             std::cout << "  Autoindex: on" << std::endl;
-        if (!it->second.getIndex().empty())
-            std::cout << "  Index: " << it->second.getIndex() << std::endl;
-        if (it->second.getMaxBodySize() != 0)
-            std::cout << "  Max Body Size: " << it->second.getMaxBodySize() << std::endl;
-        if (!it->second.getStore().empty())
-            std::cout << "  Store: " << it->second.getStore() << std::endl;
+        if (!it->getIndex().empty())
+            std::cout << "  Index: " << it->getIndex() << std::endl;
+        if (it->getMaxBodySize() != 0)
+            std::cout << "  Max Body Size: " << it->getMaxBodySize() << std::endl;
+        if (!it->getStore().empty())
+            std::cout << "  Store: " << it->getStore() << std::endl;
 
-        // Location map
-        std::map<std::string, Location> locationMap = it->second.getLocationMap();
-        if (!locationMap.empty())
+        // Locations
+        if (!it->getLocationMap().empty())
         {
-            std::cout << "  Locations (" << locationMap.size() << "):" << std::endl;
-            for (std::map<std::string, Location>::const_iterator loc_it = locationMap.begin();
-                 loc_it != locationMap.end(); ++loc_it)
+            std::cout << "  Locations:" << std::endl;
+            std::map<std::string, Location> const& locations = it->getLocationMap();
+            std::map<std::string, Location>::const_iterator loc_it;
+            for (loc_it = locations.begin(); loc_it != locations.end(); ++loc_it)
             {
                 std::cout << "    Location: " << loc_it->first << std::endl;
                 if (!loc_it->second.getMethods().empty())
@@ -87,10 +89,17 @@ void printMap(const std::map<std::string, ServerCfg> &buffer)
     }
 }
 
+void signalHandler(int signum)
+{
+    std::cout << RED << "\n🛑 Signal: " << strsignal(signum) << ". Cleaning up..." << RESET << std::endl;
+    exit(0);
+}
+
 int main(int argc, char **argv)
 {
-	std::map<int, ServerCfg>					sfd;
-	std::map<std::string, ServerCfg>		buffer;//might be overkill and can change
+	std::map<int, ServerCfg>			sfd;//map of server fds to their configurations
+	std::map<int, std::vector<int> >	cfd;//TODO might need to change implementation of multiple client at the same time per server
+	std::vector<ServerCfg>				buffer;
 
 	if (argc != 2)
 	{
@@ -98,6 +107,7 @@ int main(int argc, char **argv)
 		return (-1);
 	}
 
+    signal(SIGINT, signalHandler);
 	//first part - parsing
 	try
 	{
@@ -110,17 +120,18 @@ int main(int argc, char **argv)
 		buffer.clear();
 		return (-1);
 	}
-	printMap(buffer);
+	printVector(buffer);
 
 	//second part - socket creation and binding
-	std::map<std::string, ServerCfg>::iterator it = buffer.begin();
+	std::vector<ServerCfg>::iterator it = buffer.begin();
 	while (it != buffer.end())
 	{
 		int	socket_fd = socket_init(it);
 		if (socket_fd != -1)
 		{
-			sfd.insert(std::pair<int, ServerCfg>(socket_fd, it->second));
-			std::cout << "Server " << it->first << " listening successfully!" << std::endl;
+			sfd.insert(std::pair<int, ServerCfg>(socket_fd, *it));
+			cfd[socket_fd] = std::vector<int>();
+			std::cout << "Server " << it->getName() << " listening successfully!" << std::endl;
 		}
 		it++;
 	}
@@ -130,42 +141,49 @@ int main(int argc, char **argv)
 		return (-1);
 	}
 
-	//third part - main loop with select ( need to change write to use select as well)
-	fd_set readfds, writefds;
-	struct timeval timeout;
+	//third part - main loop with select
 	while (true)
 	{
-		int	max_fd = 0;
-		FD_ZERO(&readfds);
-		FD_ZERO(&writefds);// not used for now
+		fd_set	read_fd;
+		int		max_fd = 0;
 
-		for (std::map<int, ServerCfg>::iterator sfd_it = sfd.begin(); sfd_it != sfd.end(); ++sfd_it)
+		FD_ZERO(&read_fd);
+		std::map<int, ServerCfg>::iterator sfd_it = sfd.begin();
+		while (sfd_it != sfd.end())
 		{
-			FD_SET(sfd_it->first, &readfds);
+			// Add server socket
+			FD_SET(sfd_it->first, &read_fd);
 			if (sfd_it->first > max_fd)
 				max_fd = sfd_it->first;
-		}
 
-		timeout.tv_sec = 60;
+			// Add all client sockets for this server
+			for (std::vector<int>::iterator client_it = cfd[sfd_it->first].begin();
+				 client_it != cfd[sfd_it->first].end(); ++client_it)
+			{
+				FD_SET(*client_it, &read_fd);
+				if (*client_it > max_fd)
+					max_fd = *client_it;
+			}
+			sfd_it++;
+		}
+		struct timeval timeout;
+		timeout.tv_sec = 0;
 		timeout.tv_usec = 0;
-		int activity = select(max_fd + 1, &readfds, NULL, NULL, &timeout);
+
+		int activity = select(max_fd + 1, &read_fd, NULL, NULL, &timeout);
 		if (activity < 0)
 		{
-			perror("Select error");
-			for (std::map<int, ServerCfg>::iterator sfd_it = sfd.begin(); sfd_it != sfd.end(); ++sfd_it)
-			{
-				close(sfd_it->first);
-			}
-			return (-1);
+			std::cerr << "select() error: " << strerror(errno) << std::endl;
+			break;
 		}
-		else if (activity == 0)
+
+		sfd_it = sfd.begin();
+		while (sfd_it != sfd.end())
 		{
-			return (1);
-		}
-		for (std::map<int, ServerCfg>::iterator sfd_it = sfd.begin(); sfd_it != sfd.end(); ++sfd_it)
-		{
-			if (FD_ISSET(sfd_it->first, &readfds))
-			{
+            ServerCfg &server_config = sfd_it->second;
+
+			if (FD_ISSET(sfd_it->first, &read_fd))
+            {
 				int client_fd = accept(sfd_it->first, NULL, NULL);
 				if (client_fd == -1)
 				{
@@ -173,32 +191,62 @@ int main(int argc, char **argv)
 					continue;
 				}
 
-				char buffer[1024];
-				std::cout << "Client connected, reading request..." << std::endl;
-				ssize_t bytes_read = read(client_fd, buffer, sizeof(buffer) - 1);//add check for received bigger than buffer size
-				if (bytes_read > 0)
-				{
-					buffer[bytes_read] = '\0';
+                int op = fcntl(client_fd, F_GETFL);
+                if (op == -1)
+                {
+                    perror("Fcntl F_GETFL error");
+                    close(client_fd);
+                    continue;
+                }
+                if (fcntl(client_fd, F_SETFL, op | O_NONBLOCK) == -1)
+                {
+                    perror("Fcntl F_SETFL error");
+                    close(client_fd);
+                    continue;
+                }
+                LOG_INFO("Client connected on server : " + server_config.getName() + " (fd: " + numToString(client_fd) + ")");
+                cfd[sfd_it->first].push_back(client_fd);
+            }
+            // Check all client sockets for this server
+            std::vector<int>::iterator client_it = cfd[sfd_it->first].begin();
+            while (client_it != cfd[sfd_it->first].end())
+            {
+                int client_fd = *client_it;
+                if (FD_ISSET(client_fd, &read_fd))
+                {
+                    char buffer[server_config.getMaxBodySize() + 1];
+                    ssize_t bytes_read = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
+                    if (bytes_read > 0)
+                    {
+                        buffer[bytes_read] = '\0';
+                        Request	req(buffer);
 
-					std::string 		received(buffer);
-					Request				req(received);
-					ServerCfg const&	cfg = sfd_it->second;
+                        const ServerCfg &server_config = sfd_it->second;
 
-					Response* response = ResponseFactory::createResponse(cfg, req);
-					response->buildResponse();
-					std::string builtResponse = response->getRawResponse();
+                        Response* response = ResponseFactory::createResponse(server_config, req);
+                        if (response)
+                        {
+                            response->buildResponse();
+                            std::string response_str = response->getRawResponse();
+                            ssize_t bytes_sent = send(client_fd, response_str.c_str(), response_str.length(), 0);
+                            if (bytes_sent == -1)
+                                perror("Send error");
+                            delete response;
+                        }
 
-					response->printResponse();
-					ssize_t bytes_sent = send(client_fd, builtResponse.c_str(), builtResponse.length(), 0);
-					if (bytes_sent == -1)
-						perror("Send error");
-					delete response;
-				}
-				if (bytes_read == -1)
-					perror("Read error");
-				close(client_fd);
-			}
-			LOG_INFO("Conection closed, awaiting next client");
-		}
-	}
+                    }
+                    if (bytes_read == 0)
+                        LOG_INFO("Client disconnected : " + numToString(client_fd));
+                    close(client_fd);
+                    LOG_INFO("Connection closed with client : " + numToString(client_fd) + ", awaiting next client");
+                    cfd[sfd_it->first].erase(client_it);
+                    client_it = cfd[sfd_it->first].begin();
+                }
+                else
+                    client_it++;
+            }
+            sfd_it++;
+        }
+    }
+    return (0);
 }
