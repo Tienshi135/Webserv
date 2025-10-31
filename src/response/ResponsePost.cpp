@@ -5,36 +5,18 @@
 /*============== constructor and destructor =============*/
 
 ResponsePost::ResponsePost(ServerCfg const& cfg, Request const& req)
-: Response(cfg, req)
+: Response(cfg, req), _contentType(UNKNOWNCT), _boundary("")
 {
 	std::string elements = this->_req.getHeader("Content-Type");
 	if (elements.empty())
 		return;
 	this->_contentTypeElements = parseHeaderParameters(elements);
-	std::map<std::string, std::string>::iterator it = this->_contentTypeElements.begin();//TODO implement stronger assignment method
-	this->_contentType = it->first;
 
-	std::string boundary = this->_contentTypeElements["boundary"];
+	this->_contentType = extractContentType();
 
-	size_t beginContent = this->_req.getBody().find(boundary);
-	if (beginContent == std::string::npos)
-	{
-		LOG_WARNING_LINK("boundary begin not found");
-		return;
-	}
+	this->_boundary = this->_contentTypeElements["boundary"];
 
-	size_t endContent = this->_req.getBody().find(boundary, beginContent - 1);
-	if (endContent == std::string::npos)
-	{
-		LOG_WARNING_LINK("boundary end not found");
-		return;
-	}
-//check npos
-
-	std::string Content = this->_req.getBody().substr(beginContent, endContent);
-	this->_contentDisposition = parseHeaderParameters(Content);
-
-	this->printContentTypeElements();
+	// this->printContentTypeElements();
 }
 
 ResponsePost::~ResponsePost() {}
@@ -43,17 +25,34 @@ ResponsePost::~ResponsePost() {}
 
 void	ResponsePost::printContentTypeElements(void)
 {
+
+	static const std::string types[] = {"text/plain", "multipart/form-data", "application/json", "application/x-www-form-urlencoded"};
+
 	std::cout << "Content-type elements in POST request" << std::endl;
-	std::cout << "Content-type: " << this->_contentType << std::endl;
+	std::cout << "Content-type: " << types[this->_contentType] << std::endl;
+	std::cout << "Boundary: " << this->_boundary << std::endl;
+
 	std::map<std::string, std::string>::iterator it;
 	for (it = this->_contentTypeElements.begin(); it != this->_contentTypeElements.end(); it++)
 		std::cout << "Element: " << it->first << "; value = " << it->second << std::endl;
-	std::cout << "....................................." << std::endl;
-	std::cout << "Content-disposition: " << std::endl;
-		std::map<std::string, std::string>::iterator it_d;
-	for (it_d = this->_contentDisposition.begin(); it_d != this->_contentDisposition.end(); it_d++)
-		std::cout << "Element: " << it_d->first << "; value = " << it_d->second << std::endl;
 
+	// std::cout << "....................................." << std::endl;
+	// std::cout << "Content-disposition: " << std::endl;
+	// 	std::map<std::string, std::string>::iterator it_d;
+	// for (it_d = this->_contentDisposition.begin(); it_d != this->_contentDisposition.end(); it_d++)
+	// 	std::cout << "Element: " << it_d->first << "; value = " << it_d->second << std::endl;
+
+}
+
+ResponsePost::e_contentType ResponsePost::extractContentType()
+{
+	static const std::string types[] = {"text/plain", "multipart/form-data", "application/json", "application/x-www-form-urlencoded"};
+	for (int i = 0; i < ARRAY_SIZE(types); i++)
+	{
+		if (this->_contentTypeElements.find(types[i]) != this->_contentTypeElements.end())
+			return static_cast<e_contentType>(i);
+	}
+	return UNKNOWNCT;
 }
 
 std::string	ResponsePost::parseNameFromMultipart(void)//TODO upgrade this parser
@@ -89,7 +88,7 @@ std::string	ResponsePost::getFileName()
 	std::string baseName;
 	std::string type;
 
-	if (!this->_contentType.empty() && this->_contentType == "multipart/form-data")
+	if (this->_contentType == MULTIPART)
 	{
 		baseName = this->parseNameFromMultipart();
 		return baseName;
@@ -176,6 +175,99 @@ bool	ResponsePost::setOrCreatePath(std::string const& path)
 	return true;
 }
 
+void	ResponsePost::buildFromMultipart(void)
+{
+	std::stringstream iss(this->_req.getBody());
+	std::string	body = this->_req.getBody();
+	std::string	boundaryStart = "--" + this->_boundary;
+	std::string	boundaryEnd = boundaryStart + "--";
+
+	size_t pos = body.find(boundaryStart);
+	if (pos == std::string::npos)
+	{
+		LOG_WARNING_LINK("Boundary start not found in multipart body");
+		return;
+	}
+
+	pos += boundaryStart.length();
+	size_t lineEnd = body.find("\r\n", pos);
+	if (lineEnd == std::string::npos)
+		lineEnd = body.find("\n", pos);
+	if (lineEnd != std::string::npos)
+		pos = lineEnd + (body[lineEnd] == '\r' ? 2 : 1);
+
+		// ✅ Parse headers until empty line
+	while (pos < body.size())
+	{
+		// Find end of current line
+		lineEnd = body.find("\r\n", pos);
+		if (lineEnd == std::string::npos)
+			lineEnd = body.find("\n", pos);
+
+		if (lineEnd == std::string::npos)
+			break;
+
+		std::string line = body.substr(pos, lineEnd - pos);
+
+		// ✅ Empty line marks end of headers
+		if (line.empty())
+		{
+			pos = lineEnd + (body[lineEnd] == '\r' ? 2 : 1);
+			break;
+		}
+
+		// ✅ Parse Content-Disposition header
+		if (line.find("Content-Disposition:") == 0)
+		{
+			std::string params = line.substr(20); // Skip "Content-Disposition:"
+			std::map<std::string, std::string> disposition = parseHeaderParameters(params);
+
+			// ✅ Safe access with find()
+			std::map<std::string, std::string>::iterator it = disposition.find("filename");
+			if (it != disposition.end())
+				this->_fileName = it->second;
+			//TODO make unike
+		}
+
+		// ✅ Parse Content-Type header
+		if (line.find("Content-Type:") == 0)
+		{
+			std::string params = line.substr(13); // Skip "Content-Type:"
+			std::map<std::string, std::string> contentType = parseHeaderParameters(params);
+
+			// ✅ Get first key (the mime type)
+			if (!contentType.empty())
+				this->_mime = contentType.begin()->first;
+		}
+
+		// Move to next line
+		pos = lineEnd + (body[lineEnd] == '\r' ? 2 : 1);
+	}
+
+	// ✅ Now extract file content (binary safe)
+	size_t contentStart = pos;
+	size_t nextBoundary = body.find(boundaryStart, pos);
+
+	if (nextBoundary == std::string::npos)
+	{
+		LOG_WARNING_LINK("Closing boundary not found in multipart body");
+		return;
+	}
+
+	// ✅ Content ends before the boundary (remove trailing \r\n before boundary)
+	size_t contentEnd = nextBoundary;
+	if (contentEnd >= 2 && body[contentEnd - 2] == '\r' && body[contentEnd - 1] == '\n')
+		contentEnd -= 2;
+	else if (contentEnd >= 1 && body[contentEnd - 1] == '\n')
+		contentEnd -= 1;
+
+	// ✅ Extract binary-safe file content
+	if (contentEnd > contentStart)
+		this->_saveFile = body.substr(contentStart, contentEnd - contentStart);
+	else
+		this->_saveFile.clear();
+}
+
 
 /*============== member function =============*/
 
@@ -188,8 +280,10 @@ void	ResponsePost::buildResponse(void)
 	}
 	//TODO handle first if POST demands CGI. if yes, launch the binary, if not, store body as a file.
 
+	if (this->_contentType == MULTIPART)
+		this->buildFromMultipart();
+
 	std::string savePath;
-	std::string	fileName;
 
 	Location const* location = this->_cfg.findMatchingLocation(this->_req.getUri());
 	if (!location)
@@ -207,8 +301,7 @@ void	ResponsePost::buildResponse(void)
 	}
 
 
-	fileName = this->getFileName();
-	savePath += ("/" + fileName);
+	savePath += ("/" + this->_fileName);
 
 	if (!isSecurePath(savePath))
 	{
@@ -223,7 +316,7 @@ void	ResponsePost::buildResponse(void)
 		return;
 	}
 
-	file.write(this->_req.getBody().data(), this->_req.getBodySize());
+	file.write(this->_saveFile.data(), this->_saveFile.size());
 	file.close();
 	if (file.fail())
 	{
@@ -235,7 +328,7 @@ void	ResponsePost::buildResponse(void)
 	std::string resourceUri = this->_req.getUri();
 	if (!resourceUri.empty() && resourceUri[resourceUri.size() - 1] != '/')
 		resourceUri += "/";
-	resourceUri += fileName;
+	resourceUri += this->_fileName;
 
 	this->addHeader("Location", resourceUri);
 	this->_bodyIsFile = false;

@@ -2,7 +2,7 @@
 
 /*============================= Constructors and destructor =====================================*/
 
-Request::Request(std::string received) : _bodySize(0), _valid(false)
+Request::Request(std::string received) : _bodySize(0), _expectedReadBytes(0) , _valid(false)
 {
 	std::stringstream			iss(received);
 	std::string					line;
@@ -12,6 +12,7 @@ Request::Request(std::string received) : _bodySize(0), _valid(false)
 
 	//REQUEST LINE
 	std::getline(iss, line);
+	this->_expectedReadBytes += line.size() + 2;
 	firstLine = tokenizeLine(line);
 	this->_valid = this->fillFirstLine(firstLine);//fills method, uri, and version, returns false if not HTTP/1.1 complying
 	if (!this->_valid)
@@ -19,6 +20,7 @@ Request::Request(std::string received) : _bodySize(0), _valid(false)
 
 	//HEADERS
 	std::getline(iss, line);
+	this->_expectedReadBytes += line.size() + 2;
 	headerLine = tokenizeLine(line);
 	while (!headerLine.empty())
 	{
@@ -38,14 +40,17 @@ Request::Request(std::string received) : _bodySize(0), _valid(false)
 		this->_headers[key] = value;
 
 		std::getline(iss, line);
+		this->_expectedReadBytes += line.size() + 2;
 		headerLine = tokenizeLine(line);
 	}
 
+	// this->_expectedReadBytes += 4;
 	//BODY (if it exists)
 	if (this->_headers.find("Content-Length") != this->_headers.end())
 	{
+		// TODO check if content-length is greater than client_body_size_max here and send error payload to large if so
 		size_t contentLength = static_cast<size_t>(std::atol(this->_headers["Content-Length"].c_str()));
-
+		this->_expectedReadBytes += contentLength;
 		if (contentLength > 0)
 		{
 			this->_body.resize(contentLength);
@@ -122,6 +127,12 @@ void Request::setUri(const std::string &path)
 {
 	this->_uri = path;
 }
+
+void	Request::setBody(std::string const& newBody)
+{
+	this->_body = newBody;
+}
+
 std::string Request::getHeader(const std::string &key) const
 {
     std::map<std::string, std::string>::const_iterator it = this->_headers.find(key);
@@ -142,6 +153,37 @@ bool Request::isValid() const
 
 /*============================= Member functions =====================================*/
 
+void	Request::expectedReadBytes(ssize_t bytesReceived)
+{
+	ssize_t missing = 0;
+	double percentage = 0;
+	if (bytesReceived < this->_expectedReadBytes)
+	{
+		percentage = (static_cast<double>(bytesReceived) / this->_expectedReadBytes * 100.0);
+		missing = this->_expectedReadBytes - bytesReceived;
+	}
+
+    std::cout << ORANGE << "==========================================" << std::endl;
+    std::cout << "DATA RECEPTION ANALYSIS" << std::endl;
+    std::cout << "==========================================" << RESET << std::endl;
+    std::cout << "Received:  " << bytesReceived << " bytes" << std::endl;
+    std::cout << "Expected:  " << this->_expectedReadBytes << " bytes (request line + headers + body)" << std::endl;
+    std::cout << "Missing:   " << missing << " bytes" << std::endl;
+    std::cout << "Progress:  " << std::fixed << std::setprecision(2) << percentage << "%" << std::endl;
+
+    if (bytesReceived < this->_expectedReadBytes)
+    {
+        std::cout << RED << "WARNING: Only received " << percentage << "% of expected data!" << std::endl;
+        std::cout  << missing << " bytes were NOT read from socket!" << RESET << std::endl;
+    }
+    else
+    {
+        std::cout << GREEN << "Complete request received!" << RESET << std::endl;
+    }
+    std::cout << ORANGE << "==========================================" << std::endl;
+    std::cout << " END OF DATA ANALYSIS" << std::endl;
+    std::cout << "==========================================" << RESET << std::endl;
+}
 
 void Request::printRequest() const
 {
@@ -161,7 +203,7 @@ void Request::printRequest() const
 	if (!this->_body.empty())
 	{
 		std::cout << "\nBody (" << this->_body.length() << " bytes):" << std::endl;
-		std::cout << this->_body << std::endl;
+		// std::cout << this->_body << std::endl;
 	}
 	std::cout << MAGENTA << "========== end of request ===============\n" << RESET << std::endl;
 }

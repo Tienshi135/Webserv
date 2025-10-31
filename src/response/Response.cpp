@@ -327,7 +327,11 @@ void Response::printResponse() const
 	if (this->_bodyIsFile)
 		std::cout << "Content Preview: sent from the file " << this->_bodyFilePath << std::endl;
 	else
+	{
+		// for (size_t i = 0; i < this->_req.getBodySize(); i++)
+		// 	std::cout << this->_body[i];
 		std::cout << "Content Preview: " << (this->_body.length() > 50 ? this->_body.substr(0, 50) + "..." : this->_body) << std::endl;
+	}
 	std::cout << GREEN << "=========== End of Response==============\n"  << RESET<< std::endl;
 }
 

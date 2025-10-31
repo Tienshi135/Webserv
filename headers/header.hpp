@@ -2,6 +2,7 @@
 
 // Standard C++ includes
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <string>
 #include <vector>
@@ -32,6 +33,8 @@
 #include <ctime>
 #include "ParsingException.hpp"
 #include <limits>
+
+#define ARRAY_SIZE(array)((int)(sizeof(array) / sizeof(array[0])))
 
 // LOG defines
 #define LOG_INFO(string) std::cout << BLUE << "Info: " << RESET << string << std::endl

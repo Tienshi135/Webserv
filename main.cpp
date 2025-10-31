@@ -220,7 +220,7 @@ int main(int argc, char **argv)
                     {
                         buffer[bytes_read] = '\0';
                         Request	req(buffer);
-
+                        req.expectedReadBytes(bytes_read);
                         const ServerCfg &server_config = sfd_it->second;
 
                         Response* response = ResponseFactory::createResponse(server_config, req);
@@ -228,6 +228,7 @@ int main(int argc, char **argv)
                         {
                             response->buildResponse();
                             std::string response_str = response->getRawResponse();
+                            response->printResponse();
                             ssize_t bytes_sent = send(client_fd, response_str.c_str(), response_str.length(), 0);
                             if (bytes_sent == -1)
                                 perror("Send error");

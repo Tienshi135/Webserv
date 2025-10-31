@@ -11,6 +11,7 @@ class Request {
         std::map<std::string, std::string> _headers;
         std::string     _body;
         size_t          _bodySize;
+        ssize_t          _expectedReadBytes;
         bool            _valid;
 
 	public:
@@ -30,10 +31,13 @@ class Request {
         void            setVersion(const std::string &version);
         void            setMethod(std::string const& method);
         void            setUri(const std::string &path);
+        void            setBody(std::string const& newBody);
 
         void            printRequest() const;
 
         bool	        fillFirstLine(std::vector<std::string>& firstLine);
         bool            validateRequest();
+
+        void          expectedReadBytes(ssize_t bytesReceived);
 
 };
