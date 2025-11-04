@@ -3,6 +3,7 @@
 #include "ResponseError.hpp"
 #include "ResponseGet.hpp"
 #include "ResponsePost.hpp"
+#include "ResponseDelete.hpp"
 #include "Request.hpp"
 #include "Configuration.hpp"
 
@@ -12,6 +13,8 @@ Response*	ResponseFactory::createResponse(ServerCfg const& cfg, Request const& r
 		return new ResponseGet(cfg, req);
 	if (req.getMethod() == "POST")
 		return new ResponsePost(cfg, req);
+	if (req.getMethod() == "DELETE")
+		return new ResponseDelete(cfg, req);
 
 	LOG_WARNING_LINK("Requested method: [" + req.getMethod() + "] not recognized, sendind error page 405");
 	return new ResponseError(cfg, req);
