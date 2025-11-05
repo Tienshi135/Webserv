@@ -313,6 +313,20 @@ std::string	Response::normalizePath(std::string const& root, std::string const& 
 	return normalizedRoot + normalizedUri;
 }
 
+bool	Response::isAllowedMethod(std::string const& method)
+{
+	Location const* location = this->_cfg.findMatchingLocation(this->_req.getUri());
+	std::vector<std::string> allowed;
+	if (location)
+		allowed = location->getMethods();
+	else
+		allowed = this->_cfg.getMethods();
+
+	if (std::find(allowed.begin(), allowed.end(), method) != allowed.end())
+		return true;
+	return false;
+}
+
 /*========================= Public member functions  ================================*/
 
 

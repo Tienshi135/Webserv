@@ -299,7 +299,12 @@ void	ResponsePost::buildResponse(void)
 		if (!this->setOrCreatePath(savePath))
 			return;
 	}
-
+	if (!this->isAllowedMethod("POST"))
+	{
+		this->responseIsErrorPage(405);
+		LOG_WARNING_LINK("Method [POST] not allowed");
+		return ;
+	}
 
 	savePath += ("/" + this->_fileName);
 

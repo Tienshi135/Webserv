@@ -18,10 +18,10 @@ class Response
 		Request const&		_req;
 		std::string	const	_version;
 
-		int				_statusCode;
-		std::string		_statusMsg;
+		int									_statusCode;
+		std::string							_statusMsg;
 		std::map<std::string, std::string>	_headers;
-		std::string		_body;
+		std::string							_body;
 
 		bool			_bodyIsFile;
 		std::string		_bodyFilePath;
@@ -35,6 +35,7 @@ class Response
 		void	sendFileAsBody(std::string const& path);
 		bool	sendCustomErrorPage(int errCode);
 
+		bool		isAllowedMethod(std::string const& method);
 		bool		isSecurePath(std::string const& path);
 		std::string	normalizePath(std::string const& root, std::string const& uri);
 		// std::string resolvePathSafely(std::string const& uri, std::string const& root);

@@ -5,10 +5,7 @@
 /*============== constructor and destructor =============*/
 
 ResponseDelete::ResponseDelete(ServerCfg const& cfg, Request const& req)
-: Response(cfg, req)
-{
-
-}
+: Response(cfg, req) {}
 
 ResponseDelete::~ResponseDelete() {}
 
@@ -35,7 +32,14 @@ void	ResponseDelete::buildResponse(void)
 
 	if (this->validateFilePath(deletePath) < 0)
 		return;
-	//TODO check if DELETE is allowed in this location, if not send 405 method nod allowed. We have refactor to properly store allowed methods first
+
+	if (!this->isAllowedMethod("DELETE"))
+	{
+		this->responseIsErrorPage(405);
+		LOG_WARNING_LINK("Method [DELETE] not allowed");
+		return ;
+	}
+
 	if (!this->isSecurePath(deletePath))
 	{
 		this->responseIsErrorPage(403);

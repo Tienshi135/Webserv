@@ -10,7 +10,7 @@ struct ReturnDirective;
 /*============== Constructor and destructors ================*/
 
 Configuration::Configuration()
-: _methods(""),
+: _methodsAllowed(std::vector<std::string>(1, "GET")),
 _root(""),
 _autoindex(false),
 _index(""),
@@ -18,7 +18,7 @@ _max_body_size(0),
 _store(""){}
 
 Configuration::Configuration(const Configuration &copy)
-: _methods(copy._methods),
+: _methodsAllowed(copy._methodsAllowed),
 _root(copy._root),
 _autoindex(copy._autoindex),
 _index(copy._index),
@@ -33,7 +33,7 @@ Configuration &Configuration::operator=(const Configuration &copy)
 {
 	if (this != &copy)
 	{
-		this->_methods = copy._methods;
+		this->_methodsAllowed = copy._methodsAllowed;
 		this->_root = copy._root;
 		this->_autoindex = copy._autoindex;
 		this->_index = copy._index;
@@ -46,9 +46,9 @@ Configuration &Configuration::operator=(const Configuration &copy)
 
 /*============== Getters ================*/
 
-std::string Configuration::getMethods() const
+std::vector<std::string> Configuration::getMethods() const
 {
-	return (this->_methods);
+	return (this->_methodsAllowed);
 }
 
 std::string Configuration::getRoot() const
@@ -79,19 +79,23 @@ std::string Configuration::getStore() const
 
 /*============== setters ================*/
 
-/*TODO: methods should be a vector of strings an call itself methods allowed*/
 void Configuration::setMethods(const std::vector<std::string>& methods)
 {
-	std::cerr << YELLOW << "WARNING! " << RESET
-		<< "Directive [methods] implementation is unfinished, check < TODO: > comments"
-		<< std::endl;//TODO: delete this warning after implementation
+	std::vector<std::string>::const_iterator it;
 
-	for (size_t i = 0; i < methods.size(); i++)
+	this->_methodsAllowed.clear();
+	for (it = methods.begin(); it != methods.end(); it++)
 	{
-		this->_methods.append(methods[i]);
-		if (i + 1 < methods.size())
-			this->_methods.append("");
+		if (std::find(this->_methodsAllowed.begin(), this->_methodsAllowed.end(), *it) == this->_methodsAllowed.end())
+		{
+			this->_methodsAllowed.push_back(*it);
+			if (*it != "GET" && *it != "POST" && *it != "DELETE" && *it != "HEAD")
+				LOG_WARNING("Unknown method [" + *it + "] allowed on server config");
+		}
 	}
+
+	if (this->_methodsAllowed.empty())
+		this->_methodsAllowed.push_back("GET");
 }
 /* TODO: return should be a map up to 1 or two code URL, that stores the path as string value and the code as key*/
 
@@ -457,6 +461,7 @@ ReturnDirective	Location::getReturn(void) const
 
 /*============== Member functions ================*/
 
+//TODO implement log specific msg for each fail case
 bool	Location::minValidLocation(void) const
 {
 	if (this->_locationPath.empty())

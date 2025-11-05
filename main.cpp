@@ -45,7 +45,14 @@ void printVector(const std::vector<ServerCfg> &buffer)
 
         // Configuration fields (inherited) - only show non-empty
         if (!it->getMethods().empty())
-            std::cout << "  Methods: " << it->getMethods() << std::endl;
+        {
+            std::vector<std::string> methods = it->getMethods();
+            std::vector<std::string>::const_iterator it_m;
+            std::cout << "  Allowed Methods: ";
+            for (it_m = methods.begin(); it_m != methods.end(); it_m++)
+                std::cout << *it_m << " ";
+            std::cout << std::endl;
+        }
         if (!it->getRoot().empty())
             std::cout << "  Root: " << it->getRoot() << std::endl;
         if (it->getAutoindex())
@@ -67,7 +74,14 @@ void printVector(const std::vector<ServerCfg> &buffer)
             {
                 std::cout << "    Location: " << loc_it->first << std::endl;
                 if (!loc_it->second.getMethods().empty())
-                    std::cout << "      Methods: " << loc_it->second.getMethods() << std::endl;
+                {
+                    std::vector<std::string> methods = loc_it->second.getMethods();
+                    std::vector<std::string>::const_iterator it;
+                    std::cout << "      Allowed Methods: ";
+                    for (it = methods.begin(); it != methods.end(); it++)
+                        std::cout << *it << " ";
+                    std::cout << std::endl;
+                }
                 if (!loc_it->second.getReturn().isSet)
                     std::cout << "      Return: " << loc_it->second.getReturn().code << " "
 							<< loc_it->second.getReturn().value << std::endl;

@@ -38,12 +38,12 @@ struct ReturnDirective
 class Configuration
 {
 	protected:
-		std::string		_methods;
-		std::string		_root;
-		bool			_autoindex;
-		std::string		_index;
-		unsigned int	_max_body_size;
-		std::string		_store;
+		std::vector<std::string>	_methodsAllowed;
+		std::string					_root;
+		bool						_autoindex;
+		std::string					_index;
+		unsigned int				_max_body_size;
+		std::string					_store;
 
 	public:
 		Configuration();
@@ -51,21 +51,21 @@ class Configuration
 		Configuration &operator=(const Configuration &copy);
 		virtual ~Configuration();
 
-		std::string		getMethods() const;
-		std::string		getRoot() const;
-		bool			getAutoindex() const;
-		std::string		getIndex() const;
-		unsigned int	getMaxBodySize() const;
-		std::string		getStore() const;
+		std::vector<std::string>	getMethods() const;
+		std::string					getRoot() const;
+		bool						getAutoindex() const;
+		std::string					getIndex() const;
+		unsigned int				getMaxBodySize() const;
+		std::string					getStore() const;
 
-		void			setMethods(const std::vector<std::string>& methods);
-		void			setRoot(const std::vector<std::string>& root);
-		void			setRoot(std::string const& root);
-		void			setAutoindex(bool autoindex);
-		void			setIndex(const std::vector<std::string>& index);
-		void			setIndex(std::string const& index);
-		void			setMaxBodySize(unsigned int max_body_size);
-		void			setStore(const std::vector<std::string>& store);
+		void	setMethods(const std::vector<std::string>& methods);
+		void	setRoot(const std::vector<std::string>& root);
+		void	setRoot(std::string const& root);
+		void	setAutoindex(bool autoindex);
+		void	setIndex(const std::vector<std::string>& index);
+		void	setIndex(std::string const& index);
+		void	setMaxBodySize(unsigned int max_body_size);
+		void	setStore(const std::vector<std::string>& store);
 };
 
 class Location : public Configuration

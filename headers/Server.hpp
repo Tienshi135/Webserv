@@ -28,7 +28,7 @@ typedef enum ConfigType
 class Configuration
 {
 	protected:
-		std::string		_methods;
+		std::string		_methodsAllowed;
 		std::string		_return;
 		std::string		_root;
 		bool			_autoindex;
