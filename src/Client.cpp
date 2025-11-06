@@ -43,7 +43,6 @@ bool	Client::isCompleteRequest(void)
 		return (true);
 	if (this->_bytes_read < req.getExpectedReadBytes())
 		return (false);
-	std::cout << GREEN << "Complete request received in client buffer!" << RESET << std::endl;
 	return (true);
 }
 

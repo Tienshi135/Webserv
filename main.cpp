@@ -239,6 +239,7 @@ int main(int argc, char **argv)
 
                         if (!client.isCompleteRequest())
                             continue;
+                        std::cout << GREEN << "Complete request received in client buffer!" << RESET << client.concatBuffer() << "End of request." << std::endl;
                         Request	req(client.concatBuffer());
                         req.printRequest();
                         req.expectedReadBytes(client.getBytesRead());
