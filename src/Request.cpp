@@ -12,7 +12,7 @@ Request::Request(std::string received) : _bodySize(0), _expectedReadBytes(0) , _
 
 	//REQUEST LINE
 	std::getline(iss, line);
-	this->_expectedReadBytes += line.size() + 2;
+	this->_expectedReadBytes += line.size();//+2
 	firstLine = tokenizeLine(line);
 	this->_valid = this->fillFirstLine(firstLine);//fills method, uri, and version, returns false if not HTTP/1.1 complying
 	if (!this->_valid)
@@ -20,7 +20,7 @@ Request::Request(std::string received) : _bodySize(0), _expectedReadBytes(0) , _
 
 	//HEADERS
 	std::getline(iss, line);
-	this->_expectedReadBytes += line.size() + 2;
+	this->_expectedReadBytes += line.size();//+2
 	headerLine = tokenizeLine(line);
 	while (!headerLine.empty())
 	{
@@ -40,7 +40,7 @@ Request::Request(std::string received) : _bodySize(0), _expectedReadBytes(0) , _
 		this->_headers[key] = value;
 
 		std::getline(iss, line);
-		this->_expectedReadBytes += line.size() + 2;
+		this->_expectedReadBytes += line.size();//+2
 		headerLine = tokenizeLine(line);
 	}
 
@@ -60,7 +60,6 @@ Request::Request(std::string received) : _bodySize(0), _expectedReadBytes(0) , _
 
 	//request validation
 	this->_valid = this->validateRequest();
-	this->printRequest();
 }
 
 Request::Request(const Request &copy)
@@ -111,6 +110,11 @@ std::string Request::getUri(void) const
 size_t	Request::getBodySize(void) const
 {
 	return (this->_bodySize);
+}
+
+ssize_t	Request::getExpectedReadBytes(void) const
+{
+	return (this->_expectedReadBytes);
 }
 // Setters
 void Request::setVersion(const std::string &version)

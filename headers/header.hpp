@@ -22,6 +22,7 @@
 #include <sys/select.h>
 #include <fcntl.h>
 #include "Configuration.hpp"
+#include "Client.hpp"
 
 // Parsing includes
 #include <fstream>
@@ -52,6 +53,7 @@
 class Request;
 class ServerCfg;
 class Response;
+class Client;
 
 struct File
 {

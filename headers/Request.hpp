@@ -11,7 +11,7 @@ class Request {
         std::map<std::string, std::string> _headers;
         std::string     _body;
         size_t          _bodySize;
-        ssize_t          _expectedReadBytes;
+        ssize_t         _expectedReadBytes;
         bool            _valid;
 
 	public:
@@ -26,6 +26,7 @@ class Request {
         std::string     getHeader(const std::string &key) const;
         std::string     getBody() const;
         size_t          getBodySize() const;
+        ssize_t         getExpectedReadBytes() const;
         bool            isValid() const;
 
         void            setVersion(const std::string &version);
