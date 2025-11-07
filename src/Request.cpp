@@ -12,7 +12,7 @@ Request::Request(std::string received) : _bodySize(0), _expectedReadBytes(0) , _
 
 	//REQUEST LINE
 	std::getline(iss, line);
-	this->_expectedReadBytes += line.size();
+	this->_expectedReadBytes += line.size() + 1;
 	firstLine = tokenizeLine(line);
 	this->_valid = this->fillFirstLine(firstLine);//fills method, uri, and version, returns false if not HTTP/1.1 complying
 	if (!this->_valid)
@@ -20,7 +20,7 @@ Request::Request(std::string received) : _bodySize(0), _expectedReadBytes(0) , _
 
 	//HEADERS
 	std::getline(iss, line);
-	this->_expectedReadBytes += line.size();
+	this->_expectedReadBytes += line.size() + 1;
 	headerLine = tokenizeLine(line);
 	while (!headerLine.empty())
 	{
@@ -40,11 +40,10 @@ Request::Request(std::string received) : _bodySize(0), _expectedReadBytes(0) , _
 		this->_headers[key] = value;
 
 		std::getline(iss, line);
-		this->_expectedReadBytes += line.size();
+		this->_expectedReadBytes += line.size() + 1;
 		headerLine = tokenizeLine(line);
 	}
 
-	this->_expectedReadBytes += 2;
 	//BODY (if it exists)
 	if (this->_headers.find("Content-Length") != this->_headers.end())
 	{

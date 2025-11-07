@@ -238,8 +238,8 @@ int main(int argc, char **argv)
                         client.addToBuffer(buffer, bytes_read);
 
                         if (!client.isCompleteRequest())
-                            continue;
-                        std::cout << GREEN << "Complete request received in client buffer!" << RESET << client.concatBuffer() << "End of request." << std::endl;
+                            continue;//TODO handle error, if clientrequest is not valid the page will hang indefinetely
+                        // std::cout << GREEN << "Complete request received in client buffer!" << RESET << client.concatBuffer() << "End of request." << std::endl;
                         Request	req(client.concatBuffer());
                         req.printRequest();
                         req.expectedReadBytes(client.getBytesRead());

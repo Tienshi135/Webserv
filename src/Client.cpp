@@ -35,7 +35,7 @@ Client::~Client() {};
 bool	Client::isCompleteRequest(void)
 {
 	std::string input = this->concatBuffer();
-	
+
 	if (input.find("\r\n\r\n") == std::string::npos)
 		return (false);
 	Request	req(input);
