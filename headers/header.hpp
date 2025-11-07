@@ -71,6 +71,7 @@ ServerCfg			parseServer(File& file);
 std::map<std::string, std::string>	parseHeaderParameters(std::string& strElements);
 std::vector<std::string>	tokenizeLine(std::string& line, size_t nbLine);
 std::vector<std::string>	tokenizeLine(std::string& line);
+std::vector<std::string>	tokenizeHeaderParams(std::string& line);
 std::vector<int>			parseIPOctets(const std::string& ip);
 std::string					numToString(int num);
 std::string					numToString(size_t num);

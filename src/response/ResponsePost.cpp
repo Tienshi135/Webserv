@@ -294,8 +294,9 @@ void	ResponsePost::buildResponse(void)
 	}
 	else
 	{
-		//TODO check if POST is allowed in this location, if not send 405 method nod allowed. We have refactor to properly store allowed methods first
 		savePath = location->getStore();
+		if (savePath.empty())
+			savePath = normalizePath(this->_cfg.getRoot(), location->getRoot());
 		if (!this->setOrCreatePath(savePath))
 			return;
 	}

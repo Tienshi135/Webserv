@@ -106,7 +106,7 @@ void Configuration::setRoot(const std::vector<std::string>& root)
 	if (root.size() > 1)
 		throw ERR_PARS("Directive [root] has more than one element");
 	if (!pathIsDirectory(root.front()))
-		throw ERR_PARS("Directive [root] path is not a directory: [" + root.front() + "]");
+		LOG_WARNING_LINK("Directive [root] path is not a directory: [" + root.front() + "]");
 	this->_root = root.front();
 }
 
@@ -144,7 +144,7 @@ void Configuration::setIndex(const std::vector<std::string>& index)
 		void Configuration::setStore(const std::vector<std::string>& store)
 		{
 			if (store.size() > 1)
-			throw ERR_PARS("Directive [store] has more than one element");
+				throw ERR_PARS("Directive [store] has more than one element");
 			this->_store = store.front();
 		}
 
@@ -393,10 +393,10 @@ Location &Location::operator=(const Location &copy)
 
 /*============== setters and getters ================*/
 
-void	Location::setLocationPath(std::string const& locationPath)
-{
-	this->_locationPath = locationPath;
-}
+// void	Location::setLocationPath(std::string const& locationPath)
+// {
+// 	this->_locationPath = locationPath;
+// }
 
 void	Location::setCgiPass(std::vector<std::string> const& value)
 {
@@ -464,9 +464,6 @@ ReturnDirective	Location::getReturn(void) const
 //TODO implement log specific msg for each fail case
 bool	Location::minValidLocation(void) const
 {
-	if (this->_locationPath.empty())
-		return false;
-
 	bool hasRoot = !this->_root.empty();
 	bool hasCGI = !this->_cgiPass.empty();
 	bool hasReturn = this->_return.isSet;
@@ -480,7 +477,7 @@ bool	Location::minValidLocation(void) const
 		if (!pathIsDirectory(this->_root))
 		{
 			LOG_WARNING_LINK("Invalid Location: root [" + this->_root + "] is not a valid directory");
-			return false;
+			// return false;
 		}
 	}
 

@@ -67,7 +67,6 @@ void	setLocationDirective(ServerCfg& server, e_configtype& directive, std::vecto
 
 	Location& tempLocation = currentMap[locationPath];
 
-	tempLocation.setLocationPath(locationPath);
 	switch (directive)
 	{
 		case(CGIPASS) :

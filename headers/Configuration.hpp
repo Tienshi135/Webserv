@@ -74,7 +74,6 @@ class Location : public Configuration
 
 
 		ReturnDirective	_return;
-		std::string		_locationPath;
 		std::string		_cgiPass;
 
 		int	parseReturnCode(std::string const& strCode);
@@ -85,7 +84,6 @@ class Location : public Configuration
 		Location &operator=(const Location &copy);
 		virtual ~Location();
 
-		void	setLocationPath(std::string const& locationPath);
 		void	setCgiPass(std::vector<std::string> const& value);
 		void	setReturn(std::vector<std::string>& return_val);
 
