@@ -54,13 +54,10 @@ ResponsePost::e_contentType ResponsePost::extractContentType()
 	}
 	return UNKNOWNCT;
 }
-
-std::string	ResponsePost::parseNameFromMultipart(void)//TODO upgrade this parser
+std::string	ResponsePost::normalizeFilename(std::string const& fileName)
 {
 	std::string baseName;
 	std::string type;
-
-	std::string fileName = this->_contentDisposition["filename"];
 
 	size_t	dotPos = fileName.find_last_of(".");//TODO make this a helper method "findExtension"
 	if (dotPos != std::string::npos && dotPos > 0)
@@ -72,7 +69,7 @@ std::string	ResponsePost::parseNameFromMultipart(void)//TODO upgrade this parser
 	}
 	else
 	{
-		baseName = fileName.empty() ? "upload" : fileName;
+		baseName = fileName.empty() ? "uploaded_file" : fileName;
 		type = "dat";
 	}
 
@@ -82,61 +79,61 @@ std::string	ResponsePost::parseNameFromMultipart(void)//TODO upgrade this parser
 }
 
 
-std::string	ResponsePost::getFileName()
-{
-	std::string fileName;
-	std::string baseName;
-	std::string type;
+// std::string	ResponsePost::getFileName()
+// {
+// 	std::string fileName;
+// 	std::string baseName;
+// 	std::string type;
 
-	if (this->_contentType == MULTIPART)
-	{
-		baseName = this->parseNameFromMultipart();
-		return baseName;
-	}
-	std::string rawValues = this->_req.getHeader("Content-Disposition");
-	std::vector<std::string> values = tokenizeLine(rawValues);
+// 	if (this->_contentType == MULTIPART)
+// 	{
+// 		baseName = this->parseNameFromMultipart();
+// 		return baseName;
+// 	}
+// 	std::string rawValues = this->_req.getHeader("Content-Disposition");
+// 	std::vector<std::string> values = tokenizeLine(rawValues);
 
-	std::vector<std::string>::iterator it;
-	for (it = values.begin(); it != values.end(); it++)
-	{
-		if (it->substr(0, 9) == "filename=")
-		{
-			fileName = it->substr(9);
-			trimQuotes(fileName);
-			break;
-		}
-	}
+// 	std::vector<std::string>::iterator it;
+// 	for (it = values.begin(); it != values.end(); it++)
+// 	{
+// 		if (it->substr(0, 9) == "filename=")
+// 		{
+// 			fileName = it->substr(9);
+// 			trimQuotes(fileName);
+// 			break;
+// 		}
+// 	}
 
-	if (fileName.empty())
-	{
-		std::string uri = this->_req.getUri();
-		size_t lastSlash = uri.find_last_of("/");
+// 	if (fileName.empty())
+// 	{
+// 		std::string uri = this->_req.getUri();
+// 		size_t lastSlash = uri.find_last_of("/");
 
-		if (lastSlash != std::string::npos && lastSlash + 1 < uri.size())
-			fileName = uri.substr(lastSlash + 1);
+// 		if (lastSlash != std::string::npos && lastSlash + 1 < uri.size())
+// 			fileName = uri.substr(lastSlash + 1);
 
-		if (fileName.empty())
-			fileName = "upload";
-	}
+// 		if (fileName.empty())
+// 			fileName = "upload";
+// 	}
 
-	size_t	dotPos = fileName.find_last_of(".");
-	if (dotPos != std::string::npos && dotPos > 0)
-	{
-		baseName = fileName.substr(0, dotPos);
-		type = fileName.substr(dotPos + 1);
-		if (type.empty())
-			type = "dat";
-	}
-	else
-	{
-		baseName = fileName.empty() ? "upload" : fileName;
-		type = "dat";
-	}
+// 	size_t	dotPos = fileName.find_last_of(".");
+// 	if (dotPos != std::string::npos && dotPos > 0)
+// 	{
+// 		baseName = fileName.substr(0, dotPos);
+// 		type = fileName.substr(dotPos + 1);
+// 		if (type.empty())
+// 			type = "dat";
+// 	}
+// 	else
+// 	{
+// 		baseName = fileName.empty() ? "upload" : fileName;
+// 		type = "dat";
+// 	}
 
-	this->makeUnicIde(baseName, type);
+// 	this->makeUnicIde(baseName, type);
 
-	return baseName;
-}
+// 	return baseName;
+// }
 
 void	ResponsePost::makeUnicIde(std::string& fileName, std::string const& type)
 {
@@ -225,8 +222,7 @@ void	ResponsePost::buildFromMultipart(void)
 			// ✅ Safe access with find()
 			std::map<std::string, std::string>::iterator it = disposition.find("filename");
 			if (it != disposition.end())
-				this->_fileName = it->second;
-			//TODO make unike
+				this->_fileName = this->normalizeFilename(it->second);
 		}
 
 		// ✅ Parse Content-Type header

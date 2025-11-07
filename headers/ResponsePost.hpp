@@ -24,7 +24,7 @@ private:
 	std::string							_mime;
 
 	std::string		getFileName();
-	std::string		parseNameFromMultipart();
+	std::string		normalizeFilename(std::string const& fileName);
 	e_contentType	extractContentType();
 
 	void	printContentTypeElements();
