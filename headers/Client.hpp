@@ -23,6 +23,6 @@ class Client {
 	void	setBytesExpected(int bytes) { this->_bytes_expected = bytes; }
 	void	addToBuffer(const char* data, int size);
 
-	bool	isCompleteRequest(void);
-	std::string concatBuffer() const { return std::string(this->_read_buffer.begin(), this->_read_buffer.end()); }
+	bool		isCompleteRequest(void);
+	std::string concatBuffer() const;
 };
