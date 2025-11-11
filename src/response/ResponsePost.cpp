@@ -174,7 +174,6 @@ bool	ResponsePost::setOrCreatePath(std::string const& path)
 
 void	ResponsePost::buildFromMultipart(void)
 {
-	std::stringstream iss(this->_req.getBody());
 	std::string	body = this->_req.getBody();
 	std::string	boundaryStart = "--" + this->_boundary;
 	std::string	boundaryEnd = boundaryStart + "--";
@@ -193,7 +192,6 @@ void	ResponsePost::buildFromMultipart(void)
 	if (lineEnd != std::string::npos)
 		pos = lineEnd + (body[lineEnd] == '\r' ? 2 : 1);
 
-		// ✅ Parse headers until empty line
 	while (pos < body.size())
 	{
 		// Find end of current line
@@ -206,14 +204,14 @@ void	ResponsePost::buildFromMultipart(void)
 
 		std::string line = body.substr(pos, lineEnd - pos);
 
-		// ✅ Empty line marks end of headers
+		//Empty line marks end of headers
 		if (line.empty())
 		{
 			pos = lineEnd + (body[lineEnd] == '\r' ? 2 : 1);
 			break;
 		}
 
-		// ✅ Parse Content-Disposition header
+		// Parse Content-Disposition header. Maybe we need to store this in class
 		if (line.find("Content-Disposition:") == 0)
 		{
 			std::string params = line.substr(20); // Skip "Content-Disposition:"
@@ -225,7 +223,7 @@ void	ResponsePost::buildFromMultipart(void)
 				this->_fileName = this->normalizeFilename(it->second);
 		}
 
-		// ✅ Parse Content-Type header
+		//Parse Content-Type header
 		if (line.find("Content-Type:") == 0)
 		{
 			std::string params = line.substr(13); // Skip "Content-Type:"
@@ -242,16 +240,22 @@ void	ResponsePost::buildFromMultipart(void)
 
 	// ✅ Now extract file content (binary safe)
 	size_t contentStart = pos;
-	size_t nextBoundary = body.find(boundaryStart, pos);
+	// size_t nextBoundary = body.find(boundaryStart, pos);
 
-	if (nextBoundary == std::string::npos)
-	{
-		LOG_WARNING_LINK("Closing boundary not found in multipart body");
-		return;
-	}
+	// if (nextBoundary == std::string::npos)
+	// {
+	// 	LOG_WARNING_LINK("Closing boundary not found in multipart body");
+	// 	return;
+	// }
 
 	// ✅ Content ends before the boundary (remove trailing \r\n before boundary)
-	size_t contentEnd = nextBoundary;
+	// size_t contentEnd = nextBoundary;
+	size_t contentEnd = body.find(boundaryEnd);
+	if (contentEnd == std::string::npos)
+	{
+		LOG_HIGH_WARNING_LINK("Closing boundary not found in multipart body, file not built");
+		return;
+	}
 	if (contentEnd >= 2 && body[contentEnd - 2] == '\r' && body[contentEnd - 1] == '\n')
 		contentEnd -= 2;
 	else if (contentEnd >= 1 && body[contentEnd - 1] == '\n')

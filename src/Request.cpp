@@ -1,64 +1,10 @@
 #include "Request.hpp"
 
 /*============================= Constructors and destructor =====================================*/
-
-Request::Request(std::string received) : _bodySize(0), _expectedReadBytes(0) , _valid(false)
+//TODO complete constructors with final atributes
+Request::Request() : _expectedBodySize(0), _bodySize(0), _bodyPos(0), _hasBody(false),  _expectedReadBytes(0) , _valid(false), _headersReceived(false), _requestCompleted(false)
 {
-	std::stringstream			iss(received);
-	std::string					line;
-	std::vector<std::string>	firstLine;
-	std::vector<std::string>	headerLine;
 
-
-	//REQUEST LINE
-	std::getline(iss, line);
-	this->_expectedReadBytes += line.size() + 1;
-	firstLine = tokenizeLine(line);
-	this->_valid = this->fillFirstLine(firstLine);//fills method, uri, and version, returns false if not HTTP/1.1 complying
-	if (!this->_valid)
-		return;
-
-	//HEADERS
-	std::getline(iss, line);
-	this->_expectedReadBytes += line.size() + 1;
-	headerLine = tokenizeLine(line);
-	while (!headerLine.empty())
-	{
-		std::string key = headerLine.front();
-		if (!key.empty() && key[key.length() - 1] == ':')
-			key.erase(key.length() - 1);
-
-		std::string value;
-		for (size_t i = 1; i < headerLine.size(); i++)
-		{
-			value += headerLine[i];
-			if (!value.empty() && value[value.length() - 1] == ',')
-				value.erase(value.length() - 1);
-			if (i + 1 < headerLine.size())
-				value += " ";
-		}
-		this->_headers[key] = value;
-
-		std::getline(iss, line);
-		this->_expectedReadBytes += line.size() + 1;
-		headerLine = tokenizeLine(line);
-	}
-
-	//BODY (if it exists)
-	if (this->_headers.find("Content-Length") != this->_headers.end())
-	{
-		// TODO check if content-length is greater than client_body_size_max here and send error payload to large if so
-		size_t contentLength = static_cast<size_t>(std::atol(this->_headers["Content-Length"].c_str()));
-		this->_expectedReadBytes += contentLength;
-		if (contentLength > 0)
-		{
-			this->_body.resize(contentLength);
-			iss.read(&this->_body[0], contentLength);
-		}
-	}
-
-	//request validation
-	this->_valid = this->validateRequest();
 }
 
 Request::Request(const Request &copy)
@@ -71,7 +17,19 @@ _bodySize(copy._bodySize),
 _valid(copy._valid) {}
 
 
-Request::~Request() {}
+Request::~Request()
+{
+	if (this->_tmpBodyFile.is_open())
+		this->_tmpBodyFile.close();
+
+	if (!this->_bodyFilePath.empty())
+	{
+		if (std::remove(this->_bodyFilePath.c_str()) == 0)
+			LOG_INFO("Deleted temp file: " + this->_bodyFilePath);
+		else
+			LOG_WARNING("Failed to delete temp file: " + this->_bodyFilePath);
+	}
+}
 
 /*============================= assing operator =====================================*/
 
@@ -136,6 +94,11 @@ void	Request::setBody(std::string const& newBody)
 	this->_body = newBody;
 }
 
+void	Request::setRequestCompleted(bool completed)
+{
+	this->_requestCompleted = completed;
+}
+
 std::string Request::getHeader(const std::string &key) const
 {
     std::map<std::string, std::string>::const_iterator it = this->_headers.find(key);
@@ -147,6 +110,11 @@ std::string Request::getHeader(const std::string &key) const
 std::string Request::getBody() const
 {
     return this->_body;
+}
+
+bool	Request::getRequestCompleted(void) const
+{
+	return this->_requestCompleted;
 }
 
 bool Request::isValid() const
@@ -243,23 +211,33 @@ bool	Request::fillFirstLine(std::vector<std::string>& firstLine)
 
 bool	Request::validateRequest(void)
 {
-	size_t size;
-
-	if (!this->_body.empty())
+	if (this->_hasBody)
 	{
 		if (this->_headers.find("Content-Length") == this->_headers.end())
 		{
 			LOG_WARNING_LINK("Invalid request has body but not header [Content-lenght], sending error page");
 			return false;
 		}
-		size = static_cast<size_t>(std::atol(this->_headers["Content-Length"].c_str()));
-		if (this->_body.size() != size)
+
+		size_t promisedSize = static_cast<size_t>(std::atol(this->_headers["Content-Length"].c_str()));
+		ssize_t fileSize = getFileSize(this->_bodyFilePath);
+		if (fileSize != static_cast<ssize_t>(promisedSize))
 		{
-			LOG_WARNING_LINK("Invalid request: Body size mismatch: got " + numToString(this->_body.size()) + ", expected " + numToString(size));
+			LOG_WARNING_LINK("Invalid request: Body size mismatch: got " + numToString(static_cast<size_t>(fileSize)) + ", expected " + numToString(promisedSize));
 			return false;
 		}
-		this->_bodySize = size;
+
+		this->_bodySize = fileSize;
 	}
+	else
+	{
+		if (this->_method == "POST")
+		{
+			LOG_WARNING_LINK("Invalid request: method POST has no body");
+			return false;
+		}
+	}
+
 	if (this->_headers.find("Host") == this->_headers.end() || this->_headers["Host"].empty())
 	{
 		LOG_WARNING_LINK("Invalid request: header [Host] not found");
@@ -268,3 +246,138 @@ bool	Request::validateRequest(void)
 	return true;
 }
 
+
+void	Request::buildHeaders(std::string received)
+{
+	std::stringstream			iss(received);
+	std::string					line;
+	std::vector<std::string>	firstLine;
+	std::vector<std::string>	headerLine;
+
+
+	//REQUEST LINE
+	std::getline(iss, line);
+	this->_expectedReadBytes += line.size() + 1;
+	firstLine = tokenizeLine(line);
+	this->_valid = this->fillFirstLine(firstLine);//fills method, uri, and version, returns false if not HTTP/1.1 complying
+	if (!this->_valid)
+		return;
+
+	//HEADERS
+	std::getline(iss, line);
+	this->_expectedReadBytes += line.size() + 1;
+	headerLine = tokenizeLine(line);
+	while (!headerLine.empty())
+	{
+		std::string key = headerLine.front();
+		if (!key.empty() && key[key.length() - 1] == ':')
+			key.erase(key.length() - 1);
+
+		std::string value;
+		for (size_t i = 1; i < headerLine.size(); i++)
+		{
+			value += headerLine[i];
+			if (!value.empty() && value[value.length() - 1] == ',')
+				value.erase(value.length() - 1);
+			if (i + 1 < headerLine.size())
+				value += " ";
+		}
+		this->_headers[key] = value;
+
+		std::getline(iss, line);
+		this->_expectedReadBytes += line.size() + 1;
+		headerLine = tokenizeLine(line);
+	}
+
+	//BODY (if it exists)
+	if (this->_headers.find("Content-Length") != this->_headers.end())
+	{
+		this->_bodyPos = this->_expectedReadBytes;
+		// TODO check if content-length is greater than client_body_size_max here and send error payload to large if so
+		this->_expectedBodySize = static_cast<size_t>(std::atol(this->_headers["Content-Length"].c_str()));
+		this->_expectedReadBytes += this->_expectedBodySize;
+		this->_hasBody = true;
+		// if (contentLength > 0)
+		// {
+		// 	this->_body.resize(contentLength);
+		// 	iss.read(&this->_body[0], contentLength);
+		// }
+	}
+}
+void	Request::generateBodyPath()
+{
+	std::stringstream ss;
+	ss << "/tmp/tmp_file_" << time(NULL) << ".tmp";
+	this->_bodyFilePath = ss.str();
+}
+//TODO should we return an error from this function?
+void	Request::buildBody(std::vector<char> const& readBuffer)
+{
+	if (this->_bodyFilePath.empty())
+		this->generateBodyPath();
+
+	this->_tmpBodyFile.open(this->_bodyFilePath.c_str());
+	if (!this->_tmpBodyFile.is_open())
+	{
+		LOG_HIGH_WARNING_LINK("Failed to create temp file");
+		this->_valid = false;
+		return;
+	}
+
+	size_t bytesLeft = readBuffer.size() - this->_bodyPos;
+	this->_tmpBodyFile.write(&readBuffer[this->_bodyPos], bytesLeft);
+	if (this->_tmpBodyFile.fail())
+	{
+		LOG_HIGH_WARNING("Failed to write to temp file: " + _bodyFilePath);
+		this->_valid = false;
+		this->_tmpBodyFile.close();
+		std::remove(_bodyFilePath.c_str());
+		return;
+	}
+	this->_bodyPos += bytesLeft;
+
+	this->_tmpBodyFile.close();
+}
+
+int	Request::parseInput(std::vector<char> const& readBuffer)
+{
+
+	//TODO safe check for a max request size before continuing reading. otherwise we could end reading an innecesarely ammount of data before checking with the headers
+	// if (readBuffer.size() > MAX_REQUEST_SIZE)
+	// {
+	// 	stop reading and send an error message
+	//	return -1;
+	// }
+
+
+	if (this->_requestCompleted)
+	{
+		this->_valid = this->validateRequest();
+		return 0;
+	}
+
+	if (!this->_headersReceived)
+	{
+		std::string received(readBuffer.begin(), readBuffer.end());
+		if (received.find("\r\n\r\n") != std::string::npos)
+		{
+			this->_headersReceived = true;
+			this->buildHeaders(received);
+			if (this->_expectedBodySize == 0)
+			{
+				this->_requestCompleted = true;
+				return 0;
+			}
+		}
+	}
+
+	if (this->_headersReceived)
+	{
+		if (readBuffer.size() <= static_cast<size_t>(this->_expectedReadBytes))
+			this->buildBody(readBuffer);
+		if (readBuffer.size() == static_cast<size_t>(this->_expectedReadBytes))
+			this->_requestCompleted = true;
+	}
+
+	return 0;
+}

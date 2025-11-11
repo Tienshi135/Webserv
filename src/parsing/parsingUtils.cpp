@@ -564,3 +564,22 @@ void	setDefaults(ServerCfg& server)
 
 	nbServers += 1;
 }
+
+/**
+ * @brief Gets file size in bytes
+ *
+ * @param filepath Path to file
+ * @return File size in bytes, or -1 on error
+ */
+ssize_t getFileSize(const std::string& filepath)
+{
+	struct stat fileStat;
+
+	if (stat(filepath.c_str(), &fileStat) != 0)
+		return -1;
+
+	if (!S_ISREG(fileStat.st_mode))
+		return -1;
+
+	return static_cast<ssize_t>(fileStat.st_size);
+}

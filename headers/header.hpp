@@ -22,7 +22,6 @@
 #include <sys/select.h>
 #include <fcntl.h>
 #include "Configuration.hpp"
-#include "Client.hpp"
 
 // Parsing includes
 #include <fstream>
@@ -78,6 +77,7 @@ std::string					numToString(size_t num);
 std::string					strToLower(std::string const& string);
 e_configtype				findType(std::string directive);
 unsigned int 				parseSize(const std::string &value);
+ssize_t						getFileSize(const std::string& filepath);
 void						setDefaults(ServerCfg& server);
 void						trimQuotes(std::string& quoted);
 
