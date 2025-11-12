@@ -2,6 +2,11 @@
 
 #include "header.hpp"
 #include "Request.hpp"
+#include "Response.hpp"
+#include "ResponseFactory.hpp"
+#include "signal.h"
+#include <unistd.h>
+
 
 class Client {
 	private:
@@ -11,6 +16,7 @@ class Client {
 		int					_bytes_expected;
 		int					_bytes_read;
 		Request				_request;
+		ServerCfg const&	_config;
 
 	public:
 		Client(std::map<int, ServerCfg>::iterator const& fd_and_cfg);
@@ -19,15 +25,17 @@ class Client {
 		~Client();
 
 		Request&	getRequest() {return this->_request; }
-		int		getClientFd() const { return this->_client_fd; }
-		void	setClientFd(int fd) { this->_client_fd = fd; }
-		int		getBytesRead() const { return this->_bytes_read; }
-		void	setBytesRead(int bytes) { this->_bytes_read = bytes; }
-		int		getBytesExpected() const { return this->_bytes_expected; }
-		void	setBytesExpected(int bytes) { this->_bytes_expected = bytes; }
-		void	addToBuffer(const char* data, int size);
+		int			getClientFd() const { return this->_client_fd; }
+		void		setClientFd(int fd) { this->_client_fd = fd; }
+		int			getBytesRead() const { return this->_bytes_read; }
+		void		setBytesRead(int bytes) { this->_bytes_read = bytes; }
+		int			getBytesExpected() const { return this->_bytes_expected; }
+		void		setBytesExpected(int bytes) { this->_bytes_expected = bytes; }
+		void		addToBuffer(const char* data, int size);
 
 		bool	isCompleteRequest(void);
 		int		readBuffer(void);
+		void	sendResponse();
+		void	closeConnection();
 		std::string concatBuffer() const { return std::string(this->_read_buffer.begin(), this->_read_buffer.end()); }
 };

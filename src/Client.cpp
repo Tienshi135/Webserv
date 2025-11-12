@@ -2,25 +2,24 @@
 #include "Configuration.hpp"
 
 /*============================= Constructors and destructor =====================================*/
-Client::Client(std::map<int, ServerCfg>::iterator const& fd_and_cfg) : _client_fd(-1), _bytes_expected(-1), _bytes_read(0), _request()
+Client::Client(std::map<int, ServerCfg>::iterator const& fd_and_cfg)
+: _client_fd(-1), _bytes_expected(-1), _bytes_read(0), _request(), _config(fd_and_cfg->second)
 {
-
 	this->_read_buffer.reserve(1024);
 
-	ServerCfg serverCfg = fd_and_cfg->second;
 	int client_fd = accept(fd_and_cfg->first, NULL, NULL);
 	if (client_fd == -1)
 	{
 		perror("Accept error");
 		LOG_WARNING_LINK("Accept failed to open fd [" + numToString(client_fd) + \
-		"] for server config: " + serverCfg.getName());
+		"] for server config: " + this->_config.getName());
 		return;
 	}
 	int op = fcntl(client_fd, F_GETFL);
 	if (op == -1)
 	{
 		perror("Fcntl F_GETFL error");
-		LOG_HIGH_WARNING_LINK("Fd [" + numToString(client_fd) + "] for server: [" + serverCfg.getName() + \
+		LOG_HIGH_WARNING_LINK("Fd [" + numToString(client_fd) + "] for server: [" + this->_config.getName() + \
 		"] is not a valid fd or already closed (posible datar race)");
 		close(client_fd);
 		return;
@@ -33,16 +32,16 @@ Client::Client(std::map<int, ServerCfg>::iterator const& fd_and_cfg) : _client_f
 		return;
 	}
 	this->_client_fd = client_fd;
-	LOG_INFO("Client connected on server : " + serverCfg.getName() + " (fd: " + numToString(client_fd) + ")");
+	LOG_INFO("Client connected on server : " + this->_config.getName() + " (fd: " + numToString(client_fd) + ")");
 }
 
 Client::Client(const Client &copy)
-{
-	this->_client_fd = copy._client_fd;
-	this->_read_buffer = copy._read_buffer;
-	this->_bytes_expected = copy._bytes_expected;
-	this->_bytes_read = copy._bytes_read;
-}
+: _client_fd(copy._client_fd),
+  _read_buffer(copy._read_buffer),
+  _bytes_expected(copy._bytes_expected),
+  _bytes_read(copy._bytes_read),
+  _request(copy._request),
+  _config(copy._config) {}
 
 Client &Client::operator=(const Client &copy)
 {
@@ -62,16 +61,6 @@ Client::~Client() {};
 
 bool	Client::isCompleteRequest(void)//TODO refactor completely
 {
-	// std::string input = this->concatBuffer();
-
-	// if (input.find("\r\n\r\n") == std::string::npos)
-	// 	return (false);
-	// Request	req(input);
-	// if (!req.isValid())
-	// 	return (true);
-	// if (this->_bytes_read < req.getExpectedReadBytes())
-	// 	return (false);
-	// return (true);
 	return this->_request.getRequestCompleted();
 }
 
@@ -86,27 +75,58 @@ void	Client::addToBuffer(const char* data, int size)
 
 int	Client::readBuffer()
 {
-	char buffer[1024];//TODO find a bigger reading size, low buffer increases loops exponentialy on larger files so is less efficient
+	int ret = 0;
+	while (!this->isCompleteRequest())
+	{
+		char buffer[1024];//TODO find a bigger reading size, low buffer increases loops exponentialy on larger files so is less efficient
+		this->_bytes_read = recv(this->_client_fd, buffer, sizeof(buffer), 0);
+		if (this->_bytes_read == 0)
+		{
+			//TODO client is disconected, handle this?
+			// LOG_INFO("Client disconnected : " + numToString(this->_client_fd));
+			// close(this->_client_fd);
+			// this->_client_fd = -1;
+		}
+		else if (this->_bytes_read < 0)
+		{
+			//TODO handle read error
+			//if body is expected but body size is not equal expected size launch error?
+			this->_request.setRequestCompleted(true);
+			ret = -1;
+			break;
+		}
+		else
+		{
+			this->addToBuffer(buffer, this->_bytes_read);//TODO a bit inneficient, maybe we have to rethink this logic
+			ret =  this->_request.parseInput(this->_read_buffer);
+			if (ret < 0)
+				break;
+		}
+	}
+	return ret;
+}
 
-	this->_bytes_read = recv(this->_client_fd, buffer, sizeof(buffer), 0);
-	if (this->_bytes_read == 0)
+void	Client::sendResponse(void)
+{
+	Response* response = ResponseFactory::createResponse(this->_config, this->_request);
+	if (!response)
 	{
-		//TODO client is disconected, handle this?
-		// LOG_INFO("Client disconnected : " + numToString(this->_client_fd));
-		// close(this->_client_fd);
-		// this->_client_fd = -1;
+		//TODO handle error
 	}
-	else if (this->_bytes_read < 0)
-	{
-		//TODO handle read error
-		//if body is expected but body size is not equal expected size launch error?
-		this->_request.setRequestCompleted(true);
-		return -1;
-	}
-	else
-	{
-		this->addToBuffer(buffer, this->_bytes_read);//TODO a bit inneficient, maybe we have to rethink this logic
-		return this->_request.parseInput(this->_read_buffer);
-	}
-	return 0;
+
+	response->buildResponse();
+	std::string response_str = response->getRawResponse();
+	response->printResponse();
+
+	ssize_t bytes_sent = send(this->_client_fd, response_str.c_str(), response_str.length(), 0);
+	if (bytes_sent == -1)
+		perror("Send error");
+
+	delete (response);
+}
+
+void	Client::closeConnection(void)
+{
+	LOG_INFO("Connection closed with client : " + numToString(this->_client_fd) + ", awaiting next client");
+	close(this->_client_fd);
 }

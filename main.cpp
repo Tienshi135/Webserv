@@ -193,8 +193,6 @@ int main(int argc, char **argv)
 		sfd_it = sfd.begin();
 		while (sfd_it != sfd.end())
 		{
-            ServerCfg &server_config = sfd_it->second;
-
 			if (FD_ISSET(sfd_it->first, &read_fd))
             {
                 Client  *new_client = new Client(sfd_it);
@@ -210,66 +208,22 @@ int main(int argc, char **argv)
             for (int i = cfd[sfd_it->first].size() - 1; i >= 0; i--)
             {
                 Client &client = *cfd[sfd_it->first][i];
-                int client_fd = client.getClientFd();//** already in client
-                if (FD_ISSET(client_fd, &read_fd))
+
+                if (FD_ISSET(client.getClientFd(), &read_fd))
                 {
-                    // const ServerCfg &server_config = sfd_it->second;//** already in client
-                    // char buffer[1024];// ** create in client
-
-                    // int bytes_read = recv(client_fd, buffer, sizeof(buffer) - 1, 0); // ** make in a method [.read] inside client
-                    while (!client.isCompleteRequest())
+                    if (client.readBuffer() < 0)
                     {
-                        if (client.readBuffer() < 0)
-                        {
-                            //TODO manage reading errors. delete client?
-                            delete (cfd[sfd_it->first][i]);
-                            cfd[sfd_it->first].erase(cfd[sfd_it->first].begin() + i);
-                            break;//break?
-                        }
+                        //TODO manage reading errors. delete client?
+                        delete (cfd[sfd_it->first][i]);
+                        cfd[sfd_it->first].erase(cfd[sfd_it->first].begin() + i);
+                        break;//break?
                     }
-
-                    // if (!client.isCompleteRequest())
-                    //     continue;
-
-
-                    // if (bytes_read > 0)
-                    // {
-                        // int bytes_stored = client.getBytesRead();// ** inside client
-                        // client.setBytesRead(bytes_stored + bytes_read);
-                        // client.addToBuffer(buffer, bytes_read);
-
-                        // if (!client.isCompleteRequest())
-                        //     continue;//TODO handle error, if clientrequest is not valid the page will hang indefinetely
-
-
-                        // std::cout << GREEN << "Complete request received in client buffer!" << RESET << client.concatBuffer() << "End of request." << std::endl;
-                        // Request	req(client.concatBuffer());
                     client.getRequest().printRequest();
                     client.getRequest().expectedReadBytes(client.getBytesRead());
-                    Response* response = ResponseFactory::createResponse(server_config, client.getRequest());
-                    if (!response)
-                        continue; //TODO handle error
-
-                    response->buildResponse();
-                    std::string response_str = response->getRawResponse();
-                    response->printResponse();
-                    ssize_t bytes_sent = send(client_fd, response_str.c_str(), response_str.length(), 0);
-                    if (bytes_sent == -1)
-                        perror("Send error");
-
-                    delete (response);
-                    LOG_INFO("Connection closed with client : " + numToString(client_fd) + ", awaiting next client");
-                    close(client_fd);
+                    client.sendResponse();
+                    client.closeConnection();
                     delete (cfd[sfd_it->first][i]);
                     cfd[sfd_it->first].erase(cfd[sfd_it->first].begin() + i);
-                    // }
-                    // if (bytes_read == 0)
-                    // {
-                    //     LOG_INFO("Client disconnected : " + numToString(client_fd));// ** inside client
-                    //     close(client_fd); // ** inside client
-                    //     delete (cfd[sfd_it->first][i]); // ** if (client.getClientFd < 0) or if (client.readBuffer > 0)
-                    //     cfd[sfd_it->first].erase(cfd[sfd_it->first].begin() + i); // ** if (client.getClientFd < 0) or if (client.readBuffer > 0)
-                    // }
                 }
             }
             sfd_it++;
