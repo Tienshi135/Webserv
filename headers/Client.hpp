@@ -11,6 +11,11 @@
 class Client {
 	private:
 
+		struct timeval	_creation_time;
+		struct timeval	_request_start_time;
+		struct timeval	_request_end_time;
+		struct timeval	_response_sent_time;
+
 		int					_client_fd;
 		std::vector<char>	_read_buffer;//deprecated?
 		int					_bytes_expected;
@@ -36,6 +41,7 @@ class Client {
 		void		setTotalBytesReceived(size_t total_bytes_received) {this->_total_bytes_Received = total_bytes_received; }
 		void		addToBuffer(const char* data, int size);
 
+		void		printPerformanceStats(void) const;
 		bool		isCompleteRequest(void);
 		int			readBuffer(void);
 		void		sendResponse();

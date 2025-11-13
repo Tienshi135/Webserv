@@ -21,6 +21,7 @@
 #include <netdb.h>
 #include <sys/select.h>
 #include <fcntl.h>
+#include <sys/time.h>
 #include "Configuration.hpp"
 
 // Parsing includes
@@ -33,6 +34,7 @@
 #include <ctime>
 #include "ParsingException.hpp"
 #include <limits>
+
 
 #define ARRAY_SIZE(array)((int)(sizeof(array) / sizeof(array[0])))
 

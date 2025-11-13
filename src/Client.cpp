@@ -32,6 +32,8 @@ Client::Client(std::map<int, ServerCfg>::iterator const& fd_and_cfg)
 		return;
 	}
 	this->_client_fd = client_fd;
+
+	gettimeofday(&this->_creation_time, NULL);
 	LOG_INFO("Client connected on server : " + this->_config.getName() + " (fd: " + numToString(client_fd) + ")");
 }
 
@@ -59,6 +61,73 @@ Client::~Client() {};
 
 /*============================= Public member functions =====================================*/
 
+void	Client::printPerformanceStats() const
+{
+	// Calculate time differences in milliseconds
+	size_t connection_to_first_byte =
+		((this->_request_start_time.tv_sec - this->_creation_time.tv_sec) * 1000) +
+		((this->_request_start_time.tv_usec - this->_creation_time.tv_usec) / 1000);
+
+	size_t request_duration =
+		((this->_request_end_time.tv_sec - this->_request_start_time.tv_sec) * 1000) +
+		((this->_request_end_time.tv_usec - this->_request_start_time.tv_usec) / 1000);
+
+	size_t response_processing =
+		((this->_response_sent_time.tv_sec - this->_request_end_time.tv_sec) * 1000) +
+		((this->_response_sent_time.tv_usec - this->_request_end_time.tv_usec) / 1000);
+
+	size_t total_time =
+		((this->_response_sent_time.tv_sec - this->_creation_time.tv_sec) * 1000) +
+		((this->_response_sent_time.tv_usec - this->_creation_time.tv_usec) / 1000);
+
+	// Calculate throughput (bytes per second)
+	size_t throughput = 0;
+	if (request_duration > 0)
+		throughput = (this->_total_bytes_Received * 1000.0) / request_duration;  // bytes/sec
+
+
+    std::string title = "PERFORMANCE STATISTICS (fd: " + numToString(this->_client_fd) + ")";
+    int width = 60;
+    int inner_width = width - 2;
+
+    int padding = (inner_width - title.length()) / 2;
+    int right_padding = inner_width - title.length() - padding;
+
+	std::cout << CYAN << "\n╔══════════════════════════════════════════════════════════╗" << std::endl;
+	std::cout << "║" << std::string(padding, ' ') << title << std::string(right_padding, ' ') << "║" << RESET << std::endl;
+	std::cout << CYAN << "╠══════════════════════════════════════════════════════════╣" << RESET << std::endl;
+
+	title = " Connection established → First byte: ";
+	std::string value = numToString(connection_to_first_byte) + " ms ";
+	std::cout << CYAN << "║" << RESET << title << std::setw(width - title.size()) << value << CYAN << "║" << RESET << std::endl;
+
+	title = " Request reception (reading): ";
+	value = numToString(request_duration) + " ms ";
+	std::cout << CYAN << "║" << RESET << title << std::setw(width - title.size() - 2) << value << CYAN << "║" << RESET << std::endl;
+
+	title = " Response processing + sending: ";
+	value = numToString(response_processing) + " ms ";
+	std::cout << CYAN << "║" << RESET << title << std::setw(width - title.size() - 2) << value << CYAN << "║" << RESET << std::endl;
+
+	std::cout << CYAN << "╟──────────────────────────────────────────────────────────╢" << RESET << std::endl;
+
+	title = " TOTAL TIME: ";
+	value = numToString(total_time) + " ms ";
+	std::cout << CYAN << "║" << GREEN << title << std::setw(width - title.size() - 2) << value << CYAN << "║" << RESET << std::endl;
+
+	std::cout << CYAN << "╠══════════════════════════════════════════════════════════╣" << RESET << std::endl;
+
+	title = " Bytes received: ";
+	value = numToString(this->_total_bytes_Received) + " bytes ";
+	std::cout << CYAN << "║"  << RESET << title << std::setw(width - title.size() - 2) << value << CYAN << "║" << RESET << std::endl;
+
+	title = " Throughput: ";
+	value = numToString((throughput / 1024)) + " KB/s  ";
+	std::cout << CYAN << "║"  << RESET << title << std::setw(width - title.size() - 2) << value << CYAN << "║" << RESET << std::endl;
+
+	std::cout << CYAN << "╚══════════════════════════════════════════════════════════╝" << RESET << std::endl;
+}
+
 bool	Client::isCompleteRequest(void)//TODO refactor completely
 {
 	return this->_request.getRequestCompleted();
@@ -75,7 +144,7 @@ void	Client::addToBuffer(const char* data, int size)
 
 int	Client::readBuffer()
 {
-	char buffer[1024];//TODO find a bigger reading size, low buffer increases loops exponentialy on larger files so is less efficient
+	char buffer[4096];//TODO find a bigger reading size, low buffer increases loops exponentialy on larger files so is less efficient
 	this->_bytes_read = recv(this->_client_fd, buffer, sizeof(buffer), 0);
 	if (this->_bytes_read == 0)
 	{
@@ -91,16 +160,20 @@ int	Client::readBuffer()
 		//if body is expected but body size is not equal expected size launch error?
 		LOG_HIGH_WARNING_LINK("recv returned error unexpectedly: [" +
 			(errno != 0? std::string(strerror(errno)) : "nothing to read") + "]");
+		gettimeofday(&this->_request_end_time, NULL);
 		this->_request.setRequestCompleted(true);
 		return -1;
 	}
 	else
 	{
+		if (this->_total_bytes_Received == 0)
+			gettimeofday(&this->_request_start_time, NULL);
 		int ret = 0;
 		this->setTotalBytesReceived(this->getTotalBytesReceived() + this->_bytes_read);
 		ret = this->_request.parseInput(buffer, this->_bytes_read, this->_total_bytes_Received);
 		if (this->_total_bytes_Received >= static_cast<size_t>(this->_request.getExpectedReadBytes()))
 		{
+			gettimeofday(&this->_request_end_time, NULL);
 			this->_request.setRequestCompleted(true);
 			//TODO request is set to completed but the body may not be full, need to verify later;
 			return ret;
@@ -126,6 +199,9 @@ void	Client::sendResponse(void)
 	if (bytes_sent == -1)
 		perror("Send error");
 
+	gettimeofday(&this->_response_sent_time, NULL);
+
+	this->printPerformanceStats();
 	delete (response);
 }
 
