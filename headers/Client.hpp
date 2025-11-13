@@ -12,9 +12,10 @@ class Client {
 	private:
 
 		int					_client_fd;
-		std::vector<char>	_read_buffer;
+		std::vector<char>	_read_buffer;//deprecated?
 		int					_bytes_expected;
 		int					_bytes_read;
+		size_t				_total_bytes_Received;
 		Request				_request;
 		ServerCfg const&	_config;
 
@@ -31,11 +32,13 @@ class Client {
 		void		setBytesRead(int bytes) { this->_bytes_read = bytes; }
 		int			getBytesExpected() const { return this->_bytes_expected; }
 		void		setBytesExpected(int bytes) { this->_bytes_expected = bytes; }
+		size_t		getTotalBytesReceived() const { return this->_total_bytes_Received; }
+		void		setTotalBytesReceived(size_t total_bytes_received) {this->_total_bytes_Received = total_bytes_received; }
 		void		addToBuffer(const char* data, int size);
 
-		bool	isCompleteRequest(void);
-		int		readBuffer(void);
-		void	sendResponse();
-		void	closeConnection();
+		bool		isCompleteRequest(void);
+		int			readBuffer(void);
+		void		sendResponse();
+		void		closeConnection();
 		std::string concatBuffer() const { return std::string(this->_read_buffer.begin(), this->_read_buffer.end()); }
 };

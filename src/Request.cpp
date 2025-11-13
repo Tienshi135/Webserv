@@ -2,10 +2,17 @@
 
 /*============================= Constructors and destructor =====================================*/
 //TODO complete constructors with final atributes
-Request::Request() : _expectedBodySize(0), _bodySize(0), _bodyPos(0), _hasBody(false),  _expectedReadBytes(0) , _valid(false), _headersReceived(false), _requestCompleted(false)
-{
-
-}
+Request::Request()
+: _expectedBodySize(0),
+_bodySize(0),
+_bodyPos(0),
+_tmpBodyFileSize(0),
+_hasBody(false),
+_expectedReadBytes(0),
+_valid(false),
+_headersReceived(false),
+_requestCompleted(false)
+{}
 
 Request::Request(const Request &copy)
 : _method(copy._method),
@@ -110,6 +117,11 @@ std::string Request::getHeader(const std::string &key) const
 std::string Request::getBody() const
 {
     return this->_body;
+}
+
+std::string	Request::getBodyFilePath() const
+{
+	return this->_bodyFilePath;
 }
 
 bool	Request::getRequestCompleted(void) const
@@ -292,16 +304,12 @@ void	Request::buildHeaders(std::string received)
 	//BODY (if it exists)
 	if (this->_headers.find("Content-Length") != this->_headers.end())
 	{
-		this->_bodyPos = this->_expectedReadBytes;
+		size_t headerEnd = received.find("\r\n\r\n");
+		this->_bodyPos = (headerEnd != std::string::npos) ? headerEnd + 4 : received.size();
 		// TODO check if content-length is greater than client_body_size_max here and send error payload to large if so
 		this->_expectedBodySize = static_cast<size_t>(std::atol(this->_headers["Content-Length"].c_str()));
 		this->_expectedReadBytes += this->_expectedBodySize;
 		this->_hasBody = true;
-		// if (contentLength > 0)
-		// {
-		// 	this->_body.resize(contentLength);
-		// 	iss.read(&this->_body[0], contentLength);
-		// }
 	}
 }
 void	Request::generateBodyPath()
@@ -310,22 +318,40 @@ void	Request::generateBodyPath()
 	ss << "/tmp/tmp_file_" << time(NULL) << ".tmp";
 	this->_bodyFilePath = ss.str();
 }
-//TODO should we return an error from this function?
-void	Request::buildBody(std::vector<char> const& readBuffer)
-{
-	if (this->_bodyFilePath.empty())
-		this->generateBodyPath();
 
-	this->_tmpBodyFile.open(this->_bodyFilePath.c_str());
+//TODO should we return an error from this function?
+void	Request::buildBody(char const *buffer, int bytes_read, size_t total_bytes_received)
+{
+
 	if (!this->_tmpBodyFile.is_open())
 	{
-		LOG_HIGH_WARNING_LINK("Failed to create temp file");
-		this->_valid = false;
-		return;
+		if (this->_bodyFilePath.empty())
+			this->generateBodyPath();
+
+		this->_tmpBodyFile.open(this->_bodyFilePath.c_str());
+		if (!this->_tmpBodyFile.is_open())
+		{
+			LOG_HIGH_WARNING_LINK("Failed to create temp file");
+			this->_valid = false;
+			return;
+		}
 	}
 
-	size_t bytesLeft = readBuffer.size() - this->_bodyPos;
-	this->_tmpBodyFile.write(&readBuffer[this->_bodyPos], bytesLeft);
+	size_t bodyChunck;
+	size_t start;
+	if (this->_bodyPos > 0)
+	{
+		bodyChunck = total_bytes_received - (this->_bodyPos);
+		start = bytes_read - bodyChunck;
+		this->_bodyPos = 0;
+	}
+	else
+	{
+		start = 0;
+		bodyChunck = bytes_read;
+	}
+
+	this->_tmpBodyFile.write(&buffer[start], bodyChunck);
 	if (this->_tmpBodyFile.fail())
 	{
 		LOG_HIGH_WARNING("Failed to write to temp file: " + _bodyFilePath);
@@ -334,16 +360,14 @@ void	Request::buildBody(std::vector<char> const& readBuffer)
 		std::remove(_bodyFilePath.c_str());
 		return;
 	}
-	this->_bodyPos += bytesLeft;
-
-	this->_tmpBodyFile.close();
+	this->_tmpBodyFileSize += bodyChunck;
 }
 
-int	Request::parseInput(std::vector<char> const& readBuffer)
+int	Request::parseInput(char const *buffer, int bytes_read, size_t total_bytes_received)
 {
 
 	//TODO safe check for a max request size before continuing reading. otherwise we could end reading an innecesarely ammount of data before checking with the headers
-	// if (readBuffer.size() > MAX_REQUEST_SIZE)
+	// if (total_bytes_received > MAX_REQUEST_SIZE) -> not MAX_BODY_SIZE!! request = request line + headers + body
 	// {
 	// 	stop reading and send an error message
 	//	return -1;
@@ -358,11 +382,11 @@ int	Request::parseInput(std::vector<char> const& readBuffer)
 
 	if (!this->_headersReceived)
 	{
-		std::string received(readBuffer.begin(), readBuffer.end());
-		if (received.find("\r\n\r\n") != std::string::npos)
+		this->_received.append(buffer);
+		if (this->_received.find("\r\n\r\n") != std::string::npos)
 		{
 			this->_headersReceived = true;
-			this->buildHeaders(received);
+			this->buildHeaders(this->_received);
 			if (this->_expectedBodySize == 0)
 			{
 				this->_requestCompleted = true;
@@ -373,10 +397,22 @@ int	Request::parseInput(std::vector<char> const& readBuffer)
 
 	if (this->_headersReceived)
 	{
-		if (readBuffer.size() <= static_cast<size_t>(this->_expectedReadBytes))
-			this->buildBody(readBuffer);
-		if (readBuffer.size() == static_cast<size_t>(this->_expectedReadBytes))
+
+		this->buildBody(buffer, bytes_read, total_bytes_received);
+		if (this->_tmpBodyFileSize >= this->_expectedBodySize)
+		{
+			this->_tmpBodyFile.flush();
+			if (this->_tmpBodyFile.fail())
+			{
+				LOG_HIGH_WARNING("Flush failed, data may be lost");
+				this->_valid = false;
+				this->_tmpBodyFile.close();
+				std::remove(this->_bodyFilePath.c_str());
+				return -1;
+			}
+			this->_tmpBodyFile.close();
 			this->_requestCompleted = true;
+		}
 	}
 
 	return 0;

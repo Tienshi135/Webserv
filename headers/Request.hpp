@@ -15,6 +15,7 @@ class Request {
         size_t                              _bodySize;
         size_t                              _bodyPos;
         std::ofstream                       _tmpBodyFile;
+        size_t                              _tmpBodyFileSize;
         std::string                         _bodyFilePath;
         bool                                _hasBody;
         ssize_t                             _expectedReadBytes;
@@ -33,6 +34,7 @@ class Request {
         std::string     getUri() const;
         std::string     getHeader(const std::string &key) const;
         std::string     getBody() const;
+        std::string     getBodyFilePath() const;
         size_t          getBodySize() const;
         ssize_t         getExpectedReadBytes() const;
         bool            getRequestCompleted() const;
@@ -47,8 +49,8 @@ class Request {
 
         void            generateBodyPath();
         void            buildHeaders(std::string received);
-        void            buildBody(std::vector<char> const& readBuffer);
-        int             parseInput(std::vector<char> const& readBuffer);
+        void            buildBody(char const *buffer, int bytes_read, size_t total_bytes_received);
+        int             parseInput(char const *buffer, int bytes_read, size_t total_bytes_received);
         bool	        fillFirstLine(std::vector<std::string>& firstLine);
         bool            validateRequest();
         bool            isValid() const;

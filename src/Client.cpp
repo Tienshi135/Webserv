@@ -3,7 +3,7 @@
 
 /*============================= Constructors and destructor =====================================*/
 Client::Client(std::map<int, ServerCfg>::iterator const& fd_and_cfg)
-: _client_fd(-1), _bytes_expected(-1), _bytes_read(0), _request(), _config(fd_and_cfg->second)
+: _client_fd(-1), _bytes_expected(-1), _bytes_read(0), _total_bytes_Received(0), _request(), _config(fd_and_cfg->second)
 {
 	this->_read_buffer.reserve(1024);
 
@@ -75,35 +75,39 @@ void	Client::addToBuffer(const char* data, int size)
 
 int	Client::readBuffer()
 {
-	int ret = 0;
-	while (!this->isCompleteRequest())
+	char buffer[1024];//TODO find a bigger reading size, low buffer increases loops exponentialy on larger files so is less efficient
+	this->_bytes_read = recv(this->_client_fd, buffer, sizeof(buffer), 0);
+	if (this->_bytes_read == 0)
 	{
-		char buffer[1024];//TODO find a bigger reading size, low buffer increases loops exponentialy on larger files so is less efficient
-		this->_bytes_read = recv(this->_client_fd, buffer, sizeof(buffer), 0);
-		if (this->_bytes_read == 0)
+		LOG_INFO("recv read 0 bytes");
+		//TODO client is disconected, handle this?
+		// LOG_INFO("Client disconnected : " + numToString(this->_client_fd));
+		// close(this->_client_fd);
+		// this->_client_fd = -1;
+	}
+	else if (this->_bytes_read < 0)
+	{
+		//TODO handle read error
+		//if body is expected but body size is not equal expected size launch error?
+		LOG_HIGH_WARNING_LINK("recv returned error unexpectedly: [" +
+			(errno != 0? std::string(strerror(errno)) : "nothing to read") + "]");
+		this->_request.setRequestCompleted(true);
+		return -1;
+	}
+	else
+	{
+		int ret = 0;
+		this->setTotalBytesReceived(this->getTotalBytesReceived() + this->_bytes_read);
+		ret = this->_request.parseInput(buffer, this->_bytes_read, this->_total_bytes_Received);
+		if (this->_total_bytes_Received >= static_cast<size_t>(this->_request.getExpectedReadBytes()))
 		{
-			//TODO client is disconected, handle this?
-			// LOG_INFO("Client disconnected : " + numToString(this->_client_fd));
-			// close(this->_client_fd);
-			// this->_client_fd = -1;
-		}
-		else if (this->_bytes_read < 0)
-		{
-			//TODO handle read error
-			//if body is expected but body size is not equal expected size launch error?
 			this->_request.setRequestCompleted(true);
-			ret = -1;
-			break;
-		}
-		else
-		{
-			this->addToBuffer(buffer, this->_bytes_read);//TODO a bit inneficient, maybe we have to rethink this logic
-			ret =  this->_request.parseInput(this->_read_buffer);
-			if (ret < 0)
-				break;
+			//TODO request is set to completed but the body may not be full, need to verify later;
+			return ret;
 		}
 	}
-	return ret;
+
+	return (0);
 }
 
 void	Client::sendResponse(void)

@@ -30,8 +30,9 @@ private:
 	void	printContentTypeElements();
 	void	makeUnicIde(std::string& fileName, std::string const& type);
 	bool	setOrCreatePath(std::string const& path);
+	std::string saveFilePath();
 
-	void	buildFromMultipart();
+	bool	buildFromMultipart();
 
 public:
 	ResponsePost(ServerCfg const& cfg, Request const& req);

@@ -199,7 +199,7 @@ int main(int argc, char **argv)
                 if (new_client->getClientFd() < 0)
                 {
                     delete new_client;
-                    sfd_it++; //should i increment?
+                    // sfd_it++; //should i increment?
                     continue;
                 }
                 cfd[sfd_it->first].push_back(new_client);
@@ -208,7 +208,6 @@ int main(int argc, char **argv)
             for (int i = cfd[sfd_it->first].size() - 1; i >= 0; i--)
             {
                 Client &client = *cfd[sfd_it->first][i];
-
                 if (FD_ISSET(client.getClientFd(), &read_fd))
                 {
                     if (client.readBuffer() < 0)
@@ -216,10 +215,15 @@ int main(int argc, char **argv)
                         //TODO manage reading errors. delete client?
                         delete (cfd[sfd_it->first][i]);
                         cfd[sfd_it->first].erase(cfd[sfd_it->first].begin() + i);
-                        break;//break?
+                        // break;//break?
+                        continue;
                     }
+                    if (!client.isCompleteRequest())
+                        continue;
+
                     client.getRequest().printRequest();
-                    client.getRequest().expectedReadBytes(client.getBytesRead());
+	                client.getRequest().expectedReadBytes(client.getTotalBytesReceived());
+
                     client.sendResponse();
                     client.closeConnection();
                     delete (cfd[sfd_it->first][i]);
