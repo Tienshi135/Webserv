@@ -28,7 +28,12 @@ void	ResponseDelete::buildResponse(void)
 	if (!location)
 		deletePath = normalizePath(this->_cfg.getRoot(), this->_req.getUri());
 	else
-		deletePath = normalizePath(location->getRoot(), this->_req.getUri());
+	{
+		LOG_INFO("location path: " + location->getLocationPath());
+		LOG_INFO("uri: " + this->_req.getUri());
+		std::string uriPath = this->_req.getUri().substr(location->getLocationPath().size());
+		deletePath = normalizePath(location->getRoot(), uriPath);
+	}
 
 	if (this->validateFilePath(deletePath) < 0)
 		return;

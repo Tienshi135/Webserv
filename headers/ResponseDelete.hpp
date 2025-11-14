@@ -4,13 +4,12 @@
 
 class ResponseDelete : public Response
 {
-private:
+	private:
 
+	public:
+		ResponseDelete(ServerCfg const& cfg, Request const& req);
+		virtual ~ResponseDelete();
 
-public:
-	ResponseDelete(ServerCfg const& cfg, Request const& req);
-	virtual ~ResponseDelete();
-
-	virtual void	buildResponse();
+		virtual void	buildResponse();
 };
 

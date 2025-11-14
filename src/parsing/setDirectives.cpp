@@ -63,10 +63,12 @@ void	setDirective(ServerCfg& server, e_configtype& directive, std::vector<std::s
 
 void	setLocationDirective(ServerCfg& server, e_configtype& directive, std::vector<std::string>& value, std::string& locationPath)
 {
-	std::map<std::string, Location> currentMap = server.getLocationMap();
+	std::map<std::string, Location>& currentMap = server.getLocationMapRef();
 
 	Location& tempLocation = currentMap[locationPath];
 
+	if (tempLocation.getLocationPath().empty())
+		tempLocation.setLocationPath(locationPath);
 	switch (directive)
 	{
 		case(CGIPASS) :
@@ -105,5 +107,4 @@ void	setLocationDirective(ServerCfg& server, e_configtype& directive, std::vecto
 			throw ERR_PARS("Directive not allowed in location block");
 			break;
 	}
-	server.setLocationMap(currentMap);
 }

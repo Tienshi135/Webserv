@@ -73,8 +73,9 @@ class Location : public Configuration
 	private:
 
 
-		ReturnDirective	_return;
+		std::string		_path;
 		std::string		_cgiPass;
+		ReturnDirective	_return;
 
 		int	parseReturnCode(std::string const& strCode);
 
@@ -84,8 +85,10 @@ class Location : public Configuration
 		Location &operator=(const Location &copy);
 		virtual ~Location();
 
-		void	setCgiPass(std::vector<std::string> const& value);
-		void	setReturn(std::vector<std::string>& return_val);
+		void		setLocationPath(std::string const& path);
+		std::string getLocationPath() const;
+		void		setCgiPass(std::vector<std::string> const& value);
+		void		setReturn(std::vector<std::string>& return_val);
 
 		ReturnDirective	getReturn() const;
 
@@ -115,6 +118,7 @@ class ServerCfg : public Configuration
 		unsigned int						getBodySize() const;
 		std::map<std::string, Location>		getLocationMap() const;
 		std::map<std::string, Location>		getLocationMap();
+		std::map<std::string, Location>&	getLocationMapRef();
 		Location const*						getSpecificLocation(std::string const& location) const;
 		Location const*						findMatchingLocation(std::string const& location) const;
 

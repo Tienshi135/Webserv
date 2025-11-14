@@ -357,44 +357,27 @@ void	ResponsePost::buildResponse(void)
 	}
 	//TODO handle first if POST demands CGI. if yes, launch the binary, if not, store body as a file.
 
-	if (this->_contentType == MULTIPART)
+	switch (this->_contentType)
 	{
+	case TEXT:
+		LOG_WARNING_LINK("Content type [text/plain] not supported yet");
+		this->responseIsErrorPage(500);
+		return;
+	case MULTIPART:
 		if (!this->buildFromMultipart())
 			this->responseIsErrorPage(500);
 		return;
-	}
-	else
-	{
+	case JSON:
+		LOG_WARNING_LINK("Content type [application/json] not supported yet");
+		this->responseIsErrorPage(500);
+		return;
+	case URLENCODED:
+		LOG_WARNING_LINK("Content type [application/x-www-form-urlencoded] not supported yet");
+		this->responseIsErrorPage(500);
+		return;
+	default:
 		LOG_WARNING_LINK("Content type not supported");
 		this->responseIsErrorPage(500);
 		return;
 	}
-
-	// std::string savePath = this->saveFilePath();
-
-	// std::ofstream file(savePath.c_str(), std::ios::binary);
-	// if (!file.is_open()) {
-	// 	responseIsErrorPage(500);
-	// 	return;
-	// }
-
-	// file.write(this->_saveFile.data(), this->_saveFile.size());
-	// file.close();
-	// if (file.fail())
-	// {
-	// 	LOG_HIGH_WARNING_LINK("Failed to write file: [" + savePath + "]");
-	// 	this->responseIsErrorPage(500);
-	// 	return;
-	// }
-
-// 	std::string resourceUri = this->_req.getUri();
-// 	if (!resourceUri.empty() && resourceUri[resourceUri.size() - 1] != '/')
-// 		resourceUri += "/";
-// 	resourceUri += this->_fileName;
-
-// 	this->addHeader("Location", resourceUri);
-// 	this->_bodyIsFile = false;
-// 	this->setStatus(201);
-// 	this->setBody("<html><body><h1>201 Created</h1></body></html>", "text/html");//TODO  this is a placeholder, delete this when implemented a response page for upload
-
 }

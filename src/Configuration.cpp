@@ -232,6 +232,11 @@ std::map<std::string, Location> ServerCfg::getLocationMap()
 	return (this->_location_map);
 }
 
+std::map<std::string, Location>& ServerCfg::getLocationMapRef()
+{
+	return (this->_location_map);
+}
+
 Location const*	ServerCfg::getSpecificLocation(std::string const& location) const
 {
 	std::map<std::string, Location>::const_iterator it;
@@ -256,9 +261,11 @@ Location const* ServerCfg::findMatchingLocation(std::string const& location) con
 
 		if (location.compare(0, locationLen, locationPath) == 0)
 		{
-			if (location.size() == locationLen ||
-				location[locationLen] == '/' ||
-				locationPath[locationLen - 1] == '/')
+			bool isExactMatch = (location.size() == locationLen);
+			bool hasSlashAfter = (location.size() > locationLen && location[locationLen] == '/');
+			bool endsWithSlash = (locationPath[locationLen - 1] == '/');
+
+			if (isExactMatch || hasSlashAfter || endsWithSlash)
 			{
 				if (locationLen > longestMatch)
 				{
@@ -372,9 +379,13 @@ bool	ServerCfg::minValidCfg(void) const
 
 /*============== Constructor and destructors ================*/
 
-Location::Location() : Configuration() {}
+Location::Location() : Configuration(), _path(""), _cgiPass("") {}
 
-Location::Location(const Location &copy) : Configuration(copy){}
+Location::Location(const Location &copy)
+: Configuration(copy),
+_path(copy._path),
+_cgiPass(copy._cgiPass),
+_return(copy._return){}
 
 Location::~Location(){}
 
@@ -386,6 +397,9 @@ Location &Location::operator=(const Location &copy)
 	if (this != &copy)
 	{
 		Configuration::operator=(copy);
+		this->_path = copy._path;
+		this->_cgiPass = copy._cgiPass;
+		this->_return = copy._return;
 	}
 	return (*this);
 }
@@ -393,10 +407,15 @@ Location &Location::operator=(const Location &copy)
 
 /*============== setters and getters ================*/
 
-// void	Location::setLocationPath(std::string const& locationPath)
-// {
-// 	this->_locationPath = locationPath;
-// }
+void	Location::setLocationPath(std::string const& Path)
+{
+	this->_path = Path;
+}
+
+std::string Location::getLocationPath() const
+{
+	return this->_path;
+}
 
 void	Location::setCgiPass(std::vector<std::string> const& value)
 {

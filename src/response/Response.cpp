@@ -238,13 +238,13 @@ off_t	Response::validateFilePath(std::string const& path)
 	if (access(path.c_str(), F_OK) < 0)
 	{
 		this->responseIsErrorPage(404);
-		LOG_INFO_LINK("File not found, sending error page 404");
+		LOG_INFO_LINK("File [" + path + "] not found, sending error page 404");
 		return -1;
 	}
 	if (access(path.c_str(), R_OK) < 0)
 	{
 		this->responseIsErrorPage(403);
-		LOG_INFO_LINK("Can't read file, forbidden, sending error page 403");
+		LOG_INFO_LINK("Can't read file [" + path + "], forbidden, sending error page 403");
 		return -1;
 	}
 	// Get file stats (size, type, etc.)
@@ -252,7 +252,7 @@ off_t	Response::validateFilePath(std::string const& path)
 	if (stat(path.c_str(), &fileStat) != 0)
 	{
 		this->responseIsErrorPage(500);
-		LOG_INFO_LINK("Failed to get file stats, sending error page 500");
+		LOG_INFO_LINK("Failed to get file [" + path + "] stats, sending error page 500");
 		return -1;
 	}
 
@@ -260,7 +260,7 @@ off_t	Response::validateFilePath(std::string const& path)
 	if (!S_ISREG(fileStat.st_mode))
 	{
 		this->responseIsErrorPage(403);
-		LOG_INFO_LINK("Path is not a regular file, sending error page 403");
+		LOG_INFO_LINK("Path [" + path + "] is not a regular file, sending error page 403");
 		return -1;
 	}
 	return fileStat.st_size;

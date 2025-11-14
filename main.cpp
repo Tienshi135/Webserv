@@ -74,6 +74,7 @@ void printVector(const std::vector<ServerCfg> &buffer)
             for (loc_it = locations.begin(); loc_it != locations.end(); ++loc_it)
             {
                 std::cout << "    Location: " << loc_it->first << std::endl;
+                std::cout << "        Path: " << loc_it->second.getLocationPath() << std::endl;
                 if (!loc_it->second.getMethods().empty())
                 {
                     std::vector<std::string> methods = loc_it->second.getMethods();
