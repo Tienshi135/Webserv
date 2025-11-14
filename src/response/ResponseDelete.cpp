@@ -16,7 +16,7 @@ ResponseDelete::~ResponseDelete() {}
 
 void	ResponseDelete::buildResponse(void)
 {
-	if (this->_req.getBodySize() > this->_cfg.getMaxBodySize())
+	if (this->_req.getTmpBodySize() > this->_cfg.getMaxBodySize())//this is ok but it should be checked before downloading all the body
 	{
 		this->responseIsErrorPage(413);
 		return;
@@ -24,13 +24,11 @@ void	ResponseDelete::buildResponse(void)
 
 	std::string deletePath;
 
-	Location const* location = this->_cfg.findMatchingLocation(this->_req.getUri());
+	Location const* location = this->_cfg.getBestMatchLocation(this->_req.getUri());
 	if (!location)
 		deletePath = normalizePath(this->_cfg.getRoot(), this->_req.getUri());
 	else
 	{
-		LOG_INFO("location path: " + location->getLocationPath());
-		LOG_INFO("uri: " + this->_req.getUri());
 		std::string uriPath = this->_req.getUri().substr(location->getLocationPath().size());
 		deletePath = normalizePath(location->getRoot(), uriPath);
 	}

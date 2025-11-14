@@ -146,7 +146,6 @@ bool	ResponsePost::setOrCreatePath(std::string const& path)
 {
 	if (pathIsDirectory(path))
 		return true;
-	this->printContentTypeElements();
 
 	if (pathIsExecutable(path))
 	{
@@ -312,7 +311,7 @@ std::string	ResponsePost::saveFilePath(void)
 {
 	std::string savePath;
 
-	Location const* location = this->_cfg.findMatchingLocation(this->_req.getUri());
+	Location const* location = this->_cfg.getBestMatchLocation(this->_req.getUri());
 	if (!location)
 	{
 		savePath = normalizePath(this->_cfg.getRoot(), "/tmp");
@@ -323,7 +322,10 @@ std::string	ResponsePost::saveFilePath(void)
 	{
 		savePath = location->getStore();
 		if (savePath.empty())
-			savePath = normalizePath(this->_cfg.getRoot(), location->getRoot());
+		{
+			std::string uriPath = this->_req.getUri().substr(location->getLocationPath().size());
+			savePath = normalizePath(location->getRoot(), uriPath);
+		}
 		if (!this->setOrCreatePath(savePath))
 			return "";
 	}
@@ -350,8 +352,10 @@ std::string	ResponsePost::saveFilePath(void)
 
 void	ResponsePost::buildResponse(void)
 {
-	if (this->_req.getBodySize() > this->_cfg.getMaxBodySize())
+	if (this->_req.getTmpBodySize() > this->_cfg.getMaxBodySize())
 	{
+		LOG_WARNING_LINK("tmp file size [" + numToString(this->_req.getTmpBodySize()) +
+			 "] than Max body size [" + numToString(static_cast<size_t>(this->_cfg.getMaxBodySize())) + "]");
 		this->responseIsErrorPage(413);
 		return;
 	}

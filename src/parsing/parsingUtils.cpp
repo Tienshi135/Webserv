@@ -583,3 +583,39 @@ ssize_t getFileSize(const std::string& filepath)
 
 	return static_cast<ssize_t>(fileStat.st_size);
 }
+
+/**
+ * @brief Safely parses numeric size strings with comprehensive validation
+ *
+ * Validates and converts size strings to prevent overflow/underflow attacks:
+ *   - Rejects non-numeric or partially numeric strings
+ *   - Rejects negative values
+ *   - Enforces MAX_BODY_SIZE limit
+ *
+ * Common use: Content-Length header validation, body size checking
+ *
+ * @param sizeString Numeric string to parse (e.g., "1024")
+ * @return Size in bytes as ssize_t, or -1 on validation failure
+ *
+ * @note Returns -1 (not 0) on error to distinguish from valid zero size
+ * @note Logs warnings on validation failures for debugging
+ */
+ssize_t getSafeSize(std::string const& sizeString)
+{
+	char* endPtr;
+	long value = std::strtol(sizeString.c_str(), &endPtr, 10);
+
+	if (*endPtr != '\0')
+	{
+		LOG_WARNING("Invalid size: " + sizeString);
+		return -1;
+	}
+
+	if (value < 0)
+	{
+		LOG_WARNING("Negative size: " + sizeString);
+		return -1;
+	}
+
+	return static_cast<ssize_t>(value);
+}

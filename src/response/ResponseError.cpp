@@ -4,8 +4,8 @@
 
 /*============== constructor and destructor =============*/
 
-ResponseError::ResponseError(ServerCfg const& cfg, Request const& req)
-: Response(cfg, req) {}
+ResponseError::ResponseError(ServerCfg const& cfg, Request const& req, int errorCode)
+: Response(cfg, req), _errorCode(errorCode) {}
 
 ResponseError::~ResponseError() {}
 
@@ -13,6 +13,6 @@ ResponseError::~ResponseError() {}
 
 void	ResponseError::buildResponse(void)
 {
-	this->responseIsErrorPage(405);
+	this->responseIsErrorPage(this->_errorCode);
 }
 

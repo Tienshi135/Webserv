@@ -42,7 +42,7 @@ Client::Client(const Client &copy)
   _read_buffer(copy._read_buffer),
   _bytes_expected(copy._bytes_expected),
   _bytes_read(copy._bytes_read),
-  _request(copy._request),
+//   _request(copy._request),
   _config(copy._config) {}
 
 Client &Client::operator=(const Client &copy)
@@ -168,14 +168,21 @@ int	Client::readBuffer()
 	{
 		if (this->_total_bytes_Received == 0)
 			gettimeofday(&this->_request_start_time, NULL);
+
 		int ret = 0;
 		this->setTotalBytesReceived(this->getTotalBytesReceived() + this->_bytes_read);
 		ret = this->_request.parseInput(buffer, this->_bytes_read, this->_total_bytes_Received);
+		if (ret < 0)
+		{
+			LOG_WARNING("Request parsing failed");
+			this->_request.setRequestCompleted(true);
+			return ret;
+		}
+
 		if (this->_total_bytes_Received >= static_cast<size_t>(this->_request.getExpectedReadBytes()))
 		{
 			gettimeofday(&this->_request_end_time, NULL);
 			this->_request.setRequestCompleted(true);
-			//TODO request is set to completed but the body may not be full, need to verify later;
 			return ret;
 		}
 	}

@@ -9,6 +9,14 @@
 
 Response*	ResponseFactory::createResponse(ServerCfg const& cfg, Request const& req)
 {
+	if (!req.isValid())
+	{
+		LOG_WARNING("Invalid request received, returning 400 Bad Request");
+		return new ResponseError(cfg, req, 400);
+	}
+
+	//TODO add a check for location allowed method here. Is already checked in the clases but is too late there and duplicates code.
+
 	if (req.getMethod() == "GET")
 		return new ResponseGet(cfg, req);
 	if (req.getMethod() == "POST")
@@ -17,5 +25,5 @@ Response*	ResponseFactory::createResponse(ServerCfg const& cfg, Request const& r
 		return new ResponseDelete(cfg, req);
 
 	LOG_WARNING_LINK("Requested method: [" + req.getMethod() + "] not recognized, sendind error page 405");
-	return new ResponseError(cfg, req);
+	return new ResponseError(cfg, req, 405);
 }

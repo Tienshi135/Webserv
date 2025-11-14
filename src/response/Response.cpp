@@ -315,7 +315,7 @@ std::string	Response::normalizePath(std::string const& root, std::string const& 
 
 bool	Response::isAllowedMethod(std::string const& method)
 {
-	Location const* location = this->_cfg.findMatchingLocation(this->_req.getUri());
+	Location const* location = this->_cfg.getBestMatchLocation(this->_req.getUri());
 	std::vector<std::string> allowed;
 	if (location)
 		allowed = location->getMethods();

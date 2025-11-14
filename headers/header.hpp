@@ -80,6 +80,7 @@ std::string					strToLower(std::string const& string);
 e_configtype				findType(std::string directive);
 unsigned int 				parseSize(const std::string &value);
 ssize_t						getFileSize(const std::string& filepath);
+ssize_t						getSafeSize(std::string const& sizeString);
 void						setDefaults(ServerCfg& server);
 void						trimQuotes(std::string& quoted);
 

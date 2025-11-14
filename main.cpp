@@ -213,17 +213,17 @@ int main(int argc, char **argv)
                 {
                     if (client.readBuffer() < 0)
                     {
-                        //TODO manage reading errors. delete client?
-                        delete (cfd[sfd_it->first][i]);
-                        cfd[sfd_it->first].erase(cfd[sfd_it->first].begin() + i);
-                        // break;//break?
-                        continue;
+                        //TODO manage reading errors. delete client? maybe just continue and send proper error page
+                        // delete (cfd[sfd_it->first][i]);
+                        // cfd[sfd_it->first].erase(cfd[sfd_it->first].begin() + i);
+                        // // break;//break?
+                        // continue;
                     }
                     if (!client.isCompleteRequest())
                         continue;
 
                     client.getRequest().printRequest();
-	                client.getRequest().expectedReadBytes(client.getTotalBytesReceived());
+	                client.getRequest().printRecepAnalisis(client.getTotalBytesReceived());
 
                     client.sendResponse();
                     client.closeConnection();
