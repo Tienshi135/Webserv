@@ -148,7 +148,6 @@ int	Client::readBuffer()
 	this->_bytes_read = recv(this->_client_fd, buffer, sizeof(buffer), 0);
 	if (this->_bytes_read == 0)
 	{
-		LOG_INFO("recv read 0 bytes");
 		//TODO client is disconected, handle this?
 		// LOG_INFO("Client disconnected : " + numToString(this->_client_fd));
 		// close(this->_client_fd);

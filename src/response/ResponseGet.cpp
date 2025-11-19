@@ -17,23 +17,27 @@ void	ResponseGet::buildResponse(void)
 	std::string	reqPath = this->_req.getUri();
 	std::string path;
 
-	if (!this->isSecurePath(reqPath))
+	if (!this->_isSecurePath(reqPath))
 	{
-		this->responseIsErrorPage(403);
+		this->_responseIsErrorPage(403);
 		LOG_HIGH_WARNING("Directory traversal attack detected: [" + reqPath + "] sending 403 no permission");
 		return ;
 	}
 
+	//TODO check location for path first
+
+
 	if (reqPath == "/")
 	{
 		LOG_INFO_LINK("No specific path requested, trying to send index.html");
-		path = this->normalizePath( this->_cfg.getRoot(), this->_cfg.getIndex());
+		path = this->_normalizePath( this->_cfg.getRoot(), this->_cfg.getIndex());
 	}
 	else
-		path =  this->normalizePath(this->_cfg.getRoot(), this->_req.getUri());
+		path =  this->_normalizePath(this->_cfg.getRoot(), this->_req.getUri());
+
 
 	//set the file requested as body if exits, error page if not, fill first line and headers accordingly
-	this->sendFileAsBody(path);//TODO BUG if it sends a custom error page, it won't work because all errors sets bodyIsFile to false;
+	this->_sendFileAsBody(path);//TODO BUG if it sends a custom error page, it won't work because all errors sets bodyIsFile to false;
 
 }
 

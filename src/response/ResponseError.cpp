@@ -13,6 +13,6 @@ ResponseError::~ResponseError() {}
 
 void	ResponseError::buildResponse(void)
 {
-	this->responseIsErrorPage(this->_errorCode);
+	this->_responseIsErrorPage(this->_errorCode);
 }
 

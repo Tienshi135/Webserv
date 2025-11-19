@@ -1,14 +1,5 @@
 #pragma once
 
-// #include <iostream>
-// #include <fstream>
-// #include <string>
-// #include <sstream>
-// #include <stdexcept>
-// #include <unistd.h>
-// #include <sys/stat.h>
-// #include <fstream>
-// #include <cctype>
 #include "header.hpp"
 
 class Response
@@ -16,32 +7,35 @@ class Response
 	protected:
 		ServerCfg const&	_cfg;
 		Request const&		_req;
-		std::string	const	_version;
 
-		int									_statusCode;
-		std::string							_statusMsg;
+	//response line
+		std::string	const	_version;
+		int					_statusCode;
+		std::string			_statusMsg;
+
+	//headers and body
 		std::map<std::string, std::string>	_headers;
 		std::string							_body;
 
 		bool			_bodyIsFile;
 		std::string		_bodyFilePath;
 
-		std::string		getReasonPhrase(int errCode) const;
-		std::string		getContentType(std::string const& path) const;
+	//private functions
+		std::string		_getReasonPhrase(int errCode) const;
+		std::string		_getContentType(std::string const& path) const;
 
-		void	setStatus(int code);
-		void	setBody(std::string const& bodyContent, std::string const& contentType);
-		void	addHeader(std::string const& key, std::string const& value);
-		void	sendFileAsBody(std::string const& path);
-		bool	sendCustomErrorPage(int errCode);
+	//setting atributes
+		void	_setStatus(int code);
+		void	_setBody(std::string const& bodyContent, std::string const& contentType);
+		void	_addHeader(std::string const& key, std::string const& value);
+		void	_sendFileAsBody(std::string const& path);
+		bool	_sendCustomErrorPage(int errCode);
 
-		bool		isAllowedMethod(std::string const& method);
-		bool		isSecurePath(std::string const& path);
-		std::string	normalizePath(std::string const& root, std::string const& uri);
-		// std::string resolvePathSafely(std::string const& uri, std::string const& root);
-		// bool		isPathInsideRoot(std::string const& resolved, std::string const& root);
-		void		responseIsErrorPage(int errCode);
-		off_t		validateFilePath(std::string const& path);
+	//tools
+		bool		_isSecurePath(std::string const& path);
+		std::string	_normalizePath(std::string const& root, std::string const& uri);
+		void		_responseIsErrorPage(int errCode);
+		off_t		_validateFilePath(std::string const& path);
 
 	private:
 		Response(const Response &copy);

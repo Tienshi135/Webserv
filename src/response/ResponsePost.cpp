@@ -150,13 +150,13 @@ bool	ResponsePost::setOrCreatePath(std::string const& path)
 	if (pathIsExecutable(path))
 	{
 		LOG_HIGH_WARNING_LINK("Path exists but is an executable, not a directory: [" + path + "]");
-		this->responseIsErrorPage(500);
+		this->_responseIsErrorPage(500);
 		return false;
 	}
 	if (pathIsRegFile(path))
 	{
 		LOG_HIGH_WARNING_LINK("Path exists but is a file, not a directory: [" + path + "]");
-		this->responseIsErrorPage(500);
+		this->_responseIsErrorPage(500);
 		return false;
 	}
 
@@ -164,7 +164,7 @@ bool	ResponsePost::setOrCreatePath(std::string const& path)
 	if (mkdir(path.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) != 0)
 	{
 		LOG_HIGH_WARNING_LINK("Failed to create direcory: [" + path + "]");
-		this->responseIsErrorPage(500);
+		this->_responseIsErrorPage(500);
 		return false;
 	}
 
@@ -299,10 +299,10 @@ bool	ResponsePost::buildFromMultipart(void)
 		resourceUri += "/";
 	resourceUri += this->_fileName;
 
-	this->addHeader("Location", resourceUri);
+	this->_addHeader("Location", resourceUri);
 	this->_bodyIsFile = false;
-	this->setStatus(201);
-	this->setBody("<html><body><h1>201 Created</h1></body></html>", "text/html");//TODO  this is a placeholder, delete this when implemented a response page for upload
+	this->_setStatus(201);
+	this->_setBody("<html><body><h1>201 Created</h1></body></html>", "text/html");//TODO  this is a placeholder, delete this when implemented a response page for upload
 
 	return true;
 }
@@ -314,7 +314,7 @@ std::string	ResponsePost::saveFilePath(void)
 	Location const* location = this->_cfg.getBestMatchLocation(this->_req.getUri());
 	if (!location)
 	{
-		savePath = normalizePath(this->_cfg.getRoot(), "/tmp");
+		savePath = _normalizePath(this->_cfg.getRoot(), "/tmp");
 		if (!this->setOrCreatePath(savePath))
 			return "";
 	}
@@ -324,24 +324,18 @@ std::string	ResponsePost::saveFilePath(void)
 		if (savePath.empty())
 		{
 			std::string uriPath = this->_req.getUri().substr(location->getLocationPath().size());
-			savePath = normalizePath(location->getRoot(), uriPath);
+			savePath = _normalizePath(location->getRoot(), uriPath);
 		}
 		if (!this->setOrCreatePath(savePath))
 			return "";
 	}
-	if (!this->isAllowedMethod("POST"))
-	{
-		this->responseIsErrorPage(405);
-		LOG_WARNING_LINK("Method [POST] not allowed");
-		return "";
-	}
 
 	savePath += ("/" + this->_fileName);
 
-	if (!isSecurePath(savePath))
+	if (!_isSecurePath(savePath))
 	{
 		LOG_WARNING_LINK("Response POST build insecure path: [" + savePath + "]");
-		responseIsErrorPage(400);
+		_responseIsErrorPage(400);
 		return "";
 	}
 
@@ -356,7 +350,7 @@ void	ResponsePost::buildResponse(void)
 	{
 		LOG_WARNING_LINK("tmp file size [" + numToString(this->_req.getTmpBodySize()) +
 			 "] than Max body size [" + numToString(static_cast<size_t>(this->_cfg.getMaxBodySize())) + "]");
-		this->responseIsErrorPage(413);
+		this->_responseIsErrorPage(413);
 		return;
 	}
 	//TODO handle first if POST demands CGI. if yes, launch the binary, if not, store body as a file.
@@ -365,23 +359,23 @@ void	ResponsePost::buildResponse(void)
 	{
 	case TEXT:
 		LOG_WARNING_LINK("Content type [text/plain] not supported yet");
-		this->responseIsErrorPage(500);
+		this->_responseIsErrorPage(500);
 		return;
 	case MULTIPART:
 		if (!this->buildFromMultipart())
-			this->responseIsErrorPage(500);
+			this->_responseIsErrorPage(500);
 		return;
 	case JSON:
 		LOG_WARNING_LINK("Content type [application/json] not supported yet");
-		this->responseIsErrorPage(500);
+		this->_responseIsErrorPage(500);
 		return;
 	case URLENCODED:
 		LOG_WARNING_LINK("Content type [application/x-www-form-urlencoded] not supported yet");
-		this->responseIsErrorPage(500);
+		this->_responseIsErrorPage(500);
 		return;
 	default:
 		LOG_WARNING_LINK("Content type not supported");
-		this->responseIsErrorPage(500);
+		this->_responseIsErrorPage(500);
 		return;
 	}
 }

@@ -7,6 +7,20 @@
 #include "Request.hpp"
 #include "Configuration.hpp"
 
+bool	ResponseFactory::_isAllowedMethod(std::string const& method, ServerCfg const& cfg, Request const& req)
+{
+	Location const* location = cfg.getBestMatchLocation(req.getUri());
+	std::vector<std::string> allowed;
+	if (location)
+		allowed = location->getMethods();
+	else
+		allowed = cfg.getMethods();
+
+	if (std::find(allowed.begin(), allowed.end(), method) != allowed.end())
+		return true;
+	return false;
+}
+
 Response*	ResponseFactory::createResponse(ServerCfg const& cfg, Request const& req)
 {
 	if (!req.isValid())
@@ -15,15 +29,18 @@ Response*	ResponseFactory::createResponse(ServerCfg const& cfg, Request const& r
 		return new ResponseError(cfg, req, 400);
 	}
 
-	//TODO add a check for location allowed method here. Is already checked in the clases but is too late there and duplicates code.
+	std::string method = req.getMethod();
 
-	if (req.getMethod() == "GET")
+	if (!_isAllowedMethod(method, cfg, req))
+		return new ResponseError(cfg, req, 405);
+
+	if (method == "GET")
 		return new ResponseGet(cfg, req);
-	if (req.getMethod() == "POST")
+	if (method == "POST")
 		return new ResponsePost(cfg, req);
-	if (req.getMethod() == "DELETE")
+	if (method == "DELETE")
 		return new ResponseDelete(cfg, req);
 
-	LOG_WARNING_LINK("Requested method: [" + req.getMethod() + "] not recognized, sendind error page 405");
+	LOG_WARNING_LINK("Requested method: [" + method + "] not recognized, sendind error page 405");
 	return new ResponseError(cfg, req, 405);
 }

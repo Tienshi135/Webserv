@@ -18,7 +18,7 @@ void	ResponseDelete::buildResponse(void)
 {
 	if (this->_req.getTmpBodySize() > this->_cfg.getMaxBodySize())//this is ok but it should be checked before downloading all the body
 	{
-		this->responseIsErrorPage(413);
+		this->_responseIsErrorPage(413);
 		return;
 	}
 
@@ -26,40 +26,33 @@ void	ResponseDelete::buildResponse(void)
 
 	Location const* location = this->_cfg.getBestMatchLocation(this->_req.getUri());
 	if (!location)
-		deletePath = normalizePath(this->_cfg.getRoot(), this->_req.getUri());
+		deletePath = _normalizePath(this->_cfg.getRoot(), this->_req.getUri());
 	else
 	{
 		std::string uriPath = this->_req.getUri().substr(location->getLocationPath().size());
-		deletePath = normalizePath(location->getRoot(), uriPath);
+		deletePath = _normalizePath(location->getRoot(), uriPath);
 	}
 
-	if (this->validateFilePath(deletePath) < 0)
+	if (this->_validateFilePath(deletePath) < 0)
 		return;
 
-	if (!this->isAllowedMethod("DELETE"))
+	if (!this->_isSecurePath(deletePath))
 	{
-		this->responseIsErrorPage(405);
-		LOG_WARNING_LINK("Method [DELETE] not allowed");
-		return ;
-	}
-
-	if (!this->isSecurePath(deletePath))
-	{
-		this->responseIsErrorPage(403);
+		this->_responseIsErrorPage(403);
 		LOG_HIGH_WARNING("Directory traversal attack detected: [" + deletePath + "] sending 403 no permission");
 		return ;
 	}
 
 	if (std::remove(deletePath.c_str()) != 0)
 	{
-		this->responseIsErrorPage(500);
+		this->_responseIsErrorPage(500);
 		LOG_HIGH_WARNING("DELETE failed: remove() error [" + deletePath + "]");
 		return;
 	}
 
 	std::string httpMsg = "<html><body><h1>Deleted " + deletePath + "</h1></body></html>";
 	// this->addHeader("Location", resourceUri);
-	this->setStatus(200);
-	this->setBody(httpMsg, "text/html");//TODO  this is a placeholder, delete this when implemented a response page for upload
+	this->_setStatus(200);
+	this->_setBody(httpMsg, "text/html");//TODO  this is a placeholder, delete this when implemented a response page for upload
 	LOG_INFO("DELETE successful: [" + deletePath + "]");
 }
