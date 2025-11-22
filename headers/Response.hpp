@@ -2,6 +2,7 @@
 
 #include "header.hpp"
 
+/*Non instantiable class*/
 class Response
 {
 	protected:

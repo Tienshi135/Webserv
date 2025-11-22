@@ -24,16 +24,40 @@ void	ResponseGet::buildResponse(void)
 		return ;
 	}
 
-	//TODO check location for path first
+	Location const* location = this->_cfg.getBestMatchLocation(reqPath);
 
-
-	if (reqPath == "/")
+	if (!location)
 	{
-		LOG_INFO_LINK("No specific path requested, trying to send index.html");
-		path = this->_normalizePath( this->_cfg.getRoot(), this->_cfg.getIndex());
+		if (reqPath == "/")
+		{
+			LOG_INFO_LINK("No specific path requested, trying to send index.html");
+			path = this->_normalizePath( this->_cfg.getRoot(), this->_cfg.getIndex());
+		}
+		else
+			path =  this->_normalizePath(this->_cfg.getRoot(), reqPath);
 	}
 	else
-		path =  this->_normalizePath(this->_cfg.getRoot(), this->_req.getUri());
+	{
+		std::string locationPath = location->getLocationPath();
+		std::string relativePath = reqPath;
+
+		if (reqPath.compare(0, locationPath.size(), locationPath) == 0)
+		{
+			relativePath = reqPath.substr(locationPath.size());
+
+			if (relativePath.empty())
+				relativePath = "/";
+			else if (relativePath[0] != '/')
+				relativePath = "/" + relativePath;
+		}
+		if (relativePath == "/" || relativePath.empty())
+		{
+			LOG_INFO_LINK("No specific path requested, trying to send index.html from location: " + location->getLocationPath());
+			path = this->_normalizePath(location->getRoot(), location->getIndex());
+		}
+		else
+			path =  this->_normalizePath(location->getRoot(), reqPath);
+	}
 
 
 	//set the file requested as body if exits, error page if not, fill first line and headers accordingly
