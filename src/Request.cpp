@@ -15,7 +15,8 @@ _bodyPos(0),
 _expectedReadBytes(0),
 _headersReceived(false),
 _requestCompleted(false),
-_valid(false)
+_valid(false),
+_tooBig(false)
 {}
 
 Request::Request(const Request &copy)
@@ -32,7 +33,8 @@ _bodyPos(copy._bodyPos),
 _expectedReadBytes(copy._expectedReadBytes),
 _headersReceived(copy._headersReceived),
 _requestCompleted(copy._requestCompleted),
-_valid(copy._valid)
+_valid(copy._valid),
+_tooBig(copy._tooBig)
 {}
 
 
@@ -71,6 +73,7 @@ Request &Request::operator=(const Request &copy)
 		this->_headersReceived = copy._headersReceived;
 		this->_requestCompleted = copy._requestCompleted;
 		this->_valid = copy._valid;
+		this->_tooBig = copy._tooBig;
 	}
 	return (*this);
 }
@@ -91,15 +94,6 @@ std::string Request::getHeader(const std::string &key) const
 
 int	Request::parseInput(char const *buffer, int bytes_read, size_t total_bytes_received)
 {
-
-	//TODO safe check for a max request size before continuing reading. otherwise we could end reading an innecesarely ammount of data before checking with the headers
-	// if (total_bytes_received > MAX_REQUEST_SIZE) -> not MAX_BODY_SIZE!! request = request line + headers + body
-	// {
-	// 	stop reading and send an error message
-	//	return -1;
-	// }
-
-
 	if (this->_requestCompleted)
 	{
 		this->_valid = this->validateRequest();
@@ -152,7 +146,12 @@ int	Request::parseInput(char const *buffer, int bytes_read, size_t total_bytes_r
 
 bool Request::isValid() const
 {
-    return this->_valid;
+	return this->_valid;
+}
+
+bool Request::isTooBig() const
+{
+	return this->_tooBig;
 }
 
 bool	Request::validateRequest(void)

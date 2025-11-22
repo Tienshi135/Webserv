@@ -223,10 +223,16 @@ int main(int argc, char **argv)
                         continue;
 
                     client.getRequest().printRequest();
-	                client.getRequest().printRecepAnalisis(client.getTotalBytesReceived());
+                    client.getRequest().printRecepAnalisis(client.getTotalBytesReceived());
 
                     client.sendResponse();
-                    client.closeConnection();
+
+                    /*if we stopped the reading because payload to large and the socked still have data
+                        accept and select will try to read again from the same socket, so we need to properly close it before deleting
+                        the reference.
+                    */
+                   client.closeConnection();
+                   FD_CLR(client.getClientFd(), &read_fd);//TODO this should be made inside client.closeConnection.
                     delete (cfd[sfd_it->first][i]);
                     cfd[sfd_it->first].erase(cfd[sfd_it->first].begin() + i);
                 }

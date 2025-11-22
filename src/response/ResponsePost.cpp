@@ -346,13 +346,15 @@ std::string	ResponsePost::saveFilePath(void)
 
 void	ResponsePost::buildResponse(void)
 {
-	if (this->_req.getTmpBodySize() > this->_cfg.getMaxBodySize())
-	{
-		LOG_WARNING_LINK("tmp file size [" + numToString(this->_req.getTmpBodySize()) +
-			 "] than Max body size [" + numToString(static_cast<size_t>(this->_cfg.getMaxBodySize())) + "]");
-		this->_responseIsErrorPage(413);
-		return;
-	}
+	// if (this->_req.getTmpBodySize() > this->_cfg.getMaxBodySize())
+	// {
+	// 	LOG_WARNING_LINK("tmp file size [" + numToString(this->_req.getTmpBodySize()) +
+	// 		 "] than Max body size [" + numToString(static_cast<size_t>(this->_cfg.getMaxBodySize())) + "]");
+	// 	this->_responseIsErrorPage(413);
+	// 	return;
+	// }
+
+
 	//TODO handle first if POST demands CGI. if yes, launch the binary, if not, store body as a file.
 
 	switch (this->_contentType)

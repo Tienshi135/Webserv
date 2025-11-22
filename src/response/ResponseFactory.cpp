@@ -25,8 +25,14 @@ Response*	ResponseFactory::createResponse(ServerCfg const& cfg, Request const& r
 {
 	if (!req.isValid())
 	{
-		LOG_WARNING("Invalid request received, returning 400 Bad Request");
+		LOG_WARNING_LINK("Invalid request received, returning 400 Bad Request");
 		return new ResponseError(cfg, req, 400);
+	}
+
+	if (req.isTooBig())
+	{
+		LOG_WARNING_LINK("Request too big, sending 413 payload to large");
+		return new ResponseError(cfg, req, 413);
 	}
 
 	std::string method = req.getMethod();

@@ -24,6 +24,7 @@ class Request {
         bool    _headersReceived;
         bool    _requestCompleted;
         bool    _valid;
+        bool    _tooBig;
 
     //private member functions
         void    generateBodyPath();
@@ -56,10 +57,12 @@ class Request {
         void    setMethod(std::string const& method) { this->_method = method; };
         void    setUri(const std::string &path) { this->_uri = path; };
         void    setRequestCompleted(bool completed) { this->_requestCompleted = completed; };
+        void    setTooBig(bool tooBig) { this->_tooBig = tooBig; };
 
     //member functions
         int     parseInput(char const *buffer, int bytes_read, size_t total_bytes_received);
         bool    isValid() const;
+        bool    isTooBig() const;
         bool    validateRequest();
 
     //Data analisis tools

@@ -16,11 +16,11 @@ ResponseDelete::~ResponseDelete() {}
 
 void	ResponseDelete::buildResponse(void)
 {
-	if (this->_req.getTmpBodySize() > this->_cfg.getMaxBodySize())//this is ok but it should be checked before downloading all the body
-	{
-		this->_responseIsErrorPage(413);
-		return;
-	}
+	// if (this->_req.getTmpBodySize() > this->_cfg.getMaxBodySize())//this is ok but it should be checked before downloading all the body
+	// {
+	// 	this->_responseIsErrorPage(413);
+	// 	return;
+	// }
 
 	std::string deletePath;
 

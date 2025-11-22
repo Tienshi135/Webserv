@@ -5,8 +5,6 @@
 Client::Client(std::map<int, ServerCfg>::iterator const& fd_and_cfg)
 : _client_fd(-1), _bytes_expected(-1), _bytes_read(0), _total_bytes_Received(0), _request(), _config(fd_and_cfg->second)
 {
-	this->_read_buffer.reserve(1024);
-
 	int client_fd = accept(fd_and_cfg->first, NULL, NULL);
 	if (client_fd == -1)
 	{
@@ -39,7 +37,6 @@ Client::Client(std::map<int, ServerCfg>::iterator const& fd_and_cfg)
 
 Client::Client(const Client &copy)
 : _client_fd(copy._client_fd),
-  _read_buffer(copy._read_buffer),
   _bytes_expected(copy._bytes_expected),
   _bytes_read(copy._bytes_read),
 //   _request(copy._request),
@@ -50,7 +47,6 @@ Client &Client::operator=(const Client &copy)
 	if (this != &copy)
 	{
 		this->_client_fd = copy._client_fd;
-		this->_read_buffer = copy._read_buffer;
 		this->_bytes_expected = copy._bytes_expected;
 		this->_bytes_read = copy._bytes_read;
 	}
@@ -133,15 +129,6 @@ bool	Client::isCompleteRequest(void)//TODO refactor completely
 	return this->_request.getRequestCompleted();
 }
 
-void	Client::addToBuffer(const char* data, int size)
-{
-	if (data == NULL || size <= 0)
-		return;
-	if (this->_read_buffer.capacity() < this->_read_buffer.size() + size)
-		this->_read_buffer.resize(this->_read_buffer.size() + size);
-	this->_read_buffer.insert(this->_read_buffer.end(), data, data + size);
-}
-
 int	Client::readBuffer()
 {
 	char buffer[4096];//TODO find a bigger reading size, low buffer increases loops exponentialy on larger files so is less efficient
@@ -170,6 +157,15 @@ int	Client::readBuffer()
 
 		int ret = 0;
 		this->setTotalBytesReceived(this->getTotalBytesReceived() + this->_bytes_read);
+
+		if (!this->_checkSizeLimits())
+		{
+
+			this->_request.setRequestCompleted(true);
+			this->_request.setTooBig(true);
+			return -1;
+		}
+
 		ret = this->_request.parseInput(buffer, this->_bytes_read, this->_total_bytes_Received);
 		if (ret < 0)
 		{
@@ -180,6 +176,8 @@ int	Client::readBuffer()
 
 		if (this->_total_bytes_Received >= static_cast<size_t>(this->_request.getExpectedReadBytes()))
 		{
+			if (this->_total_bytes_Received > static_cast<size_t>(this->_request.getExpectedReadBytes()))
+				this->_request.setTooBig(true);
 			gettimeofday(&this->_request_end_time, NULL);
 			this->_request.setRequestCompleted(true);
 			return ret;
@@ -195,6 +193,7 @@ void	Client::sendResponse(void)
 	if (!response)
 	{
 		//TODO handle error
+		LOG_HIGH_WARNING_LINK("Response creation failed");
 	}
 
 	response->buildResponse();
@@ -203,7 +202,9 @@ void	Client::sendResponse(void)
 
 	ssize_t bytes_sent = send(this->_client_fd, response_str.c_str(), response_str.length(), 0);
 	if (bytes_sent == -1)
-		perror("Send error");
+	{
+		LOG_HIGH_WARNING_LINK("[send] function failed to send the response to the browser");
+	}
 
 	gettimeofday(&this->_response_sent_time, NULL);
 
@@ -215,4 +216,37 @@ void	Client::closeConnection(void)
 {
 	LOG_INFO("Connection closed with client : " + numToString(this->_client_fd) + ", awaiting next client");
 	close(this->_client_fd);
+}
+
+/*============================= private member functions =====================================*/
+
+bool	Client::_checkSizeLimits(void)
+{
+	//TODO safe check for a max request size before continuing reading. otherwise we could end reading an innecesarely ammount of data before checking with the headers
+	// if (total_bytes_received > MAX_REQUEST_SIZE) -> not MAX_BODY_SIZE!! request = request line + headers + body
+	// {
+	// 	stop reading and send an error message
+	// 	this->setTooBig(true);
+	//	return -1;
+	// }
+
+	if (this->_request.getExpectedBodySize() > this->_config.getMaxBodySize())
+	{
+		LOG_WARNING_LINK("Content length [" + numToString(this->_request.getExpectedBodySize()) +
+			"] is greater than Max body size [" + numToString(static_cast<size_t>(this->_config.getMaxBodySize())) + "]");
+		return false;
+	}
+
+	if (this->_request.getExpectedBodySize() > 0)
+	{
+		size_t nextBodySize = this->_request.getTmpBodySize() + this->_bytes_read;
+		if ( nextBodySize > this->_request.getExpectedBodySize())
+		{
+			LOG_WARNING_LINK("Body size will grow up to [" + numToString(nextBodySize) +
+				"] which is higher than expected [" + numToString(this->_request.getExpectedBodySize()) + "]");
+			return false;
+		}
+	}
+
+	return true;
 }

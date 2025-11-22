@@ -17,13 +17,14 @@ class Client {
 		struct timeval	_response_sent_time;
 
 		int					_client_fd;
-		std::vector<char>	_read_buffer;//deprecated?
 		int					_bytes_expected;
 		int					_bytes_read;
 		size_t				_total_bytes_Received;
 		Request				_request;
 		ServerCfg const&	_config;
 
+	//private member functions
+		bool    _checkSizeLimits();
 	public:
 		Client(std::map<int, ServerCfg>::iterator const& fd_and_cfg);
 		Client(const Client &copy);
@@ -39,12 +40,10 @@ class Client {
 		void		setBytesExpected(int bytes) { this->_bytes_expected = bytes; }
 		size_t		getTotalBytesReceived() const { return this->_total_bytes_Received; }
 		void		setTotalBytesReceived(size_t total_bytes_received) {this->_total_bytes_Received = total_bytes_received; }
-		void		addToBuffer(const char* data, int size);
 
 		void		printPerformanceStats(void) const;
 		bool		isCompleteRequest(void);
 		int			readBuffer(void);
 		void		sendResponse();
 		void		closeConnection();
-		std::string concatBuffer() const { return std::string(this->_read_buffer.begin(), this->_read_buffer.end()); }
 };
