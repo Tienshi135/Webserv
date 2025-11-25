@@ -7,8 +7,8 @@
 Response::Response(const ServerCfg &config, const Request &request)
 : _cfg(config), _req(request), _version("HTTP/1.0") , _statusCode(200), _statusMsg("OK"), _bodyIsFile(true)
 {
-	this->addHeader("Server", "Amazing webserv");
-	this->addHeader("Connection", "close");
+	this->_addHeader("Server", "Amazing webserv");
+	this->_addHeader("Connection", "close");
 }
 
 
@@ -18,7 +18,7 @@ Response::~Response(){}
 
 /*========================= Protected member funcions  ================================*/
 
-std::string	Response::getReasonPhrase(int errCode) const
+std::string	Response::_getReasonPhrase(int errCode) const
 {
 	static std::map<int, std::string> errorCodes;
 
@@ -78,11 +78,11 @@ std::string	Response::getReasonPhrase(int errCode) const
 	return "Unknown Status";
 }
 
-void	Response::responseIsErrorPage(int errCode)
+void	Response::_responseIsErrorPage(int errCode)
 {
 	static std::map<int, std::string> errorPages;
 
-	if (this->sendCustomErrorPage(errCode))
+	if (this->_sendCustomErrorPage(errCode))
 		return;
 	// 4xx Client Errors
 	errorPages[400] = "<!DOCTYPE html><html><body><h1>400 Bad Request</h1><p>The request could not be understood by the server.</p></body></html>";
@@ -106,15 +106,15 @@ void	Response::responseIsErrorPage(int errCode)
 	errorPages[504] = "<!DOCTYPE html><html><body><h1>504 Gateway Timeout</h1><p>The server did not receive a timely response from an upstream server.</p></body></html>";
 	errorPages[505] = "<!DOCTYPE html><html><body><h1>505 HTTP Version Not Supported</h1><p>The HTTP version is not supported by the server.</p></body></html>";
 
-	this->setStatus(errCode);
+	this->_setStatus(errCode);
 	this->_body = errorPages[errCode];
 	this->_bodyIsFile = false;
 
-	this->addHeader("Content-Type", "text/html; charset=UTF-8");
-	this->addHeader("Content-Length", numToString(this->_body.size()));
+	this->_addHeader("Content-Type", "text/html; charset=UTF-8");
+	this->_addHeader("Content-Length", numToString(this->_body.size()));
 }
 
-bool	Response::sendCustomErrorPage(int errCode)
+bool	Response::_sendCustomErrorPage(int errCode)
 {
 	std::map<int, std::string> const& customPages = this->_cfg.getErrorPages();
 	std::map<int, std::string>::const_iterator it = customPages.find(errCode);
@@ -124,9 +124,9 @@ bool	Response::sendCustomErrorPage(int errCode)
 		LOG_INFO_LINK("No custom error page configured for code [" + numToString(errCode) + "], sending default");
 		return false;
 	}
-	std::string errorPage = this->normalizePath(this->_cfg.getRoot(), it->second);
+	std::string errorPage = this->_normalizePath(this->_cfg.getRoot(), it->second);
 
-	if (!this->isSecurePath(errorPage))
+	if (!this->_isSecurePath(errorPage))
 	{
 		LOG_HIGH_WARNING_LINK("Custom error page failed security check: " + errorPage);
 		return false;
@@ -153,16 +153,17 @@ bool	Response::sendCustomErrorPage(int errCode)
 		return false;
 	}
 
-	this->setStatus(errCode);
+	this->_setStatus(errCode);
 	this->_bodyFilePath = errorPage;
 	this->_bodyIsFile = true;
 
-	this->addHeader("Content-Type", "text/html; charset=UTF-8");
-	this->addHeader("Content-Length", numToString(static_cast<size_t>(fileStat.st_size)));
+	this->_addHeader("Content-Type", "text/html; charset=UTF-8");
+	this->_addHeader("Content-Length", numToString(static_cast<size_t>(fileStat.st_size)));
 	return true;
 }
 
-std::string Response::getContentType(std::string const& path) const
+std::string Response::
+_getContentType(std::string const& path) const
 {
 	// Find file extension
 	size_t dotPos = path.find_last_of('.');
@@ -214,77 +215,77 @@ std::string Response::getContentType(std::string const& path) const
 }
 
 
-void	Response::setStatus(int code)
+void	Response::_setStatus(int code)
 {
 	this->_statusCode = code;
-	this->_statusMsg = this->getReasonPhrase(code);
+	this->_statusMsg = this->_getReasonPhrase(code);
 }
 
-void	Response::setBody(std::string const& bodyContent, std::string const& contentType)
+void	Response::_setBody(std::string const& bodyContent, std::string const& contentType)
 {
 	this->_body = bodyContent;
-	this->addHeader("Content-Type", contentType);
-	this->addHeader("Content-Length", numToString(this->_body.size()));
+	this->_addHeader("Content-Type", contentType);
+	this->_addHeader("Content-Length", numToString(this->_body.size()));
 }
 
-void	Response::addHeader(std::string const& key, std::string const& value)
+void	Response::_addHeader(std::string const& key, std::string const& value)
 {
 	this->_headers[key] = value;
 }
 
-off_t	Response::validateFilePath(std::string const& path)
+off_t	Response::_validateFilePath(std::string const& path)
 {
 	//check if the file exists and is readeable
 	if (access(path.c_str(), F_OK) < 0)
 	{
-		this->responseIsErrorPage(404);
-		LOG_INFO_LINK("File not found, sending error page 404");
+		this->_responseIsErrorPage(404);
+		LOG_INFO_LINK("File [" + path + "] not found, sending error page 404");
 		return -1;
 	}
 	if (access(path.c_str(), R_OK) < 0)
 	{
-		this->responseIsErrorPage(403);
-		LOG_INFO_LINK("Can't read file, forbidden, sending error page 403");
+		this->_responseIsErrorPage(403);
+		LOG_INFO_LINK("Can't read file [" + path + "], forbidden, sending error page 403");
 		return -1;
 	}
 	// Get file stats (size, type, etc.)
 	struct stat fileStat;
 	if (stat(path.c_str(), &fileStat) != 0)
 	{
-		this->responseIsErrorPage(500);
-		LOG_INFO_LINK("Failed to get file stats, sending error page 500");
+		this->_responseIsErrorPage(500);
+		LOG_INFO_LINK("Failed to get file [" + path + "] stats, sending error page 500");
 		return -1;
 	}
 
 	// Check if it's a regular file
 	if (!S_ISREG(fileStat.st_mode))
 	{
-		this->responseIsErrorPage(403);
-		LOG_INFO_LINK("Path is not a regular file, sending error page 403");
+		this->_responseIsErrorPage(403);
+		LOG_INFO_LINK("Path [" + path + "] is not a regular file, sending error page 403");
 		return -1;
 	}
 	return fileStat.st_size;
 }
 
-void	Response::sendFileAsBody(std::string const& path)
+void	Response::_sendFileAsBody(std::string const& path)
 {
-	off_t contentSize = this->validateFilePath(path);
+	off_t contentSize = this->_validateFilePath(path);
 	if (contentSize < 0)
 		return ;
 
-	std::string	type = this->getContentType(path);
-	this->addHeader("Content-Type", type);
-	this->addHeader("Content-Length", numToString(static_cast<size_t>(contentSize)));
+	std::string	type = this->_getContentType(path);
+	this->_addHeader("Content-Type", type);
+	this->_addHeader("Content-Length", numToString(static_cast<size_t>(contentSize)));
 
 	this->_bodyIsFile = true;
 	this->_bodyFilePath = path;
-	this->setStatus(200);
+	this->_setStatus(200);
 	return ;
 }
 
 
 
-bool	Response::isSecurePath(std::string const& path)
+bool	Response::_isSecurePath(std::string const& path)
 {
 	if (path.find("../") != std::string::npos)
 		return false;
@@ -298,7 +299,7 @@ bool	Response::isSecurePath(std::string const& path)
 	return true;
 }
 
-std::string	Response::normalizePath(std::string const& root, std::string const& uri)
+std::string	Response::_normalizePath(std::string const& root, std::string const& uri)
 {
 	std::string	normalizedRoot = root;
 	std::string	normalizedUri = uri;
@@ -311,20 +312,6 @@ std::string	Response::normalizePath(std::string const& root, std::string const& 
 		normalizedUri = uri.substr(1);
 
 	return normalizedRoot + normalizedUri;
-}
-
-bool	Response::isAllowedMethod(std::string const& method)
-{
-	Location const* location = this->_cfg.findMatchingLocation(this->_req.getUri());
-	std::vector<std::string> allowed;
-	if (location)
-		allowed = location->getMethods();
-	else
-		allowed = this->_cfg.getMethods();
-
-	if (std::find(allowed.begin(), allowed.end(), method) != allowed.end())
-		return true;
-	return false;
 }
 
 /*========================= Public member functions  ================================*/

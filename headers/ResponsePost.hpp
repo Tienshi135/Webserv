@@ -24,14 +24,15 @@ private:
 	std::string							_mime;
 
 	std::string		getFileName();
-	std::string		parseNameFromMultipart();
+	std::string		normalizeFilename(std::string const& fileName);
 	e_contentType	extractContentType();
 
 	void	printContentTypeElements();
 	void	makeUnicIde(std::string& fileName, std::string const& type);
 	bool	setOrCreatePath(std::string const& path);
+	std::string saveFilePath();
 
-	void	buildFromMultipart();
+	bool	buildFromMultipart();
 
 public:
 	ResponsePost(ServerCfg const& cfg, Request const& req);

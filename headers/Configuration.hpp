@@ -41,7 +41,7 @@ class Configuration
 		std::vector<std::string>	_methodsAllowed;
 		std::string					_root;
 		bool						_autoindex;
-		std::string					_index;
+		std::string					_index; //not used, keep for future code scalation
 		unsigned int				_max_body_size;
 		std::string					_store;
 
@@ -51,20 +51,24 @@ class Configuration
 		Configuration &operator=(const Configuration &copy);
 		virtual ~Configuration();
 
-		std::vector<std::string>	getMethods() const;
-		std::string					getRoot() const;
-		bool						getAutoindex() const;
-		std::string					getIndex() const;
-		unsigned int				getMaxBodySize() const;
-		std::string					getStore() const;
+		//getters
+		std::vector<std::string>	getMethods(void) const { return (this->_methodsAllowed); };
+		std::string					getRoot(void) const { return (this->_root); };
+		std::string					getIndex(void) const { return (this->_index); };
+		std::string					getStore(void) const { return (this->_store); };
+		unsigned int				getMaxBodySize(void) const { return (this->_max_body_size); };
+		bool						getAutoindex(void) const { return (this->_autoindex); };
 
+		//setters simple
+		void	setRoot(std::string const& root) { this->_root = root; };
+		void	setAutoindex(bool autoindex) { this->_autoindex = autoindex; };
+		void	setIndex(std::string const& index) { this->_index = index; };
+		void	setMaxBodySize(unsigned int max_body_size) { this->_max_body_size = max_body_size; };
+
+		//setters complex
 		void	setMethods(const std::vector<std::string>& methods);
 		void	setRoot(const std::vector<std::string>& root);
-		void	setRoot(std::string const& root);
-		void	setAutoindex(bool autoindex);
 		void	setIndex(const std::vector<std::string>& index);
-		void	setIndex(std::string const& index);
-		void	setMaxBodySize(unsigned int max_body_size);
 		void	setStore(const std::vector<std::string>& store);
 };
 
@@ -73,9 +77,9 @@ class Location : public Configuration
 	private:
 
 
-		ReturnDirective	_return;
-		std::string		_locationPath;
+		std::string		_path;
 		std::string		_cgiPass;
+		ReturnDirective	_return;
 
 		int	parseReturnCode(std::string const& strCode);
 
@@ -85,11 +89,16 @@ class Location : public Configuration
 		Location &operator=(const Location &copy);
 		virtual ~Location();
 
-		void	setLocationPath(std::string const& locationPath);
-		void	setCgiPass(std::vector<std::string> const& value);
-		void	setReturn(std::vector<std::string>& return_val);
+		//setters simple
+		void		setLocationPath(std::string const& path) { this->_path = path; };
 
-		ReturnDirective	getReturn() const;
+		//setters complex
+		void		setCgiPass(std::vector<std::string> const& value);
+		void		setReturn(std::vector<std::string>& return_val);
+
+		//getters
+		std::string getLocationPath() const { return this->_path; };
+		ReturnDirective	getReturn() const { return this->_return; };
 
 		bool	minValidLocation() const;
 	};
@@ -110,23 +119,31 @@ class ServerCfg : public Configuration
 		ServerCfg &operator=(const ServerCfg &copy);
 		virtual ~ServerCfg();
 
-		std::string							getName() const;
-		std::string							getHost() const;
-		unsigned int						getPort() const;
-		std::map<int, std::string>const&	getErrorPages() const;
-		unsigned int						getBodySize() const;
-		std::map<std::string, Location>		getLocationMap() const;
-		std::map<std::string, Location>		getLocationMap();
-		Location const*						getSpecificLocation(std::string const& location) const;
-		Location const*						findMatchingLocation(std::string const& location) const;
+		//getters simple
+		unsigned int						getPort() const { return (this->_port); };
+		unsigned int						getBodySize() const { return (this->_body_size); };
+		std::string							getHost() const { return (this->_host); };
+		std::string							getName() const { return (this->_name); };
+		std::map<int, std::string>const&	getErrorPages() const { return (this->_errorPages); };
+		std::map<std::string, Location>		getLocationMap() const { return (this->_location_map); };
+		std::map<std::string, Location>		getLocationMap() { return (this->_location_map); };
+		std::map<std::string, Location>&	getLocationMapRef() { return (this->_location_map); };
 
-		void			setName(const std::vector<std::string>& name);
-		void			setName(std::string const& name);
-		void			setHost(const std::string &host);
-		void			setPort(unsigned int listen);
-		void			setErrorPage(std::vector<std::string>& error_page);
-		void			setBodySize(unsigned int body_size);
-		void			setLocationMap(const std::map<std::string, Location> &location_map);
+		//getters complex
+		Location const*	getSpecificLocation(std::string const& location) const;
+		Location const*	getBestMatchLocation(std::string const& location) const;
 
-		bool			minValidCfg() const;
+		//setters simple
+		void	setName(std::string const& name) { this->_name = name; };
+		void	setHost(const std::string &host) { this->_host = host; };
+		void	setPort(unsigned int listen) { this->_port = listen; };
+		void	setBodySize(unsigned int body_size) { this->_body_size = body_size; };
+
+		//setters complex
+		void	setName(const std::vector<std::string>& name);
+		void	setErrorPage(std::vector<std::string>& error_page);
+		void	setLocationMap(const std::map<std::string, Location> &location_map) { this->_location_map = location_map; };
+
+		//member functions
+		bool	minValidCfg() const;
 };

@@ -39,7 +39,7 @@ void	trimQuotes(std::string& quoted)
 std::map<std::string, std::string>	parseHeaderParameters(std::string& strElements)
 {
 	std::map<std::string, std::string>	elementsMap;
-	std::vector<std::string> elementsVec = tokenizeLine(strElements);
+	std::vector<std::string> elementsVec = tokenizeHeaderParams(strElements);
 
 	std::vector<std::string>::iterator it;
 	for (it = elementsVec.begin(); it != elementsVec.end(); it++)
@@ -52,17 +52,20 @@ std::map<std::string, std::string>	parseHeaderParameters(std::string& strElement
 			key = it->substr(0, assingPos);
 			value = it->substr(assingPos + 1);
 			trimQuotes(value);
-			if (!value.empty() && value[value.size() - 1] == ';')
-				value.erase(value.size() -1, 1);
 		}
 		else
 		{
 			key = *it;
-			if (!key.empty() && key[key.size() - 1] == ';')
-				key.erase(key.size() -1, 1);
 			value = "";
 		}
-		elementsMap.insert(std::make_pair(key, value));
+
+		size_t keyStart = key.find_first_not_of(" \t");
+		size_t keyEnd = key.find_last_not_of(" \t");
+		if (keyStart != std::string::npos && keyEnd != std::string::npos)
+			key = key.substr(keyStart, keyEnd - keyStart + 1);
+
+		if (!key.empty())
+			elementsMap.insert(std::make_pair(key, value));
 	}
 	return elementsMap;
 }
@@ -416,6 +419,81 @@ std::vector<std::string>	tokenizeLine(std::string& line)
 }
 
 /**
+ * @brief Tokenizes header parameter strings with key=value pairs
+ *
+ * Handles formats like:
+ *   - form-data; name="file"; filename="my photo.jpg"
+ *   - boundary=----WebKitBoundary; charset=utf-8
+ *
+ * Properly handles:
+ *   - Quoted values with spaces: name="file name"
+ *   - Unquoted values: boundary=abc123
+ *   - Keys without values: form-data
+ *   - Semicolon delimiters
+ *
+ * @param line Header parameter string (without header name)
+ * @return Vector of tokens, each token is "key=value" or "key"
+ */
+std::vector<std::string> tokenizeHeaderParams(std::string& line)
+{
+	std::vector<std::string> tokens;
+	std::string token;
+	bool inQuotes = false;
+	char quoteChar = '\0';
+
+	line.erase(std::remove(line.begin(), line.end(), '\r'), line.end());
+
+	for (size_t i = 0; i < line.length(); ++i)
+	{
+		char c = line[i];
+
+		if ((c == '"' || c == '\'') && !inQuotes)
+		{
+			inQuotes = true;
+			quoteChar = c;
+			token += c;
+		}
+		else if (c == quoteChar && inQuotes)
+		{
+			inQuotes = false;
+			token += c;
+			quoteChar = '\0';
+		}
+
+		// Handle delimiters (semicolon or space) when NOT in quotes
+		else if ((c == ';' || c == ' ') && !inQuotes)
+		{
+			// Trim whitespace from token
+			size_t start = token.find_first_not_of(" \t");
+			size_t end = token.find_last_not_of(" \t");
+
+			if (start != std::string::npos && end != std::string::npos)
+			{
+				token = token.substr(start, end - start + 1);
+				if (!token.empty())
+					tokens.push_back(token);
+			}
+			token.clear();
+		}
+		else
+		{
+			token += c;
+		}
+	}
+
+	size_t start = token.find_first_not_of(" \t");
+	size_t end = token.find_last_not_of(" \t");
+	if (start != std::string::npos && end != std::string::npos)
+	{
+		token = token.substr(start, end - start + 1);
+		if (!token.empty())
+			tokens.push_back(token);
+	}
+
+	return tokens;
+	}
+
+/**
  * @brief Sets default values for server configuration if not explicitly defined
  *
  * Applied defaults:
@@ -485,4 +563,59 @@ void	setDefaults(ServerCfg& server)
 	}
 
 	nbServers += 1;
+}
+
+/**
+ * @brief Gets file size in bytes
+ *
+ * @param filepath Path to file
+ * @return File size in bytes, or -1 on error
+ */
+ssize_t getFileSize(const std::string& filepath)
+{
+	struct stat fileStat;
+
+	if (stat(filepath.c_str(), &fileStat) != 0)
+		return -1;
+
+	if (!S_ISREG(fileStat.st_mode))
+		return -1;
+
+	return static_cast<ssize_t>(fileStat.st_size);
+}
+
+/**
+ * @brief Safely parses numeric size strings with comprehensive validation
+ *
+ * Validates and converts size strings to prevent overflow/underflow attacks:
+ *   - Rejects non-numeric or partially numeric strings
+ *   - Rejects negative values
+ *   - Enforces MAX_BODY_SIZE limit
+ *
+ * Common use: Content-Length header validation, body size checking
+ *
+ * @param sizeString Numeric string to parse (e.g., "1024")
+ * @return Size in bytes as ssize_t, or -1 on validation failure
+ *
+ * @note Returns -1 (not 0) on error to distinguish from valid zero size
+ * @note Logs warnings on validation failures for debugging
+ */
+ssize_t getSafeSize(std::string const& sizeString)
+{
+	char* endPtr;
+	long value = std::strtol(sizeString.c_str(), &endPtr, 10);
+
+	if (*endPtr != '\0')
+	{
+		LOG_WARNING("Invalid size: " + sizeString);
+		return -1;
+	}
+
+	if (value < 0)
+	{
+		LOG_WARNING("Negative size: " + sizeString);
+		return -1;
+	}
+
+	return static_cast<ssize_t>(value);
 }

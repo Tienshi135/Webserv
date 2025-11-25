@@ -8,8 +8,21 @@
     <title>This is the title of the webpage!</title>
   </head>
   <body>
-    <p>This is an example paragraph. Anything in the <strong>body</strong> tag will appear on the page, just like this <strong>p</strong> tag and its contents.</p>
-    <p><a href="sendfile.html">Upload File</a></p>
-    <p><a href="delfile.html">Delete File</a></p>
+    <h1>Webserv - Main Tests Page</h1>
+    <hr>
+
+    <h2>Available Tests:</h2>
+    <ul>
+      <li><a href="sendfile.html">Upload File</a> - Test POST method</li>
+      <li><a href="/delete/delfile.html">Delete File</a> - Test DELETE method</li>
+      <li><a href="/location_web_test/">Location Test</a> - Test location block configuration and method restrictions</li>
+    </ul>
+
+    <hr>
+
+    <h3>🧪 Location Configuration Test</h3>
+    <p>To test the location block functionality, visit:</p>
+    <p><strong><a href="http://127.0.0.1:8080/location_web_test/" target="_blank">http://127.0.0.1:8080/location_web_test/</a></strong></p>
+    <p style="color: #666; font-size: 0.9em;">This page will test if the server correctly matches location blocks and restricts methods (only GET allowed).</p>
   </body>
 </html>

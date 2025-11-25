@@ -4,6 +4,7 @@
 #include "ResponseFactory.hpp"
 #include "ResponseError.hpp"
 #include "ResponseGet.hpp"
+#include "Client.hpp"
 #include <unistd.h>
 #include <signal.h>
 
@@ -73,6 +74,7 @@ void printVector(const std::vector<ServerCfg> &buffer)
             for (loc_it = locations.begin(); loc_it != locations.end(); ++loc_it)
             {
                 std::cout << "    Location: " << loc_it->first << std::endl;
+                std::cout << "        Path: " << loc_it->second.getLocationPath() << std::endl;
                 if (!loc_it->second.getMethods().empty())
                 {
                     std::vector<std::string> methods = loc_it->second.getMethods();
@@ -192,79 +194,47 @@ int main(int argc, char **argv)
 		sfd_it = sfd.begin();
 		while (sfd_it != sfd.end())
 		{
-            ServerCfg &server_config = sfd_it->second;
-
 			if (FD_ISSET(sfd_it->first, &read_fd))
             {
-                Client  *new_client = new Client();
-				int client_fd = accept(sfd_it->first, NULL, NULL);
-				if (client_fd == -1)
-				{
-					perror("Accept error");
-					continue;
-				}
-                int op = fcntl(client_fd, F_GETFL);
-                if (op == -1)
+                Client  *new_client = new Client(sfd_it);
+                if (new_client->getClientFd() < 0)
                 {
-                    perror("Fcntl F_GETFL error");
-                    close(client_fd);
+                    delete new_client;
+                    // sfd_it++; //should i increment?
                     continue;
                 }
-                if (fcntl(client_fd, F_SETFL, op | O_NONBLOCK) == -1)
-                {
-                    perror("Fcntl F_SETFL error");
-                    close(client_fd);
-                    continue;
-                }
-                new_client->setClientFd(client_fd);
-                LOG_INFO("Client connected on server : " + server_config.getName() + " (fd: " + numToString(client_fd) + ")");
                 cfd[sfd_it->first].push_back(new_client);
             }
 
             for (int i = cfd[sfd_it->first].size() - 1; i >= 0; i--)
             {
                 Client &client = *cfd[sfd_it->first][i];
-                int client_fd = client.getClientFd();
-                if (FD_ISSET(client_fd, &read_fd))
+                if (FD_ISSET(client.getClientFd(), &read_fd))
                 {
-                    const ServerCfg &server_config = sfd_it->second;
-                    char buffer[1024];
-
-                    int bytes_read = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
-                    if (bytes_read > 0)
+                    if (client.readBuffer() < 0)
                     {
-                        int bytes_stored = client.getBytesRead();
-                        client.setBytesRead(bytes_stored + bytes_read);
-                        client.addToBuffer(buffer, bytes_read);
+                        //TODO manage reading errors. delete client? maybe just continue and send proper error page
+                        // delete (cfd[sfd_it->first][i]);
+                        // cfd[sfd_it->first].erase(cfd[sfd_it->first].begin() + i);
+                        // // break;//break?
+                        // continue;
+                    }
+                    if (!client.isCompleteRequest())
+                        continue;
 
-                        if (!client.isCompleteRequest())
-                            continue;
-                        std::cout << GREEN << "Complete request received in client buffer!" << RESET << client.concatBuffer() << "End of request." << std::endl;
-                        Request	req(client.concatBuffer());
-                        req.printRequest();
-                        req.expectedReadBytes(client.getBytesRead());
-                        Response* response = ResponseFactory::createResponse(server_config, req);
-                        if (!response)
-                            continue; //TODO handle error
-                        response->buildResponse();
-                        std::string response_str = response->getRawResponse();
-                        response->printResponse();
-                        ssize_t bytes_sent = send(client_fd, response_str.c_str(), response_str.length(), 0);
-                        if (bytes_sent == -1)
-                            perror("Send error");
-                        delete (response);
-                        LOG_INFO("Connection closed with client : " + numToString(client_fd) + ", awaiting next client");
-                        close(client_fd);
-                        delete (cfd[sfd_it->first][i]);
-                        cfd[sfd_it->first].erase(cfd[sfd_it->first].begin() + i);
-                    }
-                    if (bytes_read == 0)
-                    {
-                        LOG_INFO("Client disconnected : " + numToString(client_fd));
-                        close(client_fd);
-                        delete (cfd[sfd_it->first][i]);
-                        cfd[sfd_it->first].erase(cfd[sfd_it->first].begin() + i);
-                    }
+                    client.getRequest().printRequest();
+                    client.getRequest().printRecepAnalisis(client.getTotalBytesReceived());
+
+                    client.sendResponse();
+
+                    /*if we stopped the reading because payload to large and the socked still have data
+                        accept and select will try to read again from the same socket, so we need to properly close it before deleting
+                        the reference.
+                    */
+                   client.closeConnection();
+                   FD_CLR(client.getClientFd(), &read_fd);//TODO this should be made inside client.closeConnection.
+                    delete (cfd[sfd_it->first][i]);
+                    cfd[sfd_it->first].erase(cfd[sfd_it->first].begin() + i);
                 }
             }
             sfd_it++;

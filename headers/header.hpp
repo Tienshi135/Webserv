@@ -21,8 +21,8 @@
 #include <netdb.h>
 #include <sys/select.h>
 #include <fcntl.h>
+#include <sys/time.h>
 #include "Configuration.hpp"
-#include "Client.hpp"
 
 // Parsing includes
 #include <fstream>
@@ -34,6 +34,7 @@
 #include <ctime>
 #include "ParsingException.hpp"
 #include <limits>
+
 
 #define ARRAY_SIZE(array)((int)(sizeof(array) / sizeof(array[0])))
 
@@ -71,12 +72,15 @@ ServerCfg			parseServer(File& file);
 std::map<std::string, std::string>	parseHeaderParameters(std::string& strElements);
 std::vector<std::string>	tokenizeLine(std::string& line, size_t nbLine);
 std::vector<std::string>	tokenizeLine(std::string& line);
+std::vector<std::string>	tokenizeHeaderParams(std::string& line);
 std::vector<int>			parseIPOctets(const std::string& ip);
 std::string					numToString(int num);
 std::string					numToString(size_t num);
 std::string					strToLower(std::string const& string);
 e_configtype				findType(std::string directive);
 unsigned int 				parseSize(const std::string &value);
+ssize_t						getFileSize(const std::string& filepath);
+ssize_t						getSafeSize(std::string const& sizeString);
 void						setDefaults(ServerCfg& server);
 void						trimQuotes(std::string& quoted);
 

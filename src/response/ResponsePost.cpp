@@ -54,13 +54,10 @@ ResponsePost::e_contentType ResponsePost::extractContentType()
 	}
 	return UNKNOWNCT;
 }
-
-std::string	ResponsePost::parseNameFromMultipart(void)//TODO upgrade this parser
+std::string	ResponsePost::normalizeFilename(std::string const& fileName)
 {
 	std::string baseName;
 	std::string type;
-
-	std::string fileName = this->_contentDisposition["filename"];
 
 	size_t	dotPos = fileName.find_last_of(".");//TODO make this a helper method "findExtension"
 	if (dotPos != std::string::npos && dotPos > 0)
@@ -72,7 +69,7 @@ std::string	ResponsePost::parseNameFromMultipart(void)//TODO upgrade this parser
 	}
 	else
 	{
-		baseName = fileName.empty() ? "upload" : fileName;
+		baseName = fileName.empty() ? "uploaded_file" : fileName;
 		type = "dat";
 	}
 
@@ -82,61 +79,61 @@ std::string	ResponsePost::parseNameFromMultipart(void)//TODO upgrade this parser
 }
 
 
-std::string	ResponsePost::getFileName()
-{
-	std::string fileName;
-	std::string baseName;
-	std::string type;
+// std::string	ResponsePost::getFileName()
+// {
+// 	std::string fileName;
+// 	std::string baseName;
+// 	std::string type;
 
-	if (this->_contentType == MULTIPART)
-	{
-		baseName = this->parseNameFromMultipart();
-		return baseName;
-	}
-	std::string rawValues = this->_req.getHeader("Content-Disposition");
-	std::vector<std::string> values = tokenizeLine(rawValues);
+// 	if (this->_contentType == MULTIPART)
+// 	{
+// 		baseName = this->parseNameFromMultipart();
+// 		return baseName;
+// 	}
+// 	std::string rawValues = this->_req.getHeader("Content-Disposition");
+// 	std::vector<std::string> values = tokenizeLine(rawValues);
 
-	std::vector<std::string>::iterator it;
-	for (it = values.begin(); it != values.end(); it++)
-	{
-		if (it->substr(0, 9) == "filename=")
-		{
-			fileName = it->substr(9);
-			trimQuotes(fileName);
-			break;
-		}
-	}
+// 	std::vector<std::string>::iterator it;
+// 	for (it = values.begin(); it != values.end(); it++)
+// 	{
+// 		if (it->substr(0, 9) == "filename=")
+// 		{
+// 			fileName = it->substr(9);
+// 			trimQuotes(fileName);
+// 			break;
+// 		}
+// 	}
 
-	if (fileName.empty())
-	{
-		std::string uri = this->_req.getUri();
-		size_t lastSlash = uri.find_last_of("/");
+// 	if (fileName.empty())
+// 	{
+// 		std::string uri = this->_req.getUri();
+// 		size_t lastSlash = uri.find_last_of("/");
 
-		if (lastSlash != std::string::npos && lastSlash + 1 < uri.size())
-			fileName = uri.substr(lastSlash + 1);
+// 		if (lastSlash != std::string::npos && lastSlash + 1 < uri.size())
+// 			fileName = uri.substr(lastSlash + 1);
 
-		if (fileName.empty())
-			fileName = "upload";
-	}
+// 		if (fileName.empty())
+// 			fileName = "upload";
+// 	}
 
-	size_t	dotPos = fileName.find_last_of(".");
-	if (dotPos != std::string::npos && dotPos > 0)
-	{
-		baseName = fileName.substr(0, dotPos);
-		type = fileName.substr(dotPos + 1);
-		if (type.empty())
-			type = "dat";
-	}
-	else
-	{
-		baseName = fileName.empty() ? "upload" : fileName;
-		type = "dat";
-	}
+// 	size_t	dotPos = fileName.find_last_of(".");
+// 	if (dotPos != std::string::npos && dotPos > 0)
+// 	{
+// 		baseName = fileName.substr(0, dotPos);
+// 		type = fileName.substr(dotPos + 1);
+// 		if (type.empty())
+// 			type = "dat";
+// 	}
+// 	else
+// 	{
+// 		baseName = fileName.empty() ? "upload" : fileName;
+// 		type = "dat";
+// 	}
 
-	this->makeUnicIde(baseName, type);
+// 	this->makeUnicIde(baseName, type);
 
-	return baseName;
-}
+// 	return baseName;
+// }
 
 void	ResponsePost::makeUnicIde(std::string& fileName, std::string const& type)
 {
@@ -149,18 +146,17 @@ bool	ResponsePost::setOrCreatePath(std::string const& path)
 {
 	if (pathIsDirectory(path))
 		return true;
-	this->printContentTypeElements();
 
 	if (pathIsExecutable(path))
 	{
 		LOG_HIGH_WARNING_LINK("Path exists but is an executable, not a directory: [" + path + "]");
-		this->responseIsErrorPage(500);
+		this->_responseIsErrorPage(500);
 		return false;
 	}
 	if (pathIsRegFile(path))
 	{
 		LOG_HIGH_WARNING_LINK("Path exists but is a file, not a directory: [" + path + "]");
-		this->responseIsErrorPage(500);
+		this->_responseIsErrorPage(500);
 		return false;
 	}
 
@@ -168,166 +164,134 @@ bool	ResponsePost::setOrCreatePath(std::string const& path)
 	if (mkdir(path.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) != 0)
 	{
 		LOG_HIGH_WARNING_LINK("Failed to create direcory: [" + path + "]");
-		this->responseIsErrorPage(500);
+		this->_responseIsErrorPage(500);
 		return false;
 	}
 
 	return true;
 }
 
-void	ResponsePost::buildFromMultipart(void)
+bool	ResponsePost::buildFromMultipart(void)
 {
-	std::stringstream iss(this->_req.getBody());
-	std::string	body = this->_req.getBody();
-	std::string	boundaryStart = "--" + this->_boundary;
-	std::string	boundaryEnd = boundaryStart + "--";
+	std::string bodyFilePath = this->_req.getBodyFilePath();
 
-	size_t pos = body.find(boundaryStart);
-	if (pos == std::string::npos)
+	if (bodyFilePath.empty())
 	{
-		LOG_WARNING_LINK("Boundary start not found in multipart body");
-		return;
+		LOG_HIGH_WARNING_LINK("No body file path available");
+		return false;
 	}
 
-	pos += boundaryStart.length();
-	size_t lineEnd = body.find("\r\n", pos);
-	if (lineEnd == std::string::npos)
-		lineEnd = body.find("\n", pos);
-	if (lineEnd != std::string::npos)
-		pos = lineEnd + (body[lineEnd] == '\r' ? 2 : 1);
-
-		// ✅ Parse headers until empty line
-	while (pos < body.size())
+	std::ifstream bodyFile(bodyFilePath.c_str(), std::ios::binary);
+	if (!bodyFile.is_open())
 	{
-		// Find end of current line
-		lineEnd = body.find("\r\n", pos);
-		if (lineEnd == std::string::npos)
-			lineEnd = body.find("\n", pos);
+		LOG_HIGH_WARNING_LINK("Failed to open body file: " + bodyFilePath);
+		return false;
+	}
 
-		if (lineEnd == std::string::npos)
-			break;
+	// Parse headers (same as above)
+	std::string boundaryStart = "--" + this->_boundary;
+	std::string boundaryEnd = boundaryStart + "--";
+	std::string line;
+	bool foundBoundary = false;
 
-		std::string line = body.substr(pos, lineEnd - pos);
+	while (std::getline(bodyFile, line))
+	{
+		if (!line.empty() && line[line.size() - 1] == '\r')
+			line.erase(line.size() - 1);
 
-		// ✅ Empty line marks end of headers
-		if (line.empty())
+		if (line == boundaryStart)
 		{
-			pos = lineEnd + (body[lineEnd] == '\r' ? 2 : 1);
+			foundBoundary = true;
 			break;
 		}
+	}
 
-		// ✅ Parse Content-Disposition header
+	if (!foundBoundary)
+	{
+		bodyFile.close();
+		LOG_HIGH_WARNING_LINK("Open boundary not found on body file: " + bodyFilePath);
+		return false;
+	}
+
+	// Parse headers
+	while (std::getline(bodyFile, line))
+	{
+		if (!line.empty() && line[line.size() - 1] == '\r')
+			line.erase(line.size() - 1);
+
+		if (line.empty())
+			break;
+
 		if (line.find("Content-Disposition:") == 0)
 		{
-			std::string params = line.substr(20); // Skip "Content-Disposition:"
+			std::string params = line.substr(20);
 			std::map<std::string, std::string> disposition = parseHeaderParameters(params);
 
-			// ✅ Safe access with find()
 			std::map<std::string, std::string>::iterator it = disposition.find("filename");
 			if (it != disposition.end())
-				this->_fileName = it->second;
-			//TODO make unike
+				this->_fileName = this->normalizeFilename(it->second);
 		}
 
-		// ✅ Parse Content-Type header
 		if (line.find("Content-Type:") == 0)
 		{
-			std::string params = line.substr(13); // Skip "Content-Type:"
+			std::string params = line.substr(13);
 			std::map<std::string, std::string> contentType = parseHeaderParameters(params);
 
-			// ✅ Get first key (the mime type)
 			if (!contentType.empty())
 				this->_mime = contentType.begin()->first;
 		}
-
-		// Move to next line
-		pos = lineEnd + (body[lineEnd] == '\r' ? 2 : 1);
 	}
 
-	// ✅ Now extract file content (binary safe)
-	size_t contentStart = pos;
-	size_t nextBoundary = body.find(boundaryStart, pos);
+	// Copy directly to final destination
+	std::string savePath = this->saveFilePath();
 
-	if (nextBoundary == std::string::npos)
+	std::ofstream outFile(savePath.c_str(), std::ios::binary);
+	if (!outFile.is_open())
 	{
-		LOG_WARNING_LINK("Closing boundary not found in multipart body");
-		return;
+		bodyFile.close();
+		return false;
 	}
 
-	// ✅ Content ends before the boundary (remove trailing \r\n before boundary)
-	size_t contentEnd = nextBoundary;
-	if (contentEnd >= 2 && body[contentEnd - 2] == '\r' && body[contentEnd - 1] == '\n')
-		contentEnd -= 2;
-	else if (contentEnd >= 1 && body[contentEnd - 1] == '\n')
-		contentEnd -= 1;
+	// Stream copy content until boundary
+	char buffer[4096];
+	std::string leftover;
 
-	// ✅ Extract binary-safe file content
-	if (contentEnd > contentStart)
-		this->_saveFile = body.substr(contentStart, contentEnd - contentStart);
-	else
-		this->_saveFile.clear();
-}
-
-
-/*============== member function =============*/
-
-void	ResponsePost::buildResponse(void)
-{
-	if (this->_req.getBodySize() > this->_cfg.getMaxBodySize())
+	while (bodyFile.read(buffer, sizeof(buffer)) || bodyFile.gcount() > 0)
 	{
-		this->responseIsErrorPage(413);
-		return;
+		std::string chunk(buffer, bodyFile.gcount());
+		leftover += chunk;
+
+		// Check for closing boundary
+		size_t boundaryPos = leftover.find(boundaryEnd);
+		if (boundaryPos != std::string::npos)
+		{
+			// Write everything before boundary
+			if (boundaryPos >= 2 && leftover[boundaryPos - 2] == '\r')
+				boundaryPos -= 2;
+			else if (boundaryPos >= 1 && leftover[boundaryPos - 1] == '\n')
+				boundaryPos -= 1;
+
+			outFile.write(leftover.data(), boundaryPos);
+			break;
+		}
+
+		// Keep last few bytes in case boundary spans chunks
+		if (leftover.size() > boundaryEnd.size())
+		{
+			size_t writeSize = leftover.size() - boundaryEnd.size();
+			outFile.write(leftover.data(), writeSize);
+			leftover = leftover.substr(writeSize);
+		}
 	}
-	//TODO handle first if POST demands CGI. if yes, launch the binary, if not, store body as a file.
 
-	if (this->_contentType == MULTIPART)
-		this->buildFromMultipart();
+	bodyFile.close();
+	outFile.close();
 
-	std::string savePath;
-
-	Location const* location = this->_cfg.findMatchingLocation(this->_req.getUri());
-	if (!location)
+	if (outFile.fail())
 	{
-		savePath = normalizePath(this->_cfg.getRoot(), "/tmp");
-		if (!this->setOrCreatePath(savePath))
-			return;
-	}
-	else
-	{
-		//TODO check if POST is allowed in this location, if not send 405 method nod allowed. We have refactor to properly store allowed methods first
-		savePath = location->getStore();
-		if (!this->setOrCreatePath(savePath))
-			return;
-	}
-	if (!this->isAllowedMethod("POST"))
-	{
-		this->responseIsErrorPage(405);
-		LOG_WARNING_LINK("Method [POST] not allowed");
-		return ;
-	}
-
-	savePath += ("/" + this->_fileName);
-
-	if (!isSecurePath(savePath))
-	{
-		LOG_WARNING_LINK("Response POST build insecure path: [" + savePath + "]");
-		responseIsErrorPage(400);
-		return;
-	}
-
-	std::ofstream file(savePath.c_str(), std::ios::binary);
-	if (!file.is_open()) {
-		responseIsErrorPage(500);
-		return;
-	}
-
-	file.write(this->_saveFile.data(), this->_saveFile.size());
-	file.close();
-	if (file.fail())
-	{
-		LOG_HIGH_WARNING_LINK("Failed to write file: [" + savePath + "]");
-		this->responseIsErrorPage(500);
-		return;
+		LOG_HIGH_WARNING_LINK("Failed to write file: " + savePath);
+		std::remove(savePath.c_str());
+		return false;
 	}
 
 	std::string resourceUri = this->_req.getUri();
@@ -335,9 +299,85 @@ void	ResponsePost::buildResponse(void)
 		resourceUri += "/";
 	resourceUri += this->_fileName;
 
-	this->addHeader("Location", resourceUri);
+	this->_addHeader("Location", resourceUri);
 	this->_bodyIsFile = false;
-	this->setStatus(201);
-	this->setBody("<html><body><h1>201 Created</h1></body></html>", "text/html");//TODO  this is a placeholder, delete this when implemented a response page for upload
+	this->_setStatus(201);
+	this->_setBody("<html><body><h1>201 Created</h1></body></html>", "text/html");//TODO  this is a placeholder, delete this when implemented a response page for upload
 
+	return true;
+}
+
+std::string	ResponsePost::saveFilePath(void)
+{
+	std::string savePath;
+
+	Location const* location = this->_cfg.getBestMatchLocation(this->_req.getUri());
+	if (!location)
+	{
+		savePath = _normalizePath(this->_cfg.getRoot(), "/tmp");
+		if (!this->setOrCreatePath(savePath))
+			return "";
+	}
+	else
+	{
+		savePath = location->getStore();
+		if (savePath.empty())
+		{
+			std::string uriPath = this->_req.getUri().substr(location->getLocationPath().size());
+			savePath = _normalizePath(location->getRoot(), uriPath);
+		}
+		if (!this->setOrCreatePath(savePath))
+			return "";
+	}
+
+	savePath += ("/" + this->_fileName);
+
+	if (!_isSecurePath(savePath))
+	{
+		LOG_WARNING_LINK("Response POST build insecure path: [" + savePath + "]");
+		_responseIsErrorPage(400);
+		return "";
+	}
+
+	return savePath;
+}
+
+/*============== member function =============*/
+
+void	ResponsePost::buildResponse(void)
+{
+	// if (this->_req.getTmpBodySize() > this->_cfg.getMaxBodySize())
+	// {
+	// 	LOG_WARNING_LINK("tmp file size [" + numToString(this->_req.getTmpBodySize()) +
+	// 		 "] than Max body size [" + numToString(static_cast<size_t>(this->_cfg.getMaxBodySize())) + "]");
+	// 	this->_responseIsErrorPage(413);
+	// 	return;
+	// }
+
+
+	//TODO handle first if POST demands CGI. if yes, launch the binary, if not, store body as a file.
+
+	switch (this->_contentType)
+	{
+	case TEXT:
+		LOG_WARNING_LINK("Content type [text/plain] not supported yet");
+		this->_responseIsErrorPage(500);
+		return;
+	case MULTIPART:
+		if (!this->buildFromMultipart())
+			this->_responseIsErrorPage(500);
+		return;
+	case JSON:
+		LOG_WARNING_LINK("Content type [application/json] not supported yet");
+		this->_responseIsErrorPage(500);
+		return;
+	case URLENCODED:
+		LOG_WARNING_LINK("Content type [application/x-www-form-urlencoded] not supported yet");
+		this->_responseIsErrorPage(500);
+		return;
+	default:
+		LOG_WARNING_LINK("Content type not supported");
+		this->_responseIsErrorPage(500);
+		return;
+	}
 }
