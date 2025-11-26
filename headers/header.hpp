@@ -83,6 +83,7 @@ ssize_t						getFileSize(const std::string& filepath);
 ssize_t						getSafeSize(std::string const& sizeString);
 void						setDefaults(ServerCfg& server);
 void						trimQuotes(std::string& quoted);
+std::string					urlDecode(std::string const& encoded);
 
 //parsing booleans
 bool	foundServer(std::vector<std::string>& tknLine, File& file);

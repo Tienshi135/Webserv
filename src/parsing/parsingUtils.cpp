@@ -619,3 +619,59 @@ ssize_t getSafeSize(std::string const& sizeString)
 
 	return static_cast<ssize_t>(value);
 }
+
+/**
+ * @brief Decodes URL-encoded strings (percent-encoding per RFC 3986)
+ *
+ * Converts percent-encoded characters (%XX) back to their original form.
+ * Also handles '+' as space (common in query strings).
+ *
+ * @param encoded URL-encoded string
+ * @return Decoded string
+ */
+std::string urlDecode(std::string const& encoded)
+{
+	std::string decoded;
+	size_t len = encoded.length();
+
+	for (size_t i = 0; i < len; ++i)
+	{
+		if (encoded[i] == '%' && i + 2 < len)
+		{
+			std::string hex = encoded.substr(i + 1, 2);
+
+			bool validHex = true;
+			for (size_t j = 0; j < hex.length(); ++j)
+			{
+				char c = hex[j];
+				if (!((c >= '0' && c <= '9') ||
+						(c >= 'A' && c <= 'F') ||
+						(c >= 'a' && c <= 'f')))
+				{
+					validHex = false;
+					break;
+				}
+			}
+
+			if (validHex)
+			{
+				// Convert hex to char
+				char* endPtr;
+				long value = std::strtol(hex.c_str(), &endPtr, 16);
+				decoded += static_cast<char>(value);
+				i += 2;
+			}
+			else
+			{
+				decoded += encoded[i];
+			}
+		}
+		else if (encoded[i] == '+')
+			decoded += ' ';
+		else
+			decoded += encoded[i];
+
+	}
+
+	return decoded;
+}
