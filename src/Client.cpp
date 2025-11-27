@@ -1,5 +1,6 @@
 #include "Client.hpp"
 #include "Configuration.hpp"
+#include "ResponseError.hpp"
 
 /*============================= Constructors and destructor =====================================*/
 Client::Client(std::map<int, ServerCfg>::iterator const& fd_and_cfg)
@@ -53,7 +54,10 @@ Client &Client::operator=(const Client &copy)
 	return *this;
 }
 
-Client::~Client() {};
+Client::~Client()
+{
+
+}
 
 /*============================= Public member functions =====================================*/
 
@@ -124,31 +128,27 @@ void	Client::printPerformanceStats() const
 	std::cout << CYAN << "╚══════════════════════════════════════════════════════════╝" << RESET << std::endl;
 }
 
-bool	Client::isCompleteRequest(void)//TODO refactor completely
+bool	Client::isCompleteRequest(void)
 {
-	return this->_request.getRequestCompleted();
+	return (this->_request.getRequestCompleted());
 }
 
 int	Client::readBuffer()
 {
-	char buffer[4096];//TODO find a bigger reading size, low buffer increases loops exponentialy on larger files so is less efficient
+	char buffer[1024*8];
 	this->_bytes_read = recv(this->_client_fd, buffer, sizeof(buffer), 0);
 	if (this->_bytes_read == 0)
 	{
-		//TODO client is disconected, handle this?
-		// LOG_INFO("Client disconnected : " + numToString(this->_client_fd));
-		// close(this->_client_fd);
-		// this->_client_fd = -1;
+		LOG_INFO("Client disconnected : " + numToString(this->_client_fd));
+		return (-1);
 	}
 	else if (this->_bytes_read < 0)
 	{
-		//TODO handle read error
-		//if body is expected but body size is not equal expected size launch error?
 		LOG_HIGH_WARNING_LINK("recv returned error unexpectedly: [" +
 			(errno != 0? std::string(strerror(errno)) : "nothing to read") + "]");
 		gettimeofday(&this->_request_end_time, NULL);
 		this->_request.setRequestCompleted(true);
-		return -1;
+		return (0);
 	}
 	else
 	{
@@ -192,7 +192,7 @@ void	Client::sendResponse(void)
 	Response* response = ResponseFactory::createResponse(this->_config, this->_request);
 	if (!response)
 	{
-		//TODO handle error
+		response = new ResponseError(this->_config, this->_request, 500);//TODO maybe change it to send string raw
 		LOG_HIGH_WARNING_LINK("Response creation failed");
 	}
 
@@ -212,10 +212,11 @@ void	Client::sendResponse(void)
 	delete (response);
 }
 
-void	Client::closeConnection(void)
+void	Client::closeConnection(fd_set &read_fd)
 {
 	LOG_INFO("Connection closed with client : " + numToString(this->_client_fd) + ", awaiting next client");
 	close(this->_client_fd);
+	FD_CLR(this->_client_fd, &read_fd);
 }
 
 /*============================= private member functions =====================================*/

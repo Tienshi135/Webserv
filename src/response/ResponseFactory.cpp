@@ -26,27 +26,27 @@ Response*	ResponseFactory::createResponse(ServerCfg const& cfg, Request const& r
 	if (!req.isValid())
 	{
 		LOG_WARNING_LINK("Invalid request received, returning 400 Bad Request");
-		return new ResponseError(cfg, req, 400);
+		return (new ResponseError(cfg, req, 400));
 	}
 
 	if (req.isTooBig())
 	{
 		LOG_WARNING_LINK("Request too big, sending 413 payload to large");
-		return new ResponseError(cfg, req, 413);
+		return (new ResponseError(cfg, req, 413));
 	}
 
 	std::string method = req.getMethod();
 
 	if (!_isAllowedMethod(method, cfg, req))
-		return new ResponseError(cfg, req, 405);
+		return (new ResponseError(cfg, req, 405));
 
 	if (method == "GET")
-		return new ResponseGet(cfg, req);
+		return (new ResponseGet(cfg, req));
 	if (method == "POST")
-		return new ResponsePost(cfg, req);
+		return (new ResponsePost(cfg, req));
 	if (method == "DELETE")
-		return new ResponseDelete(cfg, req);
+		return (new ResponseDelete(cfg, req));
 
 	LOG_WARNING_LINK("Requested method: [" + method + "] not recognized, sendind error page 405");
-	return new ResponseError(cfg, req, 405);
+	return (new ResponseError(cfg, req, 405));
 }

@@ -198,12 +198,9 @@ int main(int argc, char **argv)
             {
                 Client  *new_client = new Client(sfd_it);
                 if (new_client->getClientFd() < 0)
-                {
-                    delete new_client;
-                    // sfd_it++; //should i increment?
-                    continue;
-                }
-                cfd[sfd_it->first].push_back(new_client);
+                    delete (new_client);
+                else
+                    cfd[sfd_it->first].push_back(new_client);
             }
 
             for (int i = cfd[sfd_it->first].size() - 1; i >= 0; i--)
@@ -211,28 +208,22 @@ int main(int argc, char **argv)
                 Client &client = *cfd[sfd_it->first][i];
                 if (FD_ISSET(client.getClientFd(), &read_fd))
                 {
-                    if (client.readBuffer() < 0)
+                    if (client.readBuffer() >= 0)
                     {
-                        //TODO manage reading errors. delete client? maybe just continue and send proper error page
-                        // delete (cfd[sfd_it->first][i]);
-                        // cfd[sfd_it->first].erase(cfd[sfd_it->first].begin() + i);
-                        // // break;//break?
-                        // continue;
+                        if (!client.isCompleteRequest())
+                            continue;
+
+                        client.getRequest().printRequest();
+                        client.getRequest().printRecepAnalisis(client.getTotalBytesReceived());
+
+                        client.sendResponse();
+
+                        /*if we stopped the reading because payload to large and the socked still have data
+                            accept and select will try to read again from the same socket, so we need to properly close it before deleting
+                            the reference.
+                        */
                     }
-                    if (!client.isCompleteRequest())
-                        continue;
-
-                    client.getRequest().printRequest();
-                    client.getRequest().printRecepAnalisis(client.getTotalBytesReceived());
-
-                    client.sendResponse();
-
-                    /*if we stopped the reading because payload to large and the socked still have data
-                        accept and select will try to read again from the same socket, so we need to properly close it before deleting
-                        the reference.
-                    */
-                   client.closeConnection();
-                   FD_CLR(client.getClientFd(), &read_fd);//TODO this should be made inside client.closeConnection.
+                    client.closeConnection(read_fd);
                     delete (cfd[sfd_it->first][i]);
                     cfd[sfd_it->first].erase(cfd[sfd_it->first].begin() + i);
                 }
