@@ -171,21 +171,21 @@ bool	ResponsePost::setOrCreatePath(std::string const& path)
 	return true;
 }
 
-bool	ResponsePost::buildFromMultipart(void)
+int	ResponsePost::buildFromMultipart(void)
 {
 	std::string bodyFilePath = this->_req.getBodyFilePath();
 
 	if (bodyFilePath.empty())
 	{
 		LOG_HIGH_WARNING_LINK("No body file path available");
-		return false;
+		return 400;
 	}
 
 	std::ifstream bodyFile(bodyFilePath.c_str(), std::ios::binary);
 	if (!bodyFile.is_open())
 	{
 		LOG_HIGH_WARNING_LINK("Failed to open body file: " + bodyFilePath);
-		return false;
+		return 500;
 	}
 
 	// Parse headers (same as above)
@@ -210,7 +210,7 @@ bool	ResponsePost::buildFromMultipart(void)
 	{
 		bodyFile.close();
 		LOG_HIGH_WARNING_LINK("Open boundary not found on body file: " + bodyFilePath);
-		return false;
+		return 400;
 	}
 
 	// Parse headers
@@ -244,12 +244,18 @@ bool	ResponsePost::buildFromMultipart(void)
 
 	// Copy directly to final destination
 	std::string savePath = this->saveFilePath();
+	if (savePath.empty())
+	{
+		bodyFile.close();
+		return -1;//error already set in savefilepath
+	}
 
 	std::ofstream outFile(savePath.c_str(), std::ios::binary);
 	if (!outFile.is_open())
 	{
 		bodyFile.close();
-		return false;
+		LOG_HIGH_WARNING_LINK("Failed to create output file: " + savePath);
+		return 500;
 	}
 
 	// Stream copy content until boundary
@@ -291,7 +297,7 @@ bool	ResponsePost::buildFromMultipart(void)
 	{
 		LOG_HIGH_WARNING_LINK("Failed to write file: " + savePath);
 		std::remove(savePath.c_str());
-		return false;
+		return 500;
 	}
 
 	std::string resourceUri = this->_req.getUri();
@@ -304,7 +310,7 @@ bool	ResponsePost::buildFromMultipart(void)
 	this->_setStatus(201);
 	this->_setBody("<html><body><h1>201 Created</h1></body></html>", "text/html");//TODO  this is a placeholder, delete this when implemented a response page for upload
 
-	return true;
+	return 0;
 }
 
 std::string	ResponsePost::saveFilePath(void)
@@ -346,38 +352,31 @@ std::string	ResponsePost::saveFilePath(void)
 
 void	ResponsePost::buildResponse(void)
 {
-	// if (this->_req.getTmpBodySize() > this->_cfg.getMaxBodySize())
-	// {
-	// 	LOG_WARNING_LINK("tmp file size [" + numToString(this->_req.getTmpBodySize()) +
-	// 		 "] than Max body size [" + numToString(static_cast<size_t>(this->_cfg.getMaxBodySize())) + "]");
-	// 	this->_responseIsErrorPage(413);
-	// 	return;
-	// }
-
-
 	//TODO handle first if POST demands CGI. if yes, launch the binary, if not, store body as a file.
+	int errorCode;
 
 	switch (this->_contentType)
 	{
 	case TEXT:
 		LOG_WARNING_LINK("Content type [text/plain] not supported yet");
-		this->_responseIsErrorPage(500);
+		this->_responseIsErrorPage(415);
 		return;
 	case MULTIPART:
-		if (!this->buildFromMultipart())
-			this->_responseIsErrorPage(500);
+		errorCode = this->buildFromMultipart();
+		if (errorCode > 0)
+			this->_responseIsErrorPage(errorCode);
 		return;
 	case JSON:
 		LOG_WARNING_LINK("Content type [application/json] not supported yet");
-		this->_responseIsErrorPage(500);
+		this->_responseIsErrorPage(415);
 		return;
 	case URLENCODED:
 		LOG_WARNING_LINK("Content type [application/x-www-form-urlencoded] not supported yet");
-		this->_responseIsErrorPage(500);
+		this->_responseIsErrorPage(415);
 		return;
 	default:
 		LOG_WARNING_LINK("Content type not supported");
-		this->_responseIsErrorPage(500);
+		this->_responseIsErrorPage(415);
 		return;
 	}
 }

@@ -32,7 +32,7 @@ private:
 	bool	setOrCreatePath(std::string const& path);
 	std::string saveFilePath();
 
-	bool	buildFromMultipart();
+	int	buildFromMultipart();
 
 public:
 	ResponsePost(ServerCfg const& cfg, Request const& req);

@@ -16,12 +16,6 @@ ResponseDelete::~ResponseDelete() {}
 
 void	ResponseDelete::buildResponse(void)
 {
-	// if (this->_req.getTmpBodySize() > this->_cfg.getMaxBodySize())//this is ok but it should be checked before downloading all the body
-	// {
-	// 	this->_responseIsErrorPage(413);
-	// 	return;
-	// }
-
 	std::string deletePath;
 
 	Location const* location = this->_cfg.getBestMatchLocation(this->_req.getUri());
@@ -54,5 +48,6 @@ void	ResponseDelete::buildResponse(void)
 	// this->addHeader("Location", resourceUri);
 	this->_setStatus(200);
 	this->_setBody(httpMsg, "text/html");//TODO  this is a placeholder, delete this when implemented a response page for upload
+	this->_bodyIsFile = false;
 	LOG_INFO("DELETE successful: [" + deletePath + "]");
 }

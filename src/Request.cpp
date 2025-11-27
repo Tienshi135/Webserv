@@ -316,7 +316,7 @@ void	Request::buildHeaders(std::string received)
 		std::vector<std::string>::iterator it = firstLine.begin();
 		this->_method = *it;
 	it++;
-	this->_uri = *it;
+	this->_uri = urlDecode(*it);
 	it++;
 
 	std::string	validVersion = it->substr(0, 5);
