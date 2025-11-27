@@ -135,7 +135,7 @@ bool	Client::isCompleteRequest(void)
 
 int	Client::readBuffer()
 {
-	char buffer[1024*8];
+	char buffer[1024 * 8];
 	this->_bytes_read = recv(this->_client_fd, buffer, sizeof(buffer), 0);
 	if (this->_bytes_read == 0)
 	{
@@ -163,7 +163,10 @@ int	Client::readBuffer()
 
 			this->_request.setRequestCompleted(true);
 			this->_request.setTooBig(true);
-			return -1;
+			
+			while(recv(this->_client_fd, buffer, sizeof(buffer), 0) > 0)
+				; // empty body to clear the socket
+			return (0);
 		}
 
 		ret = this->_request.parseInput(buffer, this->_bytes_read, this->_total_bytes_Received);
