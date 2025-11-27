@@ -35,13 +35,6 @@ void	ResponsePost::printContentTypeElements(void)
 	std::map<std::string, std::string>::iterator it;
 	for (it = this->_contentTypeElements.begin(); it != this->_contentTypeElements.end(); it++)
 		std::cout << "Element: " << it->first << "; value = " << it->second << std::endl;
-
-	// std::cout << "....................................." << std::endl;
-	// std::cout << "Content-disposition: " << std::endl;
-	// 	std::map<std::string, std::string>::iterator it_d;
-	// for (it_d = this->_contentDisposition.begin(); it_d != this->_contentDisposition.end(); it_d++)
-	// 	std::cout << "Element: " << it_d->first << "; value = " << it_d->second << std::endl;
-
 }
 
 ResponsePost::e_contentType ResponsePost::extractContentType()
@@ -77,63 +70,6 @@ std::string	ResponsePost::normalizeFilename(std::string const& fileName)
 
 	return baseName;
 }
-
-
-// std::string	ResponsePost::getFileName()
-// {
-// 	std::string fileName;
-// 	std::string baseName;
-// 	std::string type;
-
-// 	if (this->_contentType == MULTIPART)
-// 	{
-// 		baseName = this->parseNameFromMultipart();
-// 		return baseName;
-// 	}
-// 	std::string rawValues = this->_req.getHeader("Content-Disposition");
-// 	std::vector<std::string> values = tokenizeLine(rawValues);
-
-// 	std::vector<std::string>::iterator it;
-// 	for (it = values.begin(); it != values.end(); it++)
-// 	{
-// 		if (it->substr(0, 9) == "filename=")
-// 		{
-// 			fileName = it->substr(9);
-// 			trimQuotes(fileName);
-// 			break;
-// 		}
-// 	}
-
-// 	if (fileName.empty())
-// 	{
-// 		std::string uri = this->_req.getUri();
-// 		size_t lastSlash = uri.find_last_of("/");
-
-// 		if (lastSlash != std::string::npos && lastSlash + 1 < uri.size())
-// 			fileName = uri.substr(lastSlash + 1);
-
-// 		if (fileName.empty())
-// 			fileName = "upload";
-// 	}
-
-// 	size_t	dotPos = fileName.find_last_of(".");
-// 	if (dotPos != std::string::npos && dotPos > 0)
-// 	{
-// 		baseName = fileName.substr(0, dotPos);
-// 		type = fileName.substr(dotPos + 1);
-// 		if (type.empty())
-// 			type = "dat";
-// 	}
-// 	else
-// 	{
-// 		baseName = fileName.empty() ? "upload" : fileName;
-// 		type = "dat";
-// 	}
-
-// 	this->makeUnicIde(baseName, type);
-
-// 	return baseName;
-// }
 
 void	ResponsePost::makeUnicIde(std::string& fileName, std::string const& type)
 {
@@ -173,6 +109,12 @@ bool	ResponsePost::setOrCreatePath(std::string const& path)
 
 int	ResponsePost::buildFromMultipart(void)
 {
+	if (this->_boundary.empty())
+	{
+		LOG_WARNING_LINK("request body has no boundaries");
+		return 400;
+	}
+
 	std::string bodyFilePath = this->_req.getBodyFilePath();
 
 	if (bodyFilePath.empty())
