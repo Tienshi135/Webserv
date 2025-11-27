@@ -32,21 +32,21 @@ void	ResponseDelete::buildResponse(void)
 
 	if (!this->_isSecurePath(deletePath))
 	{
-		this->_responseIsErrorPage(403);
+		this->_responseIsErrorPage(FORBIDDEN);
 		LOG_HIGH_WARNING("Directory traversal attack detected: [" + deletePath + "] sending 403 no permission");
 		return ;
 	}
 
 	if (std::remove(deletePath.c_str()) != 0)
 	{
-		this->_responseIsErrorPage(500);
+		this->_responseIsErrorPage(INTERNAL_SERVER_ERROR);
 		LOG_HIGH_WARNING("DELETE failed: remove() error [" + deletePath + "]");
 		return;
 	}
 
 	std::string httpMsg = "<html><body><h1>Deleted " + deletePath + "</h1></body></html>";
 	// this->addHeader("Location", resourceUri);
-	this->_setStatus(200);
+	this->_setStatus(OK);
 	this->_setBody(httpMsg, "text/html");//TODO  this is a placeholder, delete this when implemented a response page for upload
 	this->_bodyIsFile = false;
 	LOG_INFO("DELETE successful: [" + deletePath + "]");

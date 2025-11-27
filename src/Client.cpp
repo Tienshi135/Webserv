@@ -195,7 +195,7 @@ void	Client::sendResponse(void)
 	Response* response = ResponseFactory::createResponse(this->_config, this->_request);
 	if (!response)
 	{
-		response = new ResponseError(this->_config, this->_request, 500);//TODO maybe change it to send string raw
+		response = new ResponseError(this->_config, this->_request, INTERNAL_SERVER_ERROR);//TODO maybe change it to send string raw
 		LOG_HIGH_WARNING_LINK("Response creation failed");
 	}
 

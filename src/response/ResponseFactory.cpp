@@ -26,19 +26,19 @@ Response*	ResponseFactory::createResponse(ServerCfg const& cfg, Request const& r
 	if (!req.isValid())
 	{
 		LOG_WARNING_LINK("Invalid request received, returning 400 Bad Request");
-		return (new ResponseError(cfg, req, 400));
+		return (new ResponseError(cfg, req, BAD_REQUEST));
 	}
 
 	if (req.isTooBig())
 	{
 		LOG_WARNING_LINK("Request too big, sending 413 payload to large");
-		return (new ResponseError(cfg, req, 413));
+		return (new ResponseError(cfg, req, PAYLOAD_TOO_LARGE));
 	}
 
 	std::string method = req.getMethod();
 
 	if (!_isAllowedMethod(method, cfg, req))
-		return (new ResponseError(cfg, req, 405));
+		return (new ResponseError(cfg, req, METHOD_NOT_ALLOWED));
 
 	if (method == "GET")
 		return (new ResponseGet(cfg, req));
@@ -48,5 +48,5 @@ Response*	ResponseFactory::createResponse(ServerCfg const& cfg, Request const& r
 		return (new ResponseDelete(cfg, req));
 
 	LOG_WARNING_LINK("Requested method: [" + method + "] not recognized, sendind error page 405");
-	return (new ResponseError(cfg, req, 405));
+	return (new ResponseError(cfg, req, METHOD_NOT_ALLOWED));
 }

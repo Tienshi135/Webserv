@@ -5,7 +5,7 @@
 
 
 Response::Response(const ServerCfg &config, const Request &request)
-: _cfg(config), _req(request), _version("HTTP/1.0") , _statusCode(200), _statusMsg("OK"), _bodyIsFile(true)
+: _cfg(config), _req(request), _version("HTTP/1.0") , _statusCode(OK), _statusMsg("OK"), _bodyIsFile(true)
 {
 	this->_addHeader("Server", "Amazing webserv");
 	this->_addHeader("Connection", "close");
@@ -23,54 +23,54 @@ std::string	Response::_getReasonPhrase(int errCode) const
 	static std::map<int, std::string> errorCodes;
 
 	// 1xx Informational
-	errorCodes[100] = "Continue";
-	errorCodes[101] = "Switching Protocols";
+	errorCodes[CONTINUE] = "Continue";
+	errorCodes[SWITCHING_PROTOCOLS] = "Switching Protocols";
 
 	// 2xx Success
-	errorCodes[200] = "OK";
-	errorCodes[201] = "Created";
-	errorCodes[202] = "Accepted";
-	errorCodes[203] = "Non-Authoritative Information";
-	errorCodes[204] = "No Content";
-	errorCodes[205] = "Reset Content";
-	errorCodes[206] = "Partial Content";
+	errorCodes[OK] = "OK";
+	errorCodes[CREATED] = "Created";
+	errorCodes[ACCEPTED] = "Accepted";
+	errorCodes[NON_AUTHORITATIVE_INFORMATION] = "Non-Authoritative Information";
+	errorCodes[NO_CONTENT] = "No Content";
+	errorCodes[RESET_CONTENT] = "Reset Content";
+	errorCodes[PARTIAL_CONTENT] = "Partial Content";
 
 	// 3xx Redirection
-	errorCodes[300] = "Multiple Choices";
-	errorCodes[301] = "Moved Permanently";
-	errorCodes[302] = "Found";
-	errorCodes[303] = "See Other";
-	errorCodes[304] = "Not Modified";
-	errorCodes[305] = "Use Proxy";
-	errorCodes[307] = "Temporary Redirect";
+	errorCodes[MULTIPLE_CHOICES] = "Multiple Choices";
+	errorCodes[MOVED_PERMANENTLY] = "Moved Permanently";
+	errorCodes[FOUND] = "Found";
+	errorCodes[SEE_OTHER] = "See Other";
+	errorCodes[NOT_MODIFIED] = "Not Modified";
+	errorCodes[USE_PROXY] = "Use Proxy";
+	errorCodes[TEMPORARY_REDIRECT] = "Temporary Redirect";
 
 	// 4xx Client Errors
-	errorCodes[400] = "Bad Request";
-	errorCodes[401] = "Unauthorized";
-	errorCodes[402] = "Payment Required";
-	errorCodes[403] = "Forbidden";
-	errorCodes[404] = "Not Found";
-	errorCodes[405] = "Method Not Allowed";
-	errorCodes[406] = "Not Acceptable";
-	errorCodes[407] = "Proxy Authentication Required";
-	errorCodes[408] = "Request Timeout";
-	errorCodes[409] = "Conflict";
-	errorCodes[410] = "Gone";
-	errorCodes[411] = "Length Required";
-	errorCodes[412] = "Precondition Failed";
-	errorCodes[413] = "Payload Too Large";
-	errorCodes[414] = "URI Too Long";
-	errorCodes[415] = "Unsupported Media Type";
-	errorCodes[416] = "Range Not Satisfiable";
-	errorCodes[417] = "Expectation Failed";
+	errorCodes[BAD_REQUEST] = "Bad Request";
+	errorCodes[UNAUTHORIZED] = "Unauthorized";
+	errorCodes[PAYMENT_REQUIRED] = "Payment Required";
+	errorCodes[FORBIDDEN] = "Forbidden";
+	errorCodes[NOT_FOUND] = "Not Found";
+	errorCodes[METHOD_NOT_ALLOWED] = "Method Not Allowed";
+	errorCodes[NOT_ACCEPTABLE] = "Not Acceptable";
+	errorCodes[PROXY_AUTHENTICATION_REQUIRED] = "Proxy Authentication Required";
+	errorCodes[REQUEST_TIMEOUT] = "Request Timeout";
+	errorCodes[CONFLICT] = "Conflict";
+	errorCodes[GONE] = "Gone";
+	errorCodes[LENGTH_REQUIRED] = "Length Required";
+	errorCodes[PRECONDITION_FAILED] = "Precondition Failed";
+	errorCodes[PAYLOAD_TOO_LARGE] = "Payload Too Large";
+	errorCodes[URI_TOO_LONG] = "URI Too Long";
+	errorCodes[UNSUPPORTED_MEDIA_TYPE] = "Unsupported Media Type";
+	errorCodes[RANGE_NOT_SATISFIABLE] = "Range Not Satisfiable";
+	errorCodes[EXPECTATION_FAILED] = "Expectation Failed";
 
 	// 5xx Server Errors
-	errorCodes[500] = "Internal Server Error";
-	errorCodes[501] = "Not Implemented";
-	errorCodes[502] = "Bad Gateway";
-	errorCodes[503] = "Service Unavailable";
-	errorCodes[504] = "Gateway Timeout";
-	errorCodes[505] = "HTTP Version Not Supported";
+	errorCodes[INTERNAL_SERVER_ERROR] = "Internal Server Error";
+	errorCodes[NOT_IMPLEMENTED] = "Not Implemented";
+	errorCodes[BAD_GATEWAY] = "Bad Gateway";
+	errorCodes[SERVICE_UNAVAILABLE] = "Service Unavailable";
+	errorCodes[GATEWAY_TIMEOUT] = "Gateway Timeout";
+	errorCodes[HTTP_VERSION_NOT_SUPPORTED] = "HTTP Version Not Supported";
 
 	std::map<int, std::string>::const_iterator it = errorCodes.find(errCode);
 	if (it != errorCodes.end())
@@ -85,26 +85,26 @@ void	Response::_responseIsErrorPage(int errCode)
 	if (this->_sendCustomErrorPage(errCode))
 		return;
 	// 4xx Client Errors
-	errorPages[400] = "<!DOCTYPE html><html><body><h1>400 Bad Request</h1><p>The request could not be understood by the server.</p></body></html>";
-	errorPages[401] = "<!DOCTYPE html><html><body><h1>401 Unauthorized</h1><p>Authentication is required to access this resource.</p></body></html>";
-	errorPages[403] = "<!DOCTYPE html><html><body><h1>403 Forbidden</h1><p>Access to this resource is forbidden.</p></body></html>";
-	errorPages[404] = "<!DOCTYPE html><html><body><h1>404 Not Found</h1><p>The requested resource could not be found.</p></body></html>";
-	errorPages[405] = "<!DOCTYPE html><html><body><h1>405 Method Not Allowed</h1><p>The method is not allowed for this resource.</p></body></html>";
-	errorPages[408] = "<!DOCTYPE html><html><body><h1>408 Request Timeout</h1><p>The server timed out waiting for the request.</p></body></html>";
-	errorPages[409] = "<!DOCTYPE html><html><body><h1>409 Conflict</h1><p>The request conflicts with the current state of the server.</p></body></html>";
-	errorPages[410] = "<!DOCTYPE html><html><body><h1>410 Gone</h1><p>The requested resource is no longer available.</p></body></html>";
-	errorPages[411] = "<!DOCTYPE html><html><body><h1>411 Length Required</h1><p>Content-Length header is required.</p></body></html>";
-	errorPages[413] = "<!DOCTYPE html><html><body><h1>413 Payload Too Large</h1><p>The request entity is too large.</p></body></html>";
-	errorPages[414] = "<!DOCTYPE html><html><body><h1>414 URI Too Long</h1><p>The request URI is too long.</p></body></html>";
-	errorPages[415] = "<!DOCTYPE html><html><body><h1>415 Unsupported Media Type</h1><p>The media type is not supported.</p></body></html>";
+	errorPages[BAD_REQUEST] = "<!DOCTYPE html><html><body><h1>400 Bad Request</h1><p>The request could not be understood by the server.</p></body></html>";
+	errorPages[UNAUTHORIZED] = "<!DOCTYPE html><html><body><h1>401 Unauthorized</h1><p>Authentication is required to access this resource.</p></body></html>";
+	errorPages[FORBIDDEN] = "<!DOCTYPE html><html><body><h1>403 Forbidden</h1><p>Access to this resource is forbidden.</p></body></html>";
+	errorPages[NOT_FOUND] = "<!DOCTYPE html><html><body><h1>404 Not Found</h1><p>The requested resource could not be found.</p></body></html>";
+	errorPages[METHOD_NOT_ALLOWED] = "<!DOCTYPE html><html><body><h1>405 Method Not Allowed</h1><p>The method is not allowed for this resource.</p></body></html>";
+	errorPages[REQUEST_TIMEOUT] = "<!DOCTYPE html><html><body><h1>408 Request Timeout</h1><p>The server timed out waiting for the request.</p></body></html>";
+	errorPages[CONFLICT] = "<!DOCTYPE html><html><body><h1>409 Conflict</h1><p>The request conflicts with the current state of the server.</p></body></html>";
+	errorPages[GONE] = "<!DOCTYPE html><html><body><h1>410 Gone</h1><p>The requested resource is no longer available.</p></body></html>";
+	errorPages[LENGTH_REQUIRED] = "<!DOCTYPE html><html><body><h1>411 Length Required</h1><p>Content-Length header is required.</p></body></html>";
+	errorPages[PAYLOAD_TOO_LARGE] = "<!DOCTYPE html><html><body><h1>413 Payload Too Large</h1><p>The request entity is too large.</p></body></html>";
+	errorPages[URI_TOO_LONG] = "<!DOCTYPE html><html><body><h1>414 URI Too Long</h1><p>The request URI is too long.</p></body></html>";
+	errorPages[UNSUPPORTED_MEDIA_TYPE] = "<!DOCTYPE html><html><body><h1>415 Unsupported Media Type</h1><p>The media type is not supported.</p></body></html>";
 
 	// 5xx Server Errors
-	errorPages[500] = "<!DOCTYPE html><html><body><h1>500 Internal Server Error</h1><p>The server encountered an unexpected condition.</p></body></html>";
-	errorPages[501] = "<!DOCTYPE html><html><body><h1>501 Not Implemented</h1><p>The server does not support the functionality required.</p></body></html>";
-	errorPages[502] = "<!DOCTYPE html><html><body><h1>502 Bad Gateway</h1><p>The server received an invalid response from an upstream server.</p></body></html>";
-	errorPages[503] = "<!DOCTYPE html><html><body><h1>503 Service Unavailable</h1><p>The server is temporarily unable to handle the request.</p></body></html>";
-	errorPages[504] = "<!DOCTYPE html><html><body><h1>504 Gateway Timeout</h1><p>The server did not receive a timely response from an upstream server.</p></body></html>";
-	errorPages[505] = "<!DOCTYPE html><html><body><h1>505 HTTP Version Not Supported</h1><p>The HTTP version is not supported by the server.</p></body></html>";
+	errorPages[INTERNAL_SERVER_ERROR] = "<!DOCTYPE html><html><body><h1>500 Internal Server Error</h1><p>The server encountered an unexpected condition.</p></body></html>";
+	errorPages[NOT_IMPLEMENTED] = "<!DOCTYPE html><html><body><h1>501 Not Implemented</h1><p>The server does not support the functionality required.</p></body></html>";
+	errorPages[BAD_GATEWAY] = "<!DOCTYPE html><html><body><h1>502 Bad Gateway</h1><p>The server received an invalid response from an upstream server.</p></body></html>";
+	errorPages[SERVICE_UNAVAILABLE] = "<!DOCTYPE html><html><body><h1>503 Service Unavailable</h1><p>The server is temporarily unable to handle the request.</p></body></html>";
+	errorPages[GATEWAY_TIMEOUT] = "<!DOCTYPE html><html><body><h1>504 Gateway Timeout</h1><p>The server did not receive a timely response from an upstream server.</p></body></html>";
+	errorPages[HTTP_VERSION_NOT_SUPPORTED] = "<!DOCTYPE html><html><body><h1>505 HTTP Version Not Supported</h1><p>The HTTP version is not supported by the server.</p></body></html>";
 
 	this->_setStatus(errCode);
 	this->_body = errorPages[errCode];
@@ -238,13 +238,13 @@ off_t	Response::_validateFilePath(std::string const& path)
 	//check if the file exists and is readeable
 	if (access(path.c_str(), F_OK) < 0)
 	{
-		this->_responseIsErrorPage(404);
+		this->_responseIsErrorPage(NOT_FOUND);
 		LOG_INFO_LINK("File [" + path + "] not found, sending error page 404");
 		return -1;
 	}
 	if (access(path.c_str(), R_OK) < 0)
 	{
-		this->_responseIsErrorPage(403);
+		this->_responseIsErrorPage(FORBIDDEN);
 		LOG_INFO_LINK("Can't read file [" + path + "], forbidden, sending error page 403");
 		return -1;
 	}
@@ -252,7 +252,7 @@ off_t	Response::_validateFilePath(std::string const& path)
 	struct stat fileStat;
 	if (stat(path.c_str(), &fileStat) != 0)
 	{
-		this->_responseIsErrorPage(500);
+		this->_responseIsErrorPage(INTERNAL_SERVER_ERROR);
 		LOG_INFO_LINK("Failed to get file [" + path + "] stats, sending error page 500");
 		return -1;
 	}
@@ -260,7 +260,7 @@ off_t	Response::_validateFilePath(std::string const& path)
 	// Check if it's a regular file
 	if (!S_ISREG(fileStat.st_mode))
 	{
-		this->_responseIsErrorPage(403);
+		this->_responseIsErrorPage(FORBIDDEN);
 		LOG_INFO_LINK("Path [" + path + "] is not a regular file, sending error page 403");
 		return -1;
 	}
@@ -279,7 +279,7 @@ void	Response::_sendFileAsBody(std::string const& path)
 
 	this->_bodyIsFile = true;
 	this->_bodyFilePath = path;
-	this->_setStatus(200);
+	this->_setStatus(OK);
 	return ;
 }
 
