@@ -675,3 +675,76 @@ std::string urlDecode(std::string const& encoded)
 
 	return decoded;
 }
+
+/**
+ * @brief Encodes strings to URL-safe format (percent-encoding per RFC 3986)
+ *
+ * Converts characters that are not allowed in URLs to %XX format.
+ * Preserves unreserved characters: letters, digits, and -._~
+ * All other characters are percent-encoded.
+ *
+ * Examples:
+ *   "hello world"     → "hello%20world"
+ *   "100% complete"   → "100%25%20complete"
+ *   "file (1).txt"    → "file%20%281%29.txt"
+ *
+ * @param s String to encode
+ * @return URL-encoded string safe for use in URIs
+ *
+ * @note Used for generating safe URIs in Location headers and links
+ * @note Complements urlDecode() for bidirectional conversion
+ */
+std::string	urlEncode(const std::string& s)
+{
+	static const char *hex = "0123456789ABCDEF";
+	std::string out;
+	for (size_t i = 0; i < s.size(); ++i) {
+		unsigned char c = s[i];
+		if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+			(c >= '0' && c <= '9') || c=='-' || c=='.' || c=='_' || c=='~') {
+			out.push_back(c);
+		} else {
+			out.push_back('%');
+			out.push_back(hex[c >> 4]);
+			out.push_back(hex[c & 15]);
+		}
+	}
+	return out;
+}
+
+/**
+ * @brief Escapes HTML special characters to prevent XSS attacks
+ *
+ * Converts potentially dangerous HTML characters to their entity equivalents:
+ *   & → &amp;
+ *   < → &lt;
+ *   > → &gt;
+ *   " → &quot;
+ *   ' → &#39;
+ *
+ * Examples:
+ *   "<script>alert('XSS')</script>" → "&lt;script&gt;alert(&#39;XSS&#39;)&lt;/script&gt;"
+ *   "5 < 10 & 10 > 5"               → "5 &lt; 10 &amp; 10 &gt; 5"
+ *
+ * @param s String containing raw text (potentially with HTML special chars)
+ * @return HTML-safe string that can be displayed in browsers without interpretation
+ *
+ * @note Essential for security when displaying user-supplied data in HTML
+ * @note Used in autoindex listings and error pages to prevent XSS
+ */
+std::string	htmlEscape(const std::string& s)
+{
+	std::string out;
+	out.reserve(s.size());
+	for (size_t i = 0; i < s.size(); ++i) {
+		switch (s[i]) {
+			case '&': out += "&amp;"; break;
+			case '<': out += "&lt;"; break;
+			case '>': out += "&gt;"; break;
+			case '"': out += "&quot;"; break;
+			case '\'': out += "&#39;"; break;
+			default: out += s[i];
+		}
+	}
+	return out;
+}

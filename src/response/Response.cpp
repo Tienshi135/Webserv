@@ -5,7 +5,7 @@
 
 
 Response::Response(const ServerCfg &config, const Request &request)
-: _cfg(config), _req(request), _version("HTTP/1.0") , _statusCode(200), _statusMsg("OK"), _bodyIsFile(true)
+: _cfg(config), _req(request), _version("HTTP/1.0") , _statusCode(200), _statusMsg("OK"), _autoindex(_cfg.getAutoindex()), _bodyIsFile(true)
 {
 	this->_addHeader("Server", "Amazing webserv");
 	this->_addHeader("Connection", "close");
@@ -223,6 +223,7 @@ void	Response::_setStatus(int code)
 
 void	Response::_setBody(std::string const& bodyContent, std::string const& contentType)
 {
+	this->_bodyIsFile = false;
 	this->_body = bodyContent;
 	this->_addHeader("Content-Type", contentType);
 	this->_addHeader("Content-Length", numToString(this->_body.size()));
@@ -269,7 +270,32 @@ off_t	Response::_validateFilePath(std::string const& path)
 
 void	Response::_sendFileAsBody(std::string const& path)
 {
-	off_t contentSize = this->_validateFilePath(path);
+	off_t contentSize;
+	if (pathIsDirectory(path))
+	{
+		if (this->_autoindex)
+		{
+			std::string body = this->_generateDirListingHtml(path);
+			if (body.empty())
+			{
+				LOG_INFO_LINK("requested directory listing: [" + path + "] but couldn't open it");
+				this->_responseIsErrorPage(413);
+				return;
+			}
+			this->_setBody(body, "text/html");
+			this->_setStatus(200);
+		}
+		else
+		{
+			LOG_INFO_LINK("requested directory listing: [" + path + "] but autoindex is off, sending 403 forbidden");
+			this->_responseIsErrorPage(403);
+		}
+
+		return ;
+	}
+	else
+		contentSize = this->_validateFilePath(path);
+
 	if (contentSize < 0)
 		return ;
 
@@ -312,6 +338,64 @@ std::string	Response::_normalizePath(std::string const& root, std::string const&
 		normalizedUri = uri.substr(1);
 
 	return normalizedRoot + normalizedUri;
+}
+std::string	Response::_generateDirListingHtml(std::string const& path)
+{
+	DIR *dir = opendir(path.c_str());
+	if (!dir)
+		return ("");
+
+	struct dirent *d;
+	std::vector<std::string> entries;
+
+	while ((d = readdir(dir)) != NULL)
+	{
+		std::string name = d->d_name;
+
+		if (name == "." || name == "..")
+			continue;
+
+		entries.push_back(name);
+	}
+
+	closedir(dir);
+
+	std::sort(entries.begin(), entries.end());
+
+	std::ostringstream html;
+	html << "<html><head><title>Index of "
+		<< htmlEscape(path)
+		<< "</title></head><body>\n";
+	html << "<h1>Index of " << htmlEscape(path) << "</h1>\n";
+	html << "<ul>\n";
+
+	for (size_t i = 0; i < entries.size(); ++i)
+	{
+		std::string name = entries[i];
+		std::string fullpath = path + "/" + name;
+
+		struct stat st;
+		if (stat(fullpath.c_str(), &st) == -1)
+			continue;
+
+		bool is_dir = S_ISDIR(st.st_mode);
+
+		std::string href = urlEncode(name);
+		if (is_dir)
+			href += "/";
+
+		std::string display = htmlEscape(name);
+		if (is_dir)
+			display += "/";
+
+		html << "<li><a href=\"" << href << "\">"
+				<< display
+				<< "</a></li>\n";
+	}
+
+	html << "</ul></body></html>\n";
+
+	return html.str();
 }
 
 /*========================= Public member functions  ================================*/
