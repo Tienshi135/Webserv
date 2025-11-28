@@ -38,6 +38,8 @@ void	ResponseGet::buildResponse(void)
 	}
 	else
 	{
+		this->_autoindex = location->getAutoindex();
+
 		std::string locationPath = location->getLocationPath();
 		std::string relativePath = reqPath;
 

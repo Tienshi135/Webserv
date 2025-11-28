@@ -22,6 +22,7 @@
 #include <sys/select.h>
 #include <fcntl.h>
 #include <sys/time.h>
+#include <dirent.h>
 #include "Configuration.hpp"
 
 // Parsing includes
@@ -136,6 +137,8 @@ ssize_t						getSafeSize(std::string const& sizeString);
 void						setDefaults(ServerCfg& server);
 void						trimQuotes(std::string& quoted);
 std::string					urlDecode(std::string const& encoded);
+std::string					urlEncode(const std::string& s);
+std::string					htmlEscape(const std::string& s);
 
 //parsing booleans
 bool	foundServer(std::vector<std::string>& tknLine, File& file);

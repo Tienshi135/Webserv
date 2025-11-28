@@ -18,12 +18,14 @@ class Response
 		std::map<std::string, std::string>	_headers;
 		std::string							_body;
 
+		bool			_autoindex;
 		bool			_bodyIsFile;
 		std::string		_bodyFilePath;
 
 	//private functions
 		std::string		_getReasonPhrase(int errCode) const;
 		std::string		_getContentType(std::string const& path) const;
+		std::string		_generateDirListingHtml(std::string const& path);
 
 	//setting atributes
 		void	_setStatus(int code);

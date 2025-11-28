@@ -195,8 +195,19 @@ void	Client::sendResponse(void)
 	Response* response = ResponseFactory::createResponse(this->_config, this->_request);
 	if (!response)
 	{
-		response = new ResponseError(this->_config, this->_request, INTERNAL_SERVER_ERROR);//TODO maybe change it to send string raw
 		LOG_HIGH_WARNING_LINK("Response creation failed");
+
+		std::string firstLine = "HTTP/1.1 500 Internal Server Error";
+		std::string body = "<!DOCTYPE html><html><body><h1>500 Internal Server Error</h1><p>The server encountered an unexpected condition, memory allocation failed.</p></body></html>";
+		std::string headers = "Content-Length: " + numToString(body.size()) + "\r\nConten-Type: text/html\r\n";
+		std::string responseBadAlloc = firstLine + "\r\n" + headers + "\r\n" + "\r\n\r\n" + body;
+
+		ssize_t bytes_sent = send(this->_client_fd, responseBadAlloc.c_str(), responseBadAlloc.length(), 0);
+		if (bytes_sent == -1)
+			LOG_HIGH_WARNING_LINK("[send] function failed to send the response to the browser");
+		gettimeofday(&this->_response_sent_time, NULL);
+		this->printPerformanceStats();
+		return;
 	}
 
 	response->buildResponse();
@@ -205,9 +216,7 @@ void	Client::sendResponse(void)
 
 	ssize_t bytes_sent = send(this->_client_fd, response_str.c_str(), response_str.length(), 0);
 	if (bytes_sent == -1)
-	{
 		LOG_HIGH_WARNING_LINK("[send] function failed to send the response to the browser");
-	}
 
 	gettimeofday(&this->_response_sent_time, NULL);
 
