@@ -310,7 +310,7 @@ void Location::setReturn(std::vector<std::string>& return_val)
 		std::string value = return_val.front();
 		if (isUrl(value))
 		{
-			this->_return.code = 302;
+			this->_return.code = FOUND;
 			this->_return.value = value;
 			this->_return.isSet = true;
 			return;

@@ -19,7 +19,7 @@ void	ResponseGet::buildResponse(void)
 
 	if (!this->_isSecurePath(reqPath))
 	{
-		this->_responseIsErrorPage(403);
+		this->_responseIsErrorPage(FORBIDDEN);
 		LOG_HIGH_WARNING("Directory traversal attack detected: [" + reqPath + "] sending 403 no permission");
 		return ;
 	}

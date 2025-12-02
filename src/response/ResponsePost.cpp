@@ -88,13 +88,13 @@ bool	ResponsePost::setOrCreatePath(std::string const& path)
 	if (pathIsExecutable(path))
 	{
 		LOG_HIGH_WARNING_LINK("Path exists but is an executable, not a directory: [" + path + "]");
-		this->_responseIsErrorPage(500);
+	this->_responseIsErrorPage(INTERNAL_SERVER_ERROR);
 		return false;
 	}
 	if (pathIsRegFile(path))
 	{
 		LOG_HIGH_WARNING_LINK("Path exists but is a file, not a directory: [" + path + "]");
-		this->_responseIsErrorPage(500);
+	this->_responseIsErrorPage(INTERNAL_SERVER_ERROR);
 		return false;
 	}
 
@@ -102,7 +102,7 @@ bool	ResponsePost::setOrCreatePath(std::string const& path)
 	if (mkdir(path.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) != 0)
 	{
 		LOG_HIGH_WARNING_LINK("Failed to create direcory: [" + path + "]");
-		this->_responseIsErrorPage(500);
+	this->_responseIsErrorPage(INTERNAL_SERVER_ERROR);
 		return false;
 	}
 
@@ -122,14 +122,14 @@ int	ResponsePost::buildFromMultipart(void)
 	if (bodyFilePath.empty())
 	{
 		LOG_HIGH_WARNING_LINK("No body file path available");
-		return 400;
+		return BAD_REQUEST;
 	}
 
 	std::ifstream bodyFile(bodyFilePath.c_str(), std::ios::binary);
 	if (!bodyFile.is_open())
 	{
 		LOG_HIGH_WARNING_LINK("Failed to open body file: " + bodyFilePath);
-		return 500;
+		return INTERNAL_SERVER_ERROR;
 	}
 
 	// Parse headers (same as above)
@@ -154,7 +154,7 @@ int	ResponsePost::buildFromMultipart(void)
 	{
 		bodyFile.close();
 		LOG_HIGH_WARNING_LINK("Open boundary not found on body file: " + bodyFilePath);
-		return 400;
+		return BAD_REQUEST;
 	}
 
 	// Parse headers
@@ -199,7 +199,7 @@ int	ResponsePost::buildFromMultipart(void)
 	{
 		bodyFile.close();
 		LOG_HIGH_WARNING_LINK("Failed to create output file: " + savePath);
-		return 500;
+		return INTERNAL_SERVER_ERROR;
 	}
 
 	// Stream copy content until boundary
@@ -241,7 +241,7 @@ int	ResponsePost::buildFromMultipart(void)
 	{
 		LOG_HIGH_WARNING_LINK("Failed to write file: " + savePath);
 		std::remove(savePath.c_str());
-		return 500;
+		return INTERNAL_SERVER_ERROR;
 	}
 
 	std::string resourceUri = this->_req.getUri();
@@ -251,7 +251,7 @@ int	ResponsePost::buildFromMultipart(void)
 
 	this->_addHeader("Location", resourceUri);
 	this->_bodyIsFile = false;
-	this->_setStatus(201);
+	this->_setStatus(CREATED);
 	this->_setBody("<html><body><h1>201 Created</h1></body></html>", "text/html");//TODO  this is a placeholder, delete this when implemented a response page for upload
 
 	return 0;
@@ -285,7 +285,7 @@ std::string	ResponsePost::saveFilePath(void)
 	if (!_isSecurePath(savePath))
 	{
 		LOG_WARNING_LINK("Response POST build insecure path: [" + savePath + "]");
-		_responseIsErrorPage(400);
+		_responseIsErrorPage(BAD_REQUEST);
 		return "";
 	}
 
@@ -315,8 +315,8 @@ void	ResponsePost::buildResponse(void)
 	switch (this->_contentType)
 	{
 	case TEXT:
-			LOG_WARNING_LINK("Content type [text/plain] not supported yet");
-			this->_responseIsErrorPage(415);
+		LOG_WARNING_LINK("Content type [text/plain] not supported yet");
+		this->_responseIsErrorPage(UNSUPPORTED_MEDIA_TYPE);
 		return;
 	case MULTIPART:
 		errorCode = this->buildFromMultipart();
@@ -325,15 +325,15 @@ void	ResponsePost::buildResponse(void)
 		return;
 	case JSON:
 		LOG_WARNING_LINK("Content type [application/json] not supported yet");
-		this->_responseIsErrorPage(415);
+		this->_responseIsErrorPage(UNSUPPORTED_MEDIA_TYPE);
 		return;
 	case URLENCODED:
 		LOG_WARNING_LINK("Content type [application/x-www-form-urlencoded] not supported yet");
-		this->_responseIsErrorPage(415);
+		this->_responseIsErrorPage(UNSUPPORTED_MEDIA_TYPE);
 		return;
 	default:
 		LOG_WARNING_LINK("Content type not supported");
-		this->_responseIsErrorPage(415);
+		this->_responseIsErrorPage(UNSUPPORTED_MEDIA_TYPE);
 		return;
 	}
 }
