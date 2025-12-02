@@ -259,13 +259,15 @@ bool	ServerCfg::minValidCfg(void) const
 
 /*============== Constructor and destructors ================*/
 
-Location::Location() : Configuration(), _path(""), _cgiPass(""), _return() {}
+Location::Location() : Configuration(), _path(""), _cgiPass(""), _return(), _validCgiExt(), _cgiMap() {}
 
 Location::Location(const Location &copy)
 : Configuration(copy),
 _path(copy._path),
 _cgiPass(copy._cgiPass),
-_return(copy._return)
+_return(copy._return),
+_validCgiExt(copy._validCgiExt),
+_cgiMap(copy._cgiMap)
 {}
 
 Location::~Location(){}
@@ -280,6 +282,8 @@ Location &Location::operator=(const Location &copy)
 		this->_path = copy._path;
 		this->_cgiPass = copy._cgiPass;
 		this->_return = copy._return;
+		this->_validCgiExt = copy._validCgiExt;
+		this->_cgiMap = copy._cgiMap;
 	}
 	return (*this);
 }
@@ -337,6 +341,53 @@ void Location::setReturn(std::vector<std::string>& return_val)
 	}
 	this->_return.isSet = true;
 }
+void	Location::setCgiExt(std::vector<std::string>& cgiExt)
+{
+	std::vector<std::string>::const_iterator it;
+
+	for (it = cgiExt.begin(); it != cgiExt.end(); it++)
+	{
+		if (std::find(this->_validCgiExt.begin(), this->_validCgiExt.end(), *it) == this->_validCgiExt.end())
+			this->_validCgiExt.push_back(*it);
+	}
+}
+
+void	Location::addCgiExt(std::string const& cgiExt)
+{
+	if (std::find(this->_validCgiExt.begin(), this->_validCgiExt.end(), cgiExt) == this->_validCgiExt.end())
+		this->_validCgiExt.push_back(cgiExt);
+}
+
+void	Location::addCgiPair(std::vector<std::string>& cgiMapPair)
+{
+	if (cgiMapPair.size() % 2 != 0)
+		throw ERR_PARS("Directive [cgi_map] need a pair number of elements");
+
+	std::vector<std::string>::iterator it;
+	for (it = cgiMapPair.begin(); it != cgiMapPair.end(); it++)
+	{
+		std::string	ext = *it;
+		if (ext[0] != '.')
+			throw ERR_PARS("Bad extension in cgi Location: [" + *it + "]");
+		it++;
+		std::string	pathToBin = *it;
+		if (pathToBin.empty())
+			throw ERR_PARS("missing error page path");
+		if (!pathIsExecutable(pathToBin))
+			throw ERR_PARS("Path to binary file [" + pathToBin + "], to execute [" + ext + "] extensions, is not an executable file" );
+
+		this->_cgiMap[ext] = pathToBin;
+		this->addCgiExt(ext);
+	}
+}
+
+void	Location::setCgiMap(std::map<std::string, std::string>& cgiMap)
+{
+	this->_cgiMap.clear();
+	this->_cgiMap.insert(cgiMap.begin(), cgiMap.end());
+}
+
+
 
 /*============== Member private functions ================*/
 

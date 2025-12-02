@@ -2,8 +2,8 @@
 
 #include "header.hpp"
 #include "Request.hpp"
-#include "Response.hpp"
-#include "ResponseFactory.hpp"
+#include "Response_headers/Response.hpp"
+#include "Response_headers/ResponseFactory.hpp"
 #include "signal.h"
 #include <unistd.h>
 

@@ -22,6 +22,7 @@ typedef enum ConfigType
 
 	LOCATION,
 	CGIPASS,
+	CGIMAP,
 
 	UNKNOWN
 }	e_configtype;
@@ -77,9 +78,12 @@ class Location : public Configuration
 	private:
 
 
-		std::string		_path;
-		std::string		_cgiPass;
-		ReturnDirective	_return;
+		std::string							_path;
+		std::string							_cgiPass;
+		ReturnDirective						_return;
+		std::vector<std::string>			_validCgiExt;
+		std::map<std::string, std::string>  _cgiMap;
+
 
 		int	parseReturnCode(std::string const& strCode);
 
@@ -95,6 +99,11 @@ class Location : public Configuration
 		//setters complex
 		void		setCgiPass(std::vector<std::string> const& value);
 		void		setReturn(std::vector<std::string>& return_val);
+		void		setCgiExt(std::vector<std::string>& cgiExt);
+		void		addCgiExt(std::string const& cgiExt);
+		void		setCgiMap(std::map<std::string, std::string>& cgiMap);
+		void		addCgiPair(std::vector<std::string>& cgiMapPair);
+
 
 		//getters
 		std::string getLocationPath() const { return this->_path; };

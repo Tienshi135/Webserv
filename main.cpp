@@ -1,9 +1,9 @@
 #include "header.hpp"
 #include "Request.hpp"
-#include "Response.hpp"
-#include "ResponseFactory.hpp"
-#include "ResponseError.hpp"
-#include "ResponseGet.hpp"
+#include "Response_headers/Response.hpp"
+#include "Response_headers/ResponseFactory.hpp"
+#include "Response_headers/ResponseError.hpp"
+#include "Response_headers/ResponseGet.hpp"
 #include "Client.hpp"
 #include <unistd.h>
 #include <signal.h>

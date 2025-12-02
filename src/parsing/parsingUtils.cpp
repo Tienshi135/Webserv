@@ -307,6 +307,7 @@ e_configtype	findType(std::string directive)
 		typeMap["max_body_size"] = MAX_BODY_SIZE;
 		typeMap["store"] = STORE;
 
+		typeMap["cgi_map"] = CGIMAP;
 		typeMap["location"] = LOCATION;
 	}
 

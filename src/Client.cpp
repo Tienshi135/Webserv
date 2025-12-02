@@ -1,6 +1,6 @@
 #include "Client.hpp"
 #include "Configuration.hpp"
-#include "ResponseError.hpp"
+#include "Response_headers/ResponseError.hpp"
 
 /*============================= Constructors and destructor =====================================*/
 Client::Client(std::map<int, ServerCfg>::iterator const& fd_and_cfg)

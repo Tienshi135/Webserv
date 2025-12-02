@@ -1,4 +1,6 @@
-#include "ResponsePost.hpp"
+#include "Response_headers/ResponsePost.hpp"
+#include "CGIheaders/ACGIexecutor.hpp"
+#include "CGIheaders/CGIfactory.hpp"
 #include "Request.hpp"
 #include "Configuration.hpp"
 
@@ -295,13 +297,26 @@ std::string	ResponsePost::saveFilePath(void)
 void	ResponsePost::buildResponse(void)
 {
 	//TODO handle first if POST demands CGI. if yes, launch the binary, if not, store body as a file.
+
+	if (CGIfactory::isValidCGI(this->_req, this->_cfg))
+	{
+		ACGIexecutor *CGI = CGIfactory::create(this->_req, this->_cfg);
+		if (!CGI)
+		{
+			LOG_HIGH_WARNING_LINK("CGI allocation failed");
+			this->_responseIsErrorPage(500);
+		}
+		CGI->execute();
+		return;
+	}
+
 	int errorCode;
 
 	switch (this->_contentType)
 	{
 	case TEXT:
-		LOG_WARNING_LINK("Content type [text/plain] not supported yet");
-		this->_responseIsErrorPage(415);
+			LOG_WARNING_LINK("Content type [text/plain] not supported yet");
+			this->_responseIsErrorPage(415);
 		return;
 	case MULTIPART:
 		errorCode = this->buildFromMultipart();
