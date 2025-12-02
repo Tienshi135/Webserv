@@ -5,10 +5,10 @@
 class ResponseError : public Response
 {
 private:
-	int	_errorCode;
+	e_errorcode	_errorCode;
 
 public:
-	ResponseError(ServerCfg const& cfg, Request const& req, int errorCode);
+	ResponseError(ServerCfg const& cfg, Request const& req, e_errorcode errorCode);
 	virtual ~ResponseError();
 
 	virtual void	buildResponse();

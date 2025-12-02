@@ -109,12 +109,12 @@ bool	ResponsePost::setOrCreatePath(std::string const& path)
 	return true;
 }
 
-int	ResponsePost::buildFromMultipart(void)
+e_errorcode	ResponsePost::buildFromMultipart(void)
 {
 	if (this->_boundary.empty())
 	{
 		LOG_WARNING_LINK("request body has no boundaries");
-		return 400;
+		return BAD_REQUEST;
 	}
 
 	std::string bodyFilePath = this->_req.getBodyFilePath();
@@ -191,7 +191,7 @@ int	ResponsePost::buildFromMultipart(void)
 	if (savePath.empty())
 	{
 		bodyFile.close();
-		return -1;//error already set in savefilepath
+		return RESPONSEPOST_ERROR;//error already set in savefilepath
 	}
 
 	std::ofstream outFile(savePath.c_str(), std::ios::binary);
@@ -254,7 +254,7 @@ int	ResponsePost::buildFromMultipart(void)
 	this->_setStatus(CREATED);
 	this->_setBody("<html><body><h1>201 Created</h1></body></html>", "text/html");//TODO  this is a placeholder, delete this when implemented a response page for upload
 
-	return 0;
+	return RESPONSEPOST_OK;
 }
 
 std::string	ResponsePost::saveFilePath(void)
@@ -304,13 +304,13 @@ void	ResponsePost::buildResponse(void)
 		if (!CGI)
 		{
 			LOG_HIGH_WARNING_LINK("CGI allocation failed");
-			this->_responseIsErrorPage(500);
+			this->_responseIsErrorPage(INTERNAL_SERVER_ERROR);
 		}
 		CGI->execute();
 		return;
 	}
 
-	int errorCode;
+	e_errorcode errorCode;
 
 	switch (this->_contentType)
 	{

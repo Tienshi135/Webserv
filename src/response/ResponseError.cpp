@@ -4,7 +4,7 @@
 
 /*============== constructor and destructor =============*/
 
-ResponseError::ResponseError(ServerCfg const& cfg, Request const& req, int errorCode)
+ResponseError::ResponseError(ServerCfg const& cfg, Request const& req, e_errorcode errorCode)
 : Response(cfg, req), _errorCode(errorCode) {}
 
 ResponseError::~ResponseError() {}

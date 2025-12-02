@@ -5,7 +5,7 @@
 
 
 Response::Response(const ServerCfg &config, const Request &request)
-: _cfg(config), _req(request), _version("HTTP/1.0") , _statusCode(200), _statusMsg("OK"), _autoindex(_cfg.getAutoindex()), _bodyIsFile(true)
+: _cfg(config), _req(request), _version("HTTP/1.0") , _statusCode(OK), _statusMsg("OK"), _autoindex(_cfg.getAutoindex()), _bodyIsFile(true)
 {
 	this->_addHeader("Server", "Amazing webserv");
 	this->_addHeader("Connection", "close");
@@ -18,9 +18,9 @@ Response::~Response(){}
 
 /*========================= Protected member funcions  ================================*/
 
-std::string	Response::_getReasonPhrase(int errCode) const
+std::string	Response::_getReasonPhrase(e_errorcode errCode) const
 {
-	static std::map<int, std::string> errorCodes;
+	static std::map<e_errorcode, std::string> errorCodes;
 
 	// 1xx Informational
 	errorCodes[CONTINUE] = "Continue";
@@ -72,15 +72,15 @@ std::string	Response::_getReasonPhrase(int errCode) const
 	errorCodes[GATEWAY_TIMEOUT] = "Gateway Timeout";
 	errorCodes[HTTP_VERSION_NOT_SUPPORTED] = "HTTP Version Not Supported";
 
-	std::map<int, std::string>::const_iterator it = errorCodes.find(errCode);
+	std::map<e_errorcode, std::string>::const_iterator it = errorCodes.find(errCode);
 	if (it != errorCodes.end())
 	return it->second;
 	return "Unknown Status";
 }
 
-void	Response::_responseIsErrorPage(int errCode)
+void	Response::_responseIsErrorPage(e_errorcode errCode)
 {
-	static std::map<int, std::string> errorPages;
+	static std::map<e_errorcode, std::string> errorPages;
 
 	if (this->_sendCustomErrorPage(errCode))
 		return;
@@ -114,7 +114,7 @@ void	Response::_responseIsErrorPage(int errCode)
 	this->_addHeader("Content-Length", numToString(this->_body.size()));
 }
 
-bool	Response::_sendCustomErrorPage(int errCode)
+bool	Response::_sendCustomErrorPage(e_errorcode errCode)
 {
 	std::map<int, std::string> const& customPages = this->_cfg.getErrorPages();
 	std::map<int, std::string>::const_iterator it = customPages.find(errCode);
@@ -215,7 +215,7 @@ _getContentType(std::string const& path) const
 }
 
 
-void	Response::_setStatus(int code)
+void	Response::_setStatus(e_errorcode code)
 {
 	this->_statusCode = code;
 	this->_statusMsg = this->_getReasonPhrase(code);
@@ -279,16 +279,16 @@ void	Response::_sendFileAsBody(std::string const& path)
 			if (body.empty())
 			{
 				LOG_INFO_LINK("requested directory listing: [" + path + "] but couldn't open it");
-				this->_responseIsErrorPage(413);
+				this->_responseIsErrorPage(PAYLOAD_TOO_LARGE);
 				return;
 			}
 			this->_setBody(body, "text/html");
-			this->_setStatus(200);
+			this->_setStatus(OK);
 		}
 		else
 		{
 			LOG_INFO_LINK("requested directory listing: [" + path + "] but autoindex is off, sending 403 forbidden");
-			this->_responseIsErrorPage(403);
+			this->_responseIsErrorPage(FORBIDDEN);
 		}
 
 		return ;

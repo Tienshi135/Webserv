@@ -65,6 +65,8 @@ struct File
 
 enum e_errorcode
 {
+    RESPONSEPOST_ERROR = -1,
+    RESPONSEPOST_OK = 0,
     CONTINUE = 100,
     SWITCHING_PROTOCOLS = 101,
 

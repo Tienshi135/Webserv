@@ -33,7 +33,7 @@ class ResponsePost : public Response
 		bool			setOrCreatePath(std::string const& path);
 
 	//Build from type functions
-		int	buildFromMultipart();
+		e_errorcode	buildFromMultipart();
 
 	public:
 		ResponsePost(ServerCfg const& cfg, Request const& req);

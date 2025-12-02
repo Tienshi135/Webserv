@@ -11,7 +11,7 @@ class Response
 
 	//response line
 		std::string	const	_version;
-		int					_statusCode;
+		e_errorcode			_statusCode;
 		std::string			_statusMsg;
 
 	//headers and body
@@ -23,21 +23,21 @@ class Response
 		std::string		_bodyFilePath;
 
 	//private functions
-		std::string		_getReasonPhrase(int errCode) const;
+		std::string		_getReasonPhrase(e_errorcode errCode) const;
 		std::string		_getContentType(std::string const& path) const;
 		std::string		_generateDirListingHtml(std::string const& path);
 
 	//setting atributes
-		void	_setStatus(int code);
+		void	_setStatus(e_errorcode code);
 		void	_setBody(std::string const& bodyContent, std::string const& contentType);
 		void	_addHeader(std::string const& key, std::string const& value);
 		void	_sendFileAsBody(std::string const& path);
-		bool	_sendCustomErrorPage(int errCode);
+		bool	_sendCustomErrorPage(e_errorcode errCode);
 
 	//tools
 		bool		_isSecurePath(std::string const& path);
 		std::string	_normalizePath(std::string const& root, std::string const& uri);
-		void		_responseIsErrorPage(int errCode);
+		void		_responseIsErrorPage(e_errorcode errCode);
 		off_t		_validateFilePath(std::string const& path);
 
 	private:
