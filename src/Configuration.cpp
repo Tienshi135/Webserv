@@ -259,15 +259,15 @@ bool	ServerCfg::minValidCfg(void) const
 
 /*============== Constructor and destructors ================*/
 
-Location::Location() : Configuration(), _path(""), _cgiPass(""), _return(), _validCgiExt(), _cgiMap() {}
+Location::Location() : Configuration(), _path(""), _return(), _validCgiExt(), _cgiPass(), _cgiEnabled(false) {}
 
 Location::Location(const Location &copy)
 : Configuration(copy),
 _path(copy._path),
-_cgiPass(copy._cgiPass),
 _return(copy._return),
 _validCgiExt(copy._validCgiExt),
-_cgiMap(copy._cgiMap)
+_cgiPass(copy._cgiPass),
+_cgiEnabled(copy._cgiEnabled)
 {}
 
 Location::~Location(){}
@@ -283,23 +283,13 @@ Location &Location::operator=(const Location &copy)
 		this->_cgiPass = copy._cgiPass;
 		this->_return = copy._return;
 		this->_validCgiExt = copy._validCgiExt;
-		this->_cgiMap = copy._cgiMap;
+		this->_cgiPass = copy._cgiPass;
 	}
 	return (*this);
 }
 
 /*============== setters and getters ================*/
 
-void	Location::setCgiPass(std::vector<std::string> const& value)
-{
-	 if (value.empty())
-		throw ERR_PARS("Location directive [cgi_pass] has no value");
-	if (value.size() > 1)
-		throw ERR_PARS("Location directive [cgi_pass] has too many values");
-	if (!pathIsExecutable(value.front()))
-		throw ERR_PARS("Location directive [cgi_pass] path is not executable: [" + value.front() + "]");
-	this->_cgiPass = value.front();
-}
 
 void Location::setReturn(std::vector<std::string>& return_val)
 {
@@ -358,7 +348,7 @@ void	Location::addCgiExt(std::string const& cgiExt)
 		this->_validCgiExt.push_back(cgiExt);
 }
 
-void	Location::addCgiPair(std::vector<std::string>& cgiMapPair)
+void	Location::addCgiPairs(std::vector<std::string>& cgiMapPair)
 {
 	if (cgiMapPair.size() % 2 != 0)
 		throw ERR_PARS("Directive [cgi_map] need a pair number of elements");
@@ -376,18 +366,26 @@ void	Location::addCgiPair(std::vector<std::string>& cgiMapPair)
 		if (!pathIsExecutable(pathToBin))
 			throw ERR_PARS("Path to binary file [" + pathToBin + "], to execute [" + ext + "] extensions, is not an executable file" );
 
-		this->_cgiMap[ext] = pathToBin;
+		this->_cgiPass[ext] = pathToBin;
 		this->addCgiExt(ext);
 	}
 }
 
 void	Location::setCgiMap(std::map<std::string, std::string>& cgiMap)
 {
-	this->_cgiMap.clear();
-	this->_cgiMap.insert(cgiMap.begin(), cgiMap.end());
+	this->_cgiPass.clear();
+	this->_cgiPass.insert(cgiMap.begin(), cgiMap.end());
 }
 
+std::string	Location::getExtensionExecutor(std::string const& ext) const
+{
+	std::map<std::string, std::string>::const_iterator it = this->_cgiPass.find(ext);
 
+	if (it != this->_cgiPass.end())
+		return it->second;
+
+	return "";
+}
 
 /*============== Member private functions ================*/
 
@@ -407,7 +405,7 @@ int	Location::parseReturnCode(std::string const& strCode)
 
 /*============== Member public functions ================*/
 
-bool	Location::minValidLocation(void) const
+bool	Location::minValidLocation(void)
 {
 	bool hasRoot = !this->_root.empty();
 	bool hasCGI = !this->_cgiPass.empty();
@@ -429,13 +427,25 @@ bool	Location::minValidLocation(void) const
 
 	if (hasCGI)
 	{
-		if (!pathIsExecutable(this->_cgiPass))
+		std::map<std::string, std::string>::const_iterator it;
+		for (it = this->_cgiPass.begin(); it != this->_cgiPass.end(); it++)
 		{
-			LOG_WARNING_LINK("Invalid Location: cgipass [" + this->_cgiPass + "] is not a valid executable");
-			return false;
+			if (!pathIsExecutable(it->second))
+			{
+				LOG_WARNING_LINK("Invalid Location: cgipass [" + it->second + "] is not a valid executable");
+				return false;
+			}
 		}
+		this->_cgiEnabled = true;
 	}
 
 	return true;
+}
+
+bool	Location::isValidExtension(std::string const& ext) const
+{
+	if (std::find(this->_validCgiExt.begin(), this->_validCgiExt.end(), ext) != this->_validCgiExt.end())
+		return (true);
+	return (false);
 }
 

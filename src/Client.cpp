@@ -163,7 +163,7 @@ int	Client::readBuffer()
 
 			this->_request.setRequestCompleted(true);
 			this->_request.setTooBig(true);
-			
+
 			while(recv(this->_client_fd, buffer, sizeof(buffer), 0) > 0)
 				; // empty body to clear the socket
 			return (0);

@@ -1,6 +1,4 @@
 #include "Response_headers/ResponsePost.hpp"
-#include "CGIheaders/ACGIexecutor.hpp"
-#include "CGIheaders/CGIfactory.hpp"
 #include "Request.hpp"
 #include "Configuration.hpp"
 
@@ -296,20 +294,6 @@ std::string	ResponsePost::saveFilePath(void)
 
 void	ResponsePost::buildResponse(void)
 {
-	//TODO handle first if POST demands CGI. if yes, launch the binary, if not, store body as a file.
-
-	if (CGIfactory::isValidCGI(this->_req, this->_cfg))
-	{
-		ACGIexecutor *CGI = CGIfactory::create(this->_req, this->_cfg);
-		if (!CGI)
-		{
-			LOG_HIGH_WARNING_LINK("CGI allocation failed");
-			this->_responseIsErrorPage(INTERNAL_SERVER_ERROR);
-		}
-		CGI->execute();
-		return;
-	}
-
 	e_errorcode errorCode;
 
 	switch (this->_contentType)

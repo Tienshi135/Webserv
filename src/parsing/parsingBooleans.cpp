@@ -95,7 +95,7 @@ bool	pathIsExecutable(std::string const& path)
 
 	if (stat(path.c_str(), &st) != 0)
 		return false;
-	if (!S_ISDIR(st.st_mode))
+	if (!S_ISREG(st.st_mode))
 		return false;
 	if (access(path.c_str(), X_OK) != 0)
 		return false;

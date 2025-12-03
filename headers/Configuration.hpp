@@ -22,7 +22,6 @@ typedef enum ConfigType
 
 	LOCATION,
 	CGIPASS,
-	CGIMAP,
 
 	UNKNOWN
 }	e_configtype;
@@ -79,10 +78,10 @@ class Location : public Configuration
 
 
 		std::string							_path;
-		std::string							_cgiPass;
 		ReturnDirective						_return;
 		std::vector<std::string>			_validCgiExt;
-		std::map<std::string, std::string>  _cgiMap;
+		std::map<std::string, std::string>  _cgiPass;
+		bool								_cgiEnabled;
 
 
 		int	parseReturnCode(std::string const& strCode);
@@ -97,19 +96,21 @@ class Location : public Configuration
 		void		setLocationPath(std::string const& path) { this->_path = path; };
 
 		//setters complex
-		void		setCgiPass(std::vector<std::string> const& value);
 		void		setReturn(std::vector<std::string>& return_val);
 		void		setCgiExt(std::vector<std::string>& cgiExt);
 		void		addCgiExt(std::string const& cgiExt);
 		void		setCgiMap(std::map<std::string, std::string>& cgiMap);
-		void		addCgiPair(std::vector<std::string>& cgiMapPair);
+		void		addCgiPairs(std::vector<std::string>& cgiMapPairs);
 
 
 		//getters
-		std::string getLocationPath() const { return this->_path; };
+		std::string		getLocationPath() const { return this->_path; };
 		ReturnDirective	getReturn() const { return this->_return; };
+		bool			isCgiEnabled() const { return this->_cgiEnabled; };
+		std::string		getExtensionExecutor(std::string const& ext) const;
 
-		bool	minValidLocation() const;
+		bool	minValidLocation();
+		bool	isValidExtension(std::string const& ext) const;
 	};
 
 class ServerCfg : public Configuration
