@@ -211,7 +211,7 @@ void	Client::sendResponse(void)
 	}
 
 	response->buildResponse();
-	std::string response_str = response->getRawResponse();
+	const std::string& response_str = response->getRawResponse();
 	response->printResponse();
 
 	ssize_t bytes_sent = send(this->_client_fd, response_str.c_str(), response_str.length(), 0);
@@ -221,6 +221,7 @@ void	Client::sendResponse(void)
 	gettimeofday(&this->_response_sent_time, NULL);
 
 	this->printPerformanceStats();
+
 	delete (response);
 }
 

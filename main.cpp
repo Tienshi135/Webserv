@@ -97,6 +97,7 @@ void printVector(const std::vector<ServerCfg> &buffer)
                     std::cout << "      Max Body Size: " << loc_it->second.getMaxBodySize() << std::endl;
                 if (!loc_it->second.getStore().empty())
                     std::cout << "      Store: " << loc_it->second.getStore() << std::endl;
+                std::cout << "      CGI : " << (loc_it->second.isCgiEnabled() ?  "enabled" : "disabled") << std::endl;
             }
         }
 

@@ -247,6 +247,7 @@ e_errorcode	ResponsePost::buildFromMultipart(void)
 		resourceUri += "/";
 	resourceUri += this->_fileName;
 
+	this->_addStandardHeaders();
 	this->_addHeader("Location", resourceUri);
 	this->_bodyIsFile = false;
 	this->_setStatus(CREATED);

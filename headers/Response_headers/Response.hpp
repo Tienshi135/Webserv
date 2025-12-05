@@ -38,6 +38,7 @@ class Response
 		bool		_isSecurePath(std::string const& path);
 		std::string	_normalizePath(std::string const& root, std::string const& uri);
 		void		_responseIsErrorPage(e_errorcode errCode);
+		void		_addStandardHeaders(void);
 		off_t		_validateFilePath(std::string const& path);
 
 	private:

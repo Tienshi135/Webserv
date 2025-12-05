@@ -13,6 +13,7 @@ ResponseError::~ResponseError() {}
 
 void	ResponseError::buildResponse(void)
 {
+	this->_addStandardHeaders();
 	this->_responseIsErrorPage(this->_errorCode);
 }
 
