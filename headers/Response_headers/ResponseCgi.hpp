@@ -13,6 +13,8 @@ class ResponseCgi : public Response
 			UNKNOWNEXECT
 		};
 
+		std::string 						_scriptName;
+		std::string 						_scriptPath;
 		std::string							_ext;
 		e_exectype							_execType;
 		std::string							_executor;
@@ -26,6 +28,9 @@ class ResponseCgi : public Response
 	//tools
 		e_exectype	_getExecType(void);
 		std::string	_getExecutor(void);
+		std::string _extractQueryString(void);
+		char**		_mapToTable(std::map<std::string, std::string> const& envMap);
+		void		_parseAndSend(std::string const& output);
 
 	public:
 		ResponseCgi(ServerCfg const& cfg, Request const& req);

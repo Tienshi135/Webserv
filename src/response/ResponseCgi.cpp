@@ -1,6 +1,7 @@
 #include "Response_headers/ResponseCgi.hpp"
 #include "Request.hpp"
 #include "Configuration.hpp"
+#include <sys/wait.h>
 
 /*============== constructor and destructor =============*/
 
@@ -8,12 +9,27 @@ ResponseCgi::ResponseCgi(ServerCfg const& cfg, Request const& req)
 : Response(cfg, req)
 {
 	std::string uri = req.getUri();
-	std::string path = uri.substr(0, uri.find('?'));
-	size_t dotPos = path.find_last_of('.');
+	std::string scriptName = uri.substr(0, uri.find('?'));
+	size_t dotPos = scriptName.find_last_of('.');
 
-	this->_ext = path.substr(dotPos + 1);
+	const Location *location = cfg.getBestMatchLocation(req.getUri());
+
+	if (location == NULL) {
+		LOG_HIGH_WARNING_LINK("cgi constructor failed to match location");
+		return;
+	}
+
+	size_t lastSlash = scriptName.find_last_of('/');
+	if (lastSlash != std::string::npos)
+		this->_scriptName = scriptName.substr(lastSlash);
+	else
+		this->_scriptName = scriptName;
+
+	this->_scriptPath = location->getRoot();
+	this->_ext = scriptName.substr(dotPos);
 	this->_execType = this->_getExecType();
 	this->_executor = this->_getExecutor();
+
 	this->generateEnvironment(this->_enviroment);
 }
 
@@ -52,11 +68,50 @@ void	ResponseCgi::buildResponse(void)
 		break;
 	default:
 		this->_responseIsErrorPage(NOT_IMPLEMENTED);
+		break;
 	}
-
 }
 
 /*============== private Member functions =============*/
+
+char**	ResponseCgi::_mapToTable(std::map<std::string, std::string> const& envMap)
+{
+	size_t envSize = envMap.size();
+
+	char** envTable = new char*[envSize + 1];
+
+	std::map<std::string, std::string>::const_iterator it;
+	size_t i = 0;
+
+	for (it = envMap.begin(); it != envMap.end(); ++it, ++i)
+	{
+		std::string envEntry = it->first + "=" + it->second;
+
+		envTable[i] = new char[envEntry.length() + 1];
+		std::strcpy(envTable[i], envEntry.c_str());
+	}
+
+	envTable[envSize] = NULL;
+
+	return envTable;
+
+}
+
+std::string	ResponseCgi::_extractQueryString(void)
+{
+	std::string uri = this->_req.getUri();
+
+	size_t questionMarkPos = uri.find_first_of('?');
+	if (questionMarkPos == std::string::npos)
+	{
+		LOG_ERROR_LINK("query string not found");
+		return ("");
+	}
+
+	std::string queryString = urlDecode(uri.substr(questionMarkPos + 1));
+
+	return (queryString);
+}
 
 void ResponseCgi::generateEnvironment(std::map<std::string, std::string>& env)
 {
@@ -64,17 +119,18 @@ void ResponseCgi::generateEnvironment(std::map<std::string, std::string>& env)
 	env["AUTH_TYPE"] = "";//not used much
 	env["CONTENT_LENGTH"] = this->_req.getHeader("Content-Length");
 	env["CONTENT_TYPE"] = this->_req.getHeader("Content-Type");
+	env["HTTP_COOKIE"] = this->_req.getHeader("Cookie");
 	env["GATEWAY_INTERFACE"] = "CGI/1.1";
 	//for a request of https://somehost.com/cgi-bin/somescript.cgi/this.is.path;info
-	env["PATH_INFO"] = this->_req.getUri();//would be /this.is.path;info
-	env["PATH_TRANSLATED"] = this->_req.getUri();//would be /html/cgi-bin/somescript.cgi/this.is.path;info
-	env["QUERY_STRING"] = "";//whatever is after the ? in the uri
+	env["PATH_INFO"] = this->_scriptPath;//would be /this.is.path;info
+	env["PATH_TRANSLATED"] = this->_normalizePath(this->_scriptPath, this->_scriptName);//would be /html/cgi-bin/somescript.cgi/this.is.path;info
+	env["QUERY_STRING"] =  this->_extractQueryString();//whatever is after the ? in the uri
 	env["REMOTE_ADDR"];//TODO get from socket ip address of client
 	env["REMOTE_HOST"] = "NULL";//TODO get from socket but can be set to null
 	//env["REMOTE_IDENT"];//not used much
 	//env["REMOTE_USER"];//not used much but must be set if AUTH_TYPE is set
 	env["REQUEST_METHOD"] = this->_req.getMethod();
-	env["SCRIPT_NAME"] = "";//example /cgi-bin/somescript.cgi
+	env["SCRIPT_NAME"] = this->_scriptName;//example /cgi-bin/somescript.cgi
 	env["SERVER_NAME"] = this->_cfg.getName();
 	env["SERVER_PORT"] = numToString(static_cast<int>(this->_cfg.getPort()));
 	env["SERVER_PROTOCOL"] = this->_req.getVersion();
@@ -97,7 +153,11 @@ void ResponseCgi::generateEnvironment(std::map<std::string, std::string>& env)
 	env["HTTP_REFERER"] = this->_req.getHeader("Referer");
 	env["HTTP_USER_AGENT"] = this->_req.getHeader("User-Agent");
 
+	//Other variables
+	env["SCRIPT_FILENAME"] = this->_normalizePath(this->_scriptPath, this->_scriptName);
+;
 }
+
 std::string	ResponseCgi::_getExecutor(void)
 {
 	Location const *location = this->_cfg.getBestMatchLocation(this->_req.getUri());
@@ -110,6 +170,99 @@ std::string	ResponseCgi::_getExecutor(void)
 	return location->getExtensionExecutor(this->_ext);
 }
 
+void	ResponseCgi::_parseAndSend(std::string const& output)
+{
+	bool usesCRLF = true;
+
+	size_t headerEnd = output.find("\r\n\r\n");
+	if (headerEnd == std::string::npos)
+	{
+		headerEnd = output.find("\n\n");
+		usesCRLF = false;
+		if (headerEnd == std::string::npos)
+		{
+			// No headers found - treat entire output as body
+			LOG_WARNING_LINK("CGI output has no headers, treating as plain body");
+			this->_setBody(output, "text/html");
+			this->_setStatus(OK);
+			return;
+		}
+	}
+
+	std::string headers = output.substr(0, headerEnd);
+	std::string body = output.substr(headerEnd + (usesCRLF ? 4 : 2));
+
+	// Default headers
+	std::string contentType = "text/html";
+	e_errorcode statusCode = OK;
+
+	std::istringstream headerStream(headers);
+	std::string line;
+
+	while (std::getline(headerStream, line))
+	{
+		if (!line.empty() && line[line.length() - 1] == '\r')
+			line.erase(line.length() - 1);
+
+		if (line.empty())
+			continue;
+ 		size_t colonPos = line.find(':');
+		if (colonPos == std::string::npos)
+		{
+			LOG_WARNING_LINK("Invalid CGI header line: " + line);
+			continue;
+		}
+
+		std::string headerName = line.substr(0, colonPos);
+		std::string headerValue = line.substr(colonPos + 1);
+
+		size_t firstNonSpace = headerValue.find_first_not_of(" \t");
+		if (firstNonSpace != std::string::npos)
+			headerValue = headerValue.substr(firstNonSpace);
+
+		if (headerName == "Content-Type" || headerName == "Content-type")
+		{
+			contentType = headerValue;
+		}
+		else if (headerName == "Status")
+		{
+			std::istringstream statusStream(headerValue);
+			int statusInt = 0;
+			statusStream >> statusInt;
+
+			if (statusInt < 100 || statusInt > 599)
+			{
+				LOG_WARNING_LINK("Invalid status code from CGI: " + headerValue);
+				statusCode = OK;
+			}
+			else
+			{
+				statusCode = static_cast<e_errorcode>(statusInt);
+			}
+		}
+		else if (headerName == "Location")
+		{
+			this->_addHeader("Location", headerValue);
+
+			if (statusCode == OK)
+				statusCode = FOUND;
+		}
+		else
+		{
+			// Pass through other headers
+			this->_addHeader(headerName, headerValue);
+		}
+	}
+
+	// Build response
+	this->_addStandardHeaders();
+	this->_setStatus(statusCode);
+	// this->_setBody(body, contentType);
+	this->_setBody(body, contentType);
+}
+
+/*================================ Builders =====================================================*/
+
 void	ResponseCgi::_buildFromBash(void)
 {
 	this->_responseIsErrorPage(NOT_IMPLEMENTED);//TODO implement
@@ -117,8 +270,81 @@ void	ResponseCgi::_buildFromBash(void)
 
 void	ResponseCgi::_buildFromPython(void)
 {
-	this->_responseIsErrorPage(NOT_IMPLEMENTED);//TODO implement
+	if (this->_executor.empty())
+	{
+		LOG_HIGH_WARNING_LINK("No executor found for Python scripts");
+		this->_responseIsErrorPage(INTERNAL_SERVER_ERROR);
+		return;
+	}
+
+	std::string fullScriptPath = _normalizePath(this->_scriptPath, this->_scriptName);
+	if (!pathIsRegFile(fullScriptPath))
+	{
+		LOG_HIGH_WARNING_LINK("Can't execute or find CGI script: " + fullScriptPath);
+		this->_responseIsErrorPage(NOT_FOUND);
+		return;
+	}
+
+	int pipefd[2];
+	if (pipe(pipefd) == -1)
+	{
+		LOG_HIGH_WARNING_LINK("Failed to create pipe for CGI");
+		this->_responseIsErrorPage(INTERNAL_SERVER_ERROR);
+		return;
+	}
+
+	pid_t pid = fork();
+	if (pid == -1)
+	{
+		close(pipefd[0]);
+		close(pipefd[1]);
+		LOG_HIGH_WARNING_LINK("Fork failed for CGI execution");
+		this->_responseIsErrorPage(INTERNAL_SERVER_ERROR);
+		return;
+	}
+
+	if (pid == 0)
+	{
+		close(pipefd[0]);
+		dup2(pipefd[1], STDOUT_FILENO);
+		close(pipefd[1]);
+
+		char* executor = const_cast<char*>(this->_executor.c_str());
+		char* scriptPath =  const_cast<char*>(fullScriptPath.c_str());
+		char* args[] = { executor, scriptPath, NULL };
+		char** env = this->_mapToTable(this->_enviroment);
+
+		execve(executor, args, env);
+		perror("execve failed");
+		exit(1);
+	}
+	close(pipefd[1]);
+
+	std::string cgiOutput;
+	char buffer[4096];
+	ssize_t bytesRead;
+
+	while ((bytesRead = read(pipefd[0], buffer, sizeof(buffer))) > 0)
+		cgiOutput.append(buffer, bytesRead);
+
+	close(pipefd[0]);
+
+	int status;
+	waitpid(pid, &status, 0);
+	if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
+	{
+		LOG_HIGH_WARNING_LINK("CGI script failed with status: " +
+								numToString(WEXITSTATUS(status)));
+		this->_responseIsErrorPage(INTERNAL_SERVER_ERROR);
+		return;
+	}
+
+	// this->_addStandardHeaders();
+	// this->_setStatus(OK);
+	// this->_setBody(cgiOutput, "text/html");
+	this->_parseAndSend(cgiOutput);
 }
+
 void	ResponseCgi::_buildFromPhp(void)
 {
 	this->_responseIsErrorPage(NOT_IMPLEMENTED);//TODO implement

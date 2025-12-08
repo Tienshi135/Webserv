@@ -61,7 +61,7 @@ void	ResponseGet::buildResponse(void)
 			path =  this->_normalizePath(location->getRoot(), reqPath);
 	}
 
-
+	this->_addStandardHeaders();
 	//set the file requested as body if exits, error page if not, fill first line and headers accordingly
 	this->_sendFileAsBody(path);//TODO BUG if it sends a custom error page, it won't work because all errors sets bodyIsFile to false;
 

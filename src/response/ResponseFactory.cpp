@@ -41,7 +41,10 @@ bool	ResponseFactory::_isCgi(ServerCfg const& cfg, Request const& req)
 {
 	//0. cgi is only allowed in GET or POST petitions
 	if (req.getMethod() != "GET" && req.getMethod() != "POST")
+	{
+		LOG_ERROR_LINK("methtod not supported for CGI");//TODO debug pourposes delete later
 		return false;
+	}
 
 	//1. check if uri is inside the proper location and enabled
 	std::string uri = req.getUri();
@@ -50,7 +53,10 @@ bool	ResponseFactory::_isCgi(ServerCfg const& cfg, Request const& req)
 		return (false);
 
 	if (!location->isCgiEnabled())
+	{
+		LOG_ERROR_LINK("CGI not enabled");//TODO debug pourposes delete later
 		return (false);
+	}
 
 	//2. sacar la extension
 	std::string path = uri.substr(0, uri.find('?'));// extract the actual path from the uri
@@ -62,7 +68,7 @@ bool	ResponseFactory::_isCgi(ServerCfg const& cfg, Request const& req)
 	}
 
 	//3. extension is allowed by cfg
-	std::string ext = path.substr(dotPos + 1);
+	std::string ext = path.substr(dotPos);
 	if (!location->isValidExtension(ext))
 	{
 		LOG_WARNING_LINK("Requested extension [" + ext + "] is not allowed by cfg");
@@ -71,13 +77,14 @@ bool	ResponseFactory::_isCgi(ServerCfg const& cfg, Request const& req)
 
 	//4. there is an executable file inside the location root matching the request
 	std::string relative = path.substr(location->getLocationPath().size());
-	std::string binaryFilePath = ResponseFactory::_normalizePath(location->getRoot(), relative);
-	if (!pathIsExecutable(binaryFilePath))
+	std::string scriptFilePath = ResponseFactory::_normalizePath(location->getRoot(), relative);
+	if (!pathIsRegFile(scriptFilePath))
 	{
-		LOG_WARNING_LINK("the file [" + binaryFilePath + "] is not an executable script");
+		LOG_WARNING_LINK("the file [" + scriptFilePath + "] is not an executable script");
 		return false;
 	}
 
+	LOG_INFO_LINK("CGI detected");
 	return (true);
 }
 

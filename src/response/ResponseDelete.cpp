@@ -46,6 +46,7 @@ void	ResponseDelete::buildResponse(void)
 
 	std::string httpMsg = "<html><body><h1>Deleted " + deletePath + "</h1></body></html>";
 	// this->addHeader("Location", resourceUri);
+	this->_addStandardHeaders();
 	this->_setStatus(OK);
 	this->_setBody(httpMsg, "text/html");//TODO  this is a placeholder, delete this when implemented a response page for upload
 	this->_bodyIsFile = false;

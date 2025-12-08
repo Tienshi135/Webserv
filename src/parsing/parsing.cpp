@@ -85,7 +85,7 @@ void	parseLocation(ServerCfg& server, std::vector<std::string>& locationLine, Fi
 	if (line.find("}") == std::string::npos)
 		throw ERR_PARS_CFGLN("Location has no closing braces", file.nLines);
 
-	std::map<std::string, Location> currentMap = server.getLocationMap();
+	std::map<std::string, Location>& currentMap = server.getLocationMapRef();
 	Location& tempLocation = currentMap[locationPath];
 	if (!tempLocation.minValidLocation())
 		throw ERR_PARS("abort");
