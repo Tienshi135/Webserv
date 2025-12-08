@@ -257,19 +257,36 @@ void	ResponseCgi::_buildFromPython(void)
 		return;
 	}
 
-	int pipefd[2];
-	if (pipe(pipefd) == -1)
+	int pipeOut[2];
+	if (pipe(pipeOut) == -1)
 	{
-		LOG_HIGH_WARNING_LINK("Failed to create pipe for CGI");
+		LOG_HIGH_WARNING_LINK("Failed to create output pipe for CGI");
 		this->_responseIsErrorPage(INTERNAL_SERVER_ERROR);
 		return;
 	}
 
+	int pipeIn[2];
+	bool isPost = (this->_req.getMethod() == "POST");
+	if (pipe(pipeIn) == -1)
+	{
+		close(pipeOut[0]);
+		close(pipeOut[1]);
+		LOG_HIGH_WARNING_LINK("Failed to create input pipe for CGI");
+		this->_responseIsErrorPage(INTERNAL_SERVER_ERROR);
+		return;
+	}
+
+
 	pid_t pid = fork();
 	if (pid == -1)
 	{
-		close(pipefd[0]);
-		close(pipefd[1]);
+		close(pipeOut[0]);
+		close(pipeOut[1]);
+		if (isPost)
+		{
+			close(pipeIn[0]);
+			close(pipeIn[1]);
+		}
 		LOG_HIGH_WARNING_LINK("Fork failed for CGI execution");
 		this->_responseIsErrorPage(INTERNAL_SERVER_ERROR);
 		return;
@@ -277,9 +294,16 @@ void	ResponseCgi::_buildFromPython(void)
 
 	if (pid == 0)
 	{
-		close(pipefd[0]);
-		dup2(pipefd[1], STDOUT_FILENO);
-		close(pipefd[1]);
+		close(pipeOut[0]);
+		dup2(pipeOut[1], STDOUT_FILENO);
+		close(pipeOut[1]);
+
+		if (isPost)
+		{
+			close(pipeIn[1]);
+			dup2(pipeIn[0], STDIN_FILENO);
+			close(pipeIn[0]);
+		}
 
 		char* executor = const_cast<char*>(this->_executor.c_str());
 		char* scriptPath =  const_cast<char*>(fullScriptPath.c_str());
@@ -290,16 +314,49 @@ void	ResponseCgi::_buildFromPython(void)
 		perror("execve failed");
 		exit(1);
 	}
-	close(pipefd[1]);
+	close(pipeOut[1]);
+
+	if (isPost)
+	{
+		close(pipeIn[0]);  // Close read end of input pipe
+
+		std::string bodyFilePath = this->_req.getBodyFilePath();
+		if (!bodyFilePath.empty())
+		{
+			std::ifstream bodyFile(bodyFilePath.c_str(), std::ios::binary);
+			if (bodyFile.is_open())
+			{
+				char buffer[4096];
+				while (bodyFile.read(buffer, sizeof(buffer)) || bodyFile.gcount() > 0)
+				{
+					ssize_t written = write(pipeIn[1], buffer, bodyFile.gcount());
+					if (written == -1)
+					{
+						LOG_WARNING_LINK("Failed to write POST body to CGI");
+						break;
+					}
+				}
+				bodyFile.close();
+			}
+			else
+			{
+				LOG_WARNING_LINK("Failed to open body file: " + bodyFilePath);
+			}
+		}
+		else
+			LOG_INFO_LINK("CGI request with POST method has no body");
+
+		close(pipeIn[1]);
+	}
 
 	std::string cgiOutput;
 	char buffer[4096];
 	ssize_t bytesRead;
 
-	while ((bytesRead = read(pipefd[0], buffer, sizeof(buffer))) > 0)
+	while ((bytesRead = read(pipeOut[0], buffer, sizeof(buffer))) > 0)
 		cgiOutput.append(buffer, bytesRead);
 
-	close(pipefd[0]);
+	close(pipeOut[0]);
 
 	int status;
 	waitpid(pid, &status, 0);

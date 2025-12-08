@@ -80,7 +80,7 @@ bool	ResponseFactory::_isCgi(ServerCfg const& cfg, Request const& req)
 	std::string scriptFilePath = ResponseFactory::_normalizePath(location->getRoot(), relative);
 	if (!pathIsRegFile(scriptFilePath))
 	{
-		LOG_WARNING_LINK("the file [" + scriptFilePath + "] is not an executable script");
+		LOG_WARNING_LINK("[" + scriptFilePath + "] is not a regular file");
 		return false;
 	}
 

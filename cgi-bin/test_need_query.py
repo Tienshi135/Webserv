@@ -139,11 +139,17 @@ print("""<!DOCTYPE html>
             background: #5568d3;
         }
 
-        footer {
+        .back-link {
             text-align: center;
-            margin-top: 30px;
-            color: #999;
-            font-size: 0.9em;
+            margin-top: 20px;
+        }
+        .back-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .back-link a:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
@@ -218,12 +224,13 @@ print(f"""
                 <p><strong>SCRIPT_NAME:</strong> {os.environ.get('SCRIPT_NAME', 'N/A')}</p>
                 <p><strong>SERVER_SOFTWARE:</strong> {os.environ.get('SERVER_SOFTWARE', 'N/A')}</p>
             </div>
+
+            </div>
+                <div class="back-link">
+                <a href="/">Back to Main Page</a>
+            </div>
         </div>
 
-        <footer>
-            <p> Python CGI Script - Webserv</p>
-            <p>Query String Demo - 2025</p>
-        </footer>
     </div>
 </body>
 </html>
