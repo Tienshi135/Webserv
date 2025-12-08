@@ -107,6 +107,9 @@ Response*	ResponseFactory::createResponse(ServerCfg const& cfg, Request const& r
 	if (!_isAllowedMethod(method, cfg, req))
 		return (new ResponseError(cfg, req, METHOD_NOT_ALLOWED));
 
+	if (method == "POST" && req.getExpectedBodySize() == 0)
+		return (new ResponseError(cfg, req, NO_CONTENT));
+
 	if (ResponseFactory::_isCgi(cfg, req))
 		return (new ResponseCgi(cfg, req));// this object will fork
 

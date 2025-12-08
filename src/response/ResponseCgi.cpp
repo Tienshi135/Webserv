@@ -311,9 +311,6 @@ void	ResponseCgi::_buildFromPython(void)
 		return;
 	}
 
-	// this->_addStandardHeaders();
-	// this->_setStatus(OK);
-	// this->_setBody(cgiOutput, "text/html");
 	this->_parseAndSend(cgiOutput);
 }
 
