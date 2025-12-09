@@ -58,7 +58,7 @@ void	ResponseGet::buildResponse(void)
 			path = this->_normalizePath(location->getRoot(), location->getIndex());
 		}
 		else
-			path =  this->_normalizePath(location->getRoot(), reqPath);
+			path =  this->_normalizePath(location->getRoot(), relativePath);
 	}
 
 	this->_addStandardHeaders();

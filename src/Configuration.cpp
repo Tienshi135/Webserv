@@ -351,7 +351,7 @@ void	Location::addCgiExt(std::string const& cgiExt)
 void	Location::addCgiPairs(std::vector<std::string>& cgiMapPair)
 {
 	if (cgiMapPair.size() % 2 != 0)
-		throw ERR_PARS("Directive [cgi_map] need a pair number of elements");
+		throw ERR_PARS("Directive [cgi_pass] need a pair number of elements");
 
 	std::vector<std::string>::iterator it;
 	for (it = cgiMapPair.begin(); it != cgiMapPair.end(); it++)
