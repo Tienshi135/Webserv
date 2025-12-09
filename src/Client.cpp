@@ -197,7 +197,7 @@ void	Client::sendResponse(void)
 	{
 		LOG_HIGH_WARNING_LINK("Response creation failed");
 
-		std::string firstLine = "HTTP/1.1 500 Internal Server Error";
+		std::string firstLine = "HTTP/1.0 500 Internal Server Error";
 		std::string body = "<!DOCTYPE html><html><body><h1>500 Internal Server Error</h1><p>The server encountered an unexpected condition, memory allocation failed.</p></body></html>";
 		std::string headers = "Content-Length: " + numToString(body.size()) + "\r\nConten-Type: text/html\r\n";
 		std::string responseBadAlloc = firstLine + "\r\n" + headers + "\r\n" + "\r\n\r\n" + body;

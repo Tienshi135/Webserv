@@ -104,9 +104,9 @@ std::string numToString(size_t num)
  */
 std::string	strToLower(std::string const& string)
 {
-	std::string	lowered;
-	for (size_t i = 0; i < string.size(); i++)
-		lowered[i] = std::tolower(string[i]);
+	std::string	lowered = string;
+	for (size_t i = 0; i < lowered.size(); i++)
+		lowered[i] = std::tolower(lowered[i]);
 
 	return lowered;
 }

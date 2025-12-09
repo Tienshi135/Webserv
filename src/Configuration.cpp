@@ -320,7 +320,7 @@ void Location::setReturn(std::vector<std::string>& return_val)
 		throw ERR_PARS("Directive [return] code [" + return_val[0] + "] has empty value");
 
 	if (code >= 300 && code < 400 && !isUrl(return_val[1]))
-	throw ERR_PARS("Location directive [return] has code: [" + return_val.front() + "] with no URL");
+		throw ERR_PARS("Location directive [return] has code: [" + return_val.front() + "] with invalid URL: [" + return_val[1] + "]");
 
 	std::vector<std::string>::iterator it;
 	for (it = return_val.begin() + 1; it != return_val.end(); it++)

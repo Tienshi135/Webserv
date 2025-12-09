@@ -58,7 +58,16 @@ void	ResponseGet::buildResponse(void)
 			path = this->_normalizePath(location->getRoot(), location->getIndex());
 		}
 		else
-			path =  this->_normalizePath(location->getRoot(), relativePath);
+			path = this->_normalizePath(location->getRoot(), relativePath);
+
+		if (location->getReturn().isSet)
+		{
+			this->_addStandardHeaders();
+			this->_addHeader("Location", location->getReturn().value);
+			this->_setStatus(static_cast<e_errorcode>(location->getReturn().code));
+			this->_setBody("<html><body><h1>Redirecting...</h1><a href=" + location->getReturn().value + ">Click</a></body></html>", "text/html");
+			return;
+		}
 	}
 
 	this->_addStandardHeaders();
