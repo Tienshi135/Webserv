@@ -30,10 +30,12 @@ class ResponsePost : public Response
 		std::string		saveFilePath();
 		void			printContentTypeElements();
 		void			makeUnicIde(std::string& fileName, std::string const& type);
+		e_errorcode		saveTextFile(void);
 		bool			setOrCreatePath(std::string const& path);
 
 	//Build from type functions
 		e_errorcode	buildFromMultipart();
+		e_errorcode buildFromPlainText();
 
 	public:
 		ResponsePost(ServerCfg const& cfg, Request const& req);

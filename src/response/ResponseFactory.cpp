@@ -41,10 +41,7 @@ bool	ResponseFactory::_isCgi(ServerCfg const& cfg, Request const& req)
 {
 	//0. cgi is only allowed in GET or POST petitions
 	if (req.getMethod() != "GET" && req.getMethod() != "POST")
-	{
-		LOG_ERROR_LINK("methtod not supported for CGI");//TODO debug pourposes delete later
 		return false;
-	}
 
 	//1. check if uri is inside the proper location and enabled
 	std::string uri = req.getUri();
@@ -53,17 +50,14 @@ bool	ResponseFactory::_isCgi(ServerCfg const& cfg, Request const& req)
 		return (false);
 
 	if (!location->isCgiEnabled())
-	{
-		LOG_ERROR_LINK("CGI not enabled");//TODO debug pourposes delete later
 		return (false);
-	}
 
 	//2. sacar la extension
 	std::string path = uri.substr(0, uri.find('?'));// extract the actual path from the uri
 	size_t dotPos = path.find_last_of('.');
 	if (dotPos == std::string::npos)
 	{
-		LOG_WARNING_LINK("executables with no extension are non supported");
+		LOG_WARNING_LINK("executables with no extension are not supported");
 		return (false);
 	}
 
@@ -80,7 +74,7 @@ bool	ResponseFactory::_isCgi(ServerCfg const& cfg, Request const& req)
 	std::string scriptFilePath = ResponseFactory::_normalizePath(location->getRoot(), relative);
 	if (!pathIsRegFile(scriptFilePath))
 	{
-		LOG_WARNING_LINK("the file [" + scriptFilePath + "] is not an executable script");
+		LOG_WARNING_LINK("[" + scriptFilePath + "] is not a regular file");
 		return false;
 	}
 
@@ -106,6 +100,9 @@ Response*	ResponseFactory::createResponse(ServerCfg const& cfg, Request const& r
 
 	if (!_isAllowedMethod(method, cfg, req))
 		return (new ResponseError(cfg, req, METHOD_NOT_ALLOWED));
+
+	if (method == "POST" && req.getExpectedBodySize() == 0)
+		return (new ResponseError(cfg, req, NO_CONTENT));
 
 	if (ResponseFactory::_isCgi(cfg, req))
 		return (new ResponseCgi(cfg, req));// this object will fork

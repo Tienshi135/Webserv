@@ -194,6 +194,22 @@
             vertical-align: middle;
         }
 
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+        .back-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .back-link a:hover {
+            text-decoration: underline;
+        }
+
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
@@ -201,7 +217,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📤 File Upload Test</h1>
+        <h1>File Upload Test</h1>
         <p class="subtitle">Test your Webserv POST implementation</p>
 
         <form id="uploadForm" enctype="multipart/form-data" method="POST" action="/upload">
@@ -220,11 +236,25 @@
             <div class="button-group">
                 <button type="submit" class="upload-btn" id="uploadBtn" disabled>Upload File</button>
                 <button type="button" class="clear-btn" id="clearBtn">Clear</button>
+
+
+                </div>
+                    <div class="back-link">
+                    <a href="/delete/delfile.html">Go to Delete File Page</a>
+                    <a href="/">Back to Main Page</a>
+                </div>
+
             </div>
+
+
         </form>
 
         <div class="status" id="status"></div>
+
+
     </div>
+
+
 
     <script>
         const uploadArea = document.getElementById('uploadArea');
@@ -349,7 +379,5 @@
             status.classList.remove('show');
         }
     </script>
-    <p><a href="index.html">Home</a></p>
-    <p><a href="/delete/delfile.html">Delete File</a></p>
 </body>
 </html>

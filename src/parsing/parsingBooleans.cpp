@@ -282,7 +282,14 @@ bool	isUrl(std::string const& url)
 	if (url.size() >= 7)
 	{
 		std::string http = strToLower(url.substr(0, 7));
-		if (http == "http://")
+		if (http.compare("http://") == 0)
+			return true;
+	}
+
+	if (url.size() >= 8)
+	{
+		std::string http = strToLower(url.substr(0, 8));
+		if (http.compare("https://") == 0)
 			return true;
 	}
 

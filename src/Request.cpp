@@ -83,9 +83,9 @@ Request &Request::operator=(const Request &copy)
 std::string Request::getHeader(const std::string &key) const
 {
 	std::map<std::string, std::string>::const_iterator it = this->_headers.find(key);
-    if (it != this->_headers.end())
-	return it->second;
-    return "";
+	if (it != this->_headers.end())
+		return it->second;
+	return "";
 }
 
 
@@ -167,14 +167,6 @@ bool	Request::validateRequest(void)
 		if (this->_tmpBodyFileSize != this->_expectedBodySize)
 		{
 			LOG_WARNING_LINK("Invalid request: Body size mismatch: got " + numToString(static_cast<size_t>(this->_tmpBodyFileSize)) + ", expected " + numToString(this->_expectedBodySize));
-			return false;
-		}
-	}
-	else
-	{
-		if (this->_method == "POST")
-		{
-			LOG_WARNING_LINK("Invalid request: method POST has no body");
 			return false;
 		}
 	}
@@ -305,16 +297,16 @@ void	Request::buildHeaders(std::string received)
 		}
 	}
 
-	bool	Request::fillFirstLine(std::vector<std::string>& firstLine)
+bool	Request::fillFirstLine(std::vector<std::string>& firstLine)
+{
+	if (firstLine.size() != 3)
 	{
-		if (firstLine.size() != 3)
-		{
-			LOG_WARNING_LINK("Invalid request: first line size has not 3 elements");
-			return false;
-		}
+		LOG_WARNING_LINK("Invalid request: first line size has not 3 elements");
+		return false;
+	}
 
-		std::vector<std::string>::iterator it = firstLine.begin();
-		this->_method = *it;
+	std::vector<std::string>::iterator it = firstLine.begin();
+	this->_method = *it;
 	it++;
 	this->_uri = urlDecode(*it);
 	it++;

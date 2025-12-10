@@ -107,6 +107,88 @@ bool	ResponsePost::setOrCreatePath(std::string const& path)
 	return true;
 }
 
+e_errorcode ResponsePost::saveTextFile(void)
+{
+	std::string bodyFilePath = this->_req.getBodyFilePath();
+	if (bodyFilePath.empty())
+	{
+		LOG_HIGH_WARNING_LINK("No path found for tmp body");
+		return INTERNAL_SERVER_ERROR;
+	}
+
+	std::ifstream bodyFile(bodyFilePath.c_str(), std::ios::binary);
+	if (!bodyFile.is_open())
+	{
+		LOG_HIGH_WARNING_LINK("Failed to oppen temp body file");
+		return INTERNAL_SERVER_ERROR;
+	}
+
+	std::string name = "Text";
+	std::string ext = "txt";
+	this->makeUnicIde(name, ext);
+	this->_fileName = name;
+
+	std::string savePath = this->saveFilePath();
+	if (savePath.empty())
+	{
+		bodyFile.close();
+		return RESPONSEPOST_ERROR;
+	}
+
+	std::ofstream outFile(savePath.c_str(), std::ios::binary);
+	if (!outFile.is_open())
+	{
+		bodyFile.close();
+		LOG_HIGH_WARNING_LINK("Couldn't open path to save file [" + savePath + "]");
+		return INTERNAL_SERVER_ERROR;
+	}
+
+	char buffer[1024 * 8];
+	while (bodyFile.read(buffer, sizeof(buffer)) || bodyFile.gcount() > 0)
+	{
+		outFile.write(buffer, bodyFile.gcount());
+		if (bodyFile.gcount() < 0)
+		{
+			LOG_HIGH_WARNING_LINK("Writing process failed from file [" + bodyFilePath + "] to file [" + savePath + "]");
+			break;
+		}
+	}
+
+	bodyFile.close();
+	outFile.close();
+
+	if (outFile.fail())
+	{
+		std::remove(savePath.c_str());
+		LOG_HIGH_WARNING_LINK("Failed to write file [" + savePath + "]");
+		return INTERNAL_SERVER_ERROR;
+	}
+
+	return RESPONSEPOST_OK;
+}
+
+e_errorcode ResponsePost::buildFromPlainText(void)
+{
+	e_errorcode error = this->saveTextFile();
+	if (error)
+		return (error);
+
+	this->_addStandardHeaders();
+	std::string resourceUri = this->_normalizePath(this->_fileName, this->_req.getUri());
+
+	this->_addHeader("Location", resourceUri);
+	this->_bodyIsFile = false;
+	this->_setStatus(CREATED);
+
+	std::string responseBody = "<!DOCTYPE html><html><body><h1>Created</h1><p>Created file " + this->_fileName + "</p></body></html>";
+
+	this->_setBody(responseBody, "text/html");
+
+	LOG_INFO("Text file succesfully uploaded: [" + this->_fileName + "]");
+
+	return (error);
+}
+
 e_errorcode	ResponsePost::buildFromMultipart(void)
 {
 	if (this->_boundary.empty())
@@ -279,7 +361,7 @@ std::string	ResponsePost::saveFilePath(void)
 			return "";
 	}
 
-	savePath += ("/" + this->_fileName);
+	savePath = this->_normalizePath(savePath, this->_fileName);
 
 	if (!_isSecurePath(savePath))
 	{
@@ -291,7 +373,7 @@ std::string	ResponsePost::saveFilePath(void)
 	return savePath;
 }
 
-/*============== member function =============*/
+/*===================================== member function ================================================*/
 
 void	ResponsePost::buildResponse(void)
 {
@@ -300,8 +382,9 @@ void	ResponsePost::buildResponse(void)
 	switch (this->_contentType)
 	{
 	case TEXT:
-		LOG_WARNING_LINK("Content type [text/plain] not supported yet");
-		this->_responseIsErrorPage(UNSUPPORTED_MEDIA_TYPE);
+		errorCode = this->buildFromPlainText();
+		if (errorCode > 0)
+			this->_responseIsErrorPage(errorCode);
 		return;
 	case MULTIPART:
 		errorCode = this->buildFromMultipart();
