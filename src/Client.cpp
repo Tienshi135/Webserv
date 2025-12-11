@@ -225,11 +225,12 @@ void	Client::sendResponse(void)
 	delete (response);
 }
 
-void	Client::closeConnection(fd_set &read_fd)
+void	Client::closeConnection(fd_set &read_fd, fd_set &write_fd)
 {
 	LOG_INFO("Connection closed with client : " + numToString(this->_client_fd) + ", awaiting next client");
 	close(this->_client_fd);
 	FD_CLR(this->_client_fd, &read_fd);
+	FD_CLR(this->_client_fd, &write_fd);
 }
 
 /*============================= private member functions =====================================*/

@@ -45,5 +45,5 @@ class Client {
 		bool		isCompleteRequest(void);
 		int			readBuffer(void);
 		void		sendResponse();
-		void		closeConnection(fd_set &read_fd);
+        void		closeConnection(fd_set &read_fd, fd_set &write_fd);
 };

@@ -162,9 +162,11 @@ int main(int argc, char **argv)
 	while (true)
 	{
 		fd_set	read_fd;
+        fd_set  write_fd;
 		int		max_fd = 0;
 
 		FD_ZERO(&read_fd);
+        FD_ZERO(&write_fd);
 		std::map<int, ServerCfg>::iterator sfd_it = sfd.begin();
 		while (sfd_it != sfd.end())
 		{
@@ -176,6 +178,7 @@ int main(int argc, char **argv)
             {
                 int client_fd = cfd[sfd_it->first][i]->getClientFd();
                 FD_SET(client_fd, &read_fd);
+                FD_SET(client_fd, &write_fd);
                 if (client_fd > max_fd)
                     max_fd = client_fd;
             }
@@ -185,7 +188,7 @@ int main(int argc, char **argv)
 		timeout.tv_sec = 0;
 		timeout.tv_usec = 0;
 
-		int activity = select(max_fd + 1, &read_fd, NULL, NULL, &timeout);
+		int activity = select(max_fd + 1, &read_fd, &write_fd, NULL, &timeout);
 		if (activity < 0)
 		{
 			std::cerr << "select() error: " << strerror(errno) << std::endl;
@@ -207,7 +210,7 @@ int main(int argc, char **argv)
             for (int i = cfd[sfd_it->first].size() - 1; i >= 0; i--)
             {
                 Client &client = *cfd[sfd_it->first][i];
-                if (FD_ISSET(client.getClientFd(), &read_fd))
+                if (FD_ISSET(client.getClientFd(), &read_fd) && FD_ISSET(client.getClientFd(), &write_fd))
                 {
                     if (client.readBuffer() >= 0)
                     {
@@ -224,7 +227,7 @@ int main(int argc, char **argv)
                             the reference.
                         */
                     }
-                    client.closeConnection(read_fd);
+                    client.closeConnection(read_fd, write_fd);
                     delete (cfd[sfd_it->first][i]);
                     cfd[sfd_it->first].erase(cfd[sfd_it->first].begin() + i);
                 }
