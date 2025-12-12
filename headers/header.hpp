@@ -119,7 +119,7 @@ enum e_errorcode
 
 /*======= PARSING =====*/
 //parsing
-void				parse(std::vector<ServerCfg> &buffer, char *path);
+void				parse(std::vector<ServerCfg> &buffer, std::string const& path);
 void				parseLocation(ServerCfg& server, std::vector<std::string>& locationLine, File &file);
 ServerCfg			parseServer(File& file);
 

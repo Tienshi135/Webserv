@@ -114,21 +114,34 @@ void signalHandler(int signum)
 
 int main(int argc, char **argv)
 {
-	std::map<int, ServerCfg>			sfd;//map of server fds to their configurations couldchange to a class
+	std::map<int, ServerCfg>			    sfd;//map of server fds to their configurations couldchange to a class
 	std::map<int, std::vector<Client*> >	cfd;//map of server fds to their clients
-	std::vector<ServerCfg>				buffer;
+	std::vector<ServerCfg>				    buffer;
+    std::string                             configFile;
 
-	if (argc != 2)
+	if (argc == 1)
 	{
-		std::cout << "usage: ./webserv [*.conf]" << std::endl;
-		return (-1);
+        std::string defaultCfg = "./configs/default.conf";
+        if (!pathIsRegFile(defaultCfg))
+        {
+            LOG_ERROR("Default config not found");
+            return (-1);
+        }
+        configFile = defaultCfg;
 	}
+    else if (argc > 2)
+    {
+        LOG_INFO("Too many arguments");
+        LOG_INFO("usage: ./webserv /configs/*.conf");
+    }
+    else
+        configFile = argv[1];
 
     signal(SIGINT, signalHandler);
 	//first part - parsing
 	try
 	{
-		parse(buffer, argv[1]);
+		parse(buffer, configFile.c_str());
 	}
 	catch(const std::exception& e)
 	{

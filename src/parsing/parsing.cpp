@@ -91,14 +91,14 @@ void	parseLocation(ServerCfg& server, std::vector<std::string>& locationLine, Fi
 		throw ERR_PARS("abort");
 }
 
-void parse(std::vector<ServerCfg> &buffer, char *path)
+void parse(std::vector<ServerCfg> &buffer, std::string const& path)
 {
 	File				file;
 	std::string			line;
 	ServerCfg			serverInstance;
 
 	file.nLines = 0;
-	file.file.open(path);
+	file.file.open(path.c_str());
 	if (!file.file.is_open())
 		throw ERR_PARS("Could'nt open config file");
 
